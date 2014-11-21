@@ -1,4 +1,4 @@
-function stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispFig,keepAspectRatio,saveFile)
+function stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispFig,keepAspectRatio)
 
 if ~isfield(stimulus,'cuenoise'),stimulus.imagesLoaded = 0;end
 stimulus.cuenoise = 1;

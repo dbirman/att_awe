@@ -5,6 +5,8 @@ screen.screenNumber = 2;
 myscreen = initScreen(screen);
 
 global stimulus
+clear stimulus
+global stimulus
 myscreen = initStimulus('stimulus',myscreen);
 widthPix=250;
 heightPix=250;
@@ -44,7 +46,8 @@ stimulus.heightDeg = heightDeg;
 categories = {'m','f'};
 % objlocDir = which('objloc');objlocDir = fileparts(objlocDir);
 % imageDir = fullfile(objlocDir,'images/ObjLocImages');
-imageDir = fullfile('/Users/dan/proj/att_awe/images/af_small/');
+name = getenv('USER');
+imageDir = fullfile(sprintf('/Users/%s/proj/att_awe/images/af_small/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 % set the reserved colors
@@ -55,8 +58,8 @@ for i = 1:stimulus.colors.nReservedColors
   stimulus.colors.reservedColor(i) = (i-1)/stimulus.maxIndex;
 end
 
-saveFile = fullfile('/Users/dan/proj/att_awe/s_t_sf.mat');
-stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispLoadFig,keepAspectRatio,saveFile);
+% saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/s_t_sf.mat',name));
+stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispLoadFig,keepAspectRatio);
 
 %% Gamma Table Initialization
 

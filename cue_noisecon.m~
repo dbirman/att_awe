@@ -14,7 +14,7 @@ function myscreen = cue_noisecon(varargin)
 % add arguments later
 widthPix = []; heightPix = []; widthDeg = []; heightDeg = [];
 peripheralTask = [];
-getArgs(varargin,{'widthPix=250','heightPix=250','widthDeg=6','heightDeg=6','peripheralTask=1'});
+getArgs(varargin,{'widthPix=500','heightPix=500','widthDeg=6','heightDeg=6','peripheralTask=1'});
 
 
 %% Setup Screen
@@ -26,7 +26,6 @@ myscreen = initScreen(screen);
 
 global stimulus
 clear stimulus
-global stimulus
 myscreen = initStimulus('stimulus',myscreen);
 
 % Should we use a staircase?
@@ -136,8 +135,8 @@ task{1}{1}.randVars.calculated.imageNums = nan(1,4);
 
 % Task switching
 types = [1 2]; types = types(randperm(2));
-stimulus.blocks.fullblocks = repmat(types,1,task{1}{1}.numBlocks/2);
-stimulus.blocks.blockTypes = {'Noise','Contrast'};
+stimulus.fullblocks = repmat(types,1,task{1}{1}.numBlocks/2);
+stimulus.blockTypes = {'Noise','Contrast'};
 
 %% Full Setup
 % Initialize task (note phase == 1)
@@ -463,11 +462,11 @@ global stimulus
 
 mglClearScreen(stimulus.colors.reservedColor(4));
 
-task.thisblock.blockType = stimulus.blocks.fullblocks(task.blockTrialnum);
+task.thisblock.blockType = stimulus.fullblocks(task.blockTrialnum);
 
 myscreen.flushMode = 1;
-mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
-disp(sprintf('(startBlock) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
+mglTextDraw(stimulus.blockTypes{task.thisblock.blockType},[0,0]);
+disp(sprintf('(startBlock) Block type: %s',stimulus.blockTypes{task.thisblock.blockType}));
 
 
 %% scalePDF
@@ -541,7 +540,7 @@ for condition = 1:2
     else
         peds = stimulus.pedestals.contrast;
     end
-    blocks = stimulus.blocks.blockTypes;
+    blocks = stimulus.blockTypes;
     disp(sprintf('(Condition: %s, %0.2f ): %f (n=%i)',blocks{condition},peds(ped),s.threshold,n));
   end
 end
