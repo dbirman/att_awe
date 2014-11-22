@@ -108,6 +108,12 @@ dispLoadFig = 0; keepAspectRatio = 0;
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
 stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispLoadFig,keepAspectRatio);
 
+%% EYE CALIB
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% run the eye calibration
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+myscreen = eyeCalibDisp(myscreen);
+
 %% Setup Task
 
 % This is the contrast/noise discrimination task
