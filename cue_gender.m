@@ -25,6 +25,10 @@ else
     stimulus.p.responseLetters = [10 9];
 end
 stimulus.p.init_SOA = .25;   
+stimulus.p.scram.rate = 15;
+stimulus.p.scram.last = 0;
+stimulus.p.scram.left = 0;
+stimulus.p.scram.right = 0;
 
 %% Task Params
 
@@ -36,7 +40,7 @@ task{1}.parameter.position = [1 2];
 task{1}.randVars.calculated.gender = nan(2,2);
 task{1}.randVars.calculated.images = nan(2,2);
 task{1}.randVars.calculated.respond = nan;
-task{1}.parameter.intervals = [0 1 2 3];
+task{1}.parameter.intervals = [3]; % Note, you can set this to 0/1/2 to have the images only show up during some of the intervals
 task{1}.random = 1;
 task{1}.waitForBacktick = 1;
 
@@ -162,14 +166,23 @@ elseif stimulus.pFlag == 1  % If the main task has set the start flag to 1
   task = jumpSegment(task);       %  and start the subsidiary task by jumping to the next segment
 end
 
-if stimulus.p.scramble == 1
+if stimulus.p.scram.left == 0 || (mglGetSecs - stimulus.p.scram.last) > (1 / stimulus.p.scram.rate)
+    stimulus.p.scram.last = mglGetSecs;
+    old = [stimulus.p.scram.left stimulus.p.scram.right];
+    while any([stimulus.p.scram.left == old, stimulus.p.scram.right == old])
+        stimulus.p.scram.left = randi(9) + 1;
+        stimulus.p.scram.right = randi(9) + 1;
+    end
+end
+    
+if stimulus.p.scramble == 1 
 % Just draw random stuff
-    imgDraw(stimulus.p.g1,stimulus.p.n1,1,1);
-    imgDraw(stimulus.p.g2,stimulus.p.n2,2,1);
+    imgDraw(stimulus.p.g1,stimulus.p.n1,1,1,stimulus.p.scram.left);
+    imgDraw(stimulus.p.g2,stimulus.p.n2,2,1,stimulus.p.scram.right);
 else
     % Draw the correct image on one side, scrambled on the other
-    imgDraw(stimulus.p.g1,stimulus.p.n1,1,task.thistrial.position==1);
-    imgDraw(stimulus.p.g2,stimulus.p.n2,2,task.thistrial.position==2);
+    imgDraw(stimulus.p.g1,stimulus.p.n1,1,task.thistrial.position==1,stimulus.p.scram.left);
+    imgDraw(stimulus.p.g2,stimulus.p.n2,2,task.thistrial.position==2,stimulus.p.scram.right);
 end
 
 % Jump segment when the timing calls for it
@@ -177,15 +190,12 @@ if task.thistrial.thisseg == 2 && (mglGetSecs - stimulus.p.SOA_onset{task.trialn
     task = jumpSegment(task);
 end
 
-% Always draw segment #
-mglTextDraw(num2str(task.thistrial.thisseg),[-10,-8]);
-
-function imgDraw(gen,imgN,pos,scramble)
+function imgDraw(gen,imgN,pos,scramble,s)
 global stimulus
 
 if scramble == 1
     % get a mask image
-    image = stimulus.p.tex{gen,randi(9)+1}(imgN);
+    image = stimulus.p.tex{gen,s}(imgN);
 else
     % actual image
     image = stimulus.p.tex{gen,1}(imgN);

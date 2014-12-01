@@ -14,7 +14,7 @@ function myscreen = cue_noisecon(varargin)
 % add arguments later
 widthPix = []; heightPix = []; widthDeg = []; heightDeg = [];
 peripheralTask = [];
-getArgs(varargin,{'widthPix=500','heightPix=500','widthDeg=6','heightDeg=6','peripheralTask=1'});
+getArgs(varargin,{'widthPix=250','heightPix=250','widthDeg=6','heightDeg=6','peripheralTask=1'});
 
 
 %% Setup Screen
@@ -26,6 +26,7 @@ myscreen = initScreen(screen);
 
 global stimulus
 clear stimulus
+global stimulus
 myscreen = initStimulus('stimulus',myscreen);
 
 % Should we use a staircase?
@@ -107,14 +108,27 @@ dispLoadFig = 0; keepAspectRatio = 0;
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
 stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispLoadFig,keepAspectRatio);
 
+%% EYE CALIB
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% run the eye calibration
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+myscreen = eyeCalibDisp(myscreen);
+
 %% Setup Task
 
 % This is the contrast/noise discrimination task
 task{1}{1}.waitForBacktick = 1;
-task{1}{1}.segmin = [1 1 2 .5 2 2];
-task{1}{1}.segmax = [2 1 2 .5 2 2];
-task{1}{1}.synchToVol = [0 0 0 0 0 0];
-task{1}{1}.getResponse = [0 0 0 0 1 1];
+stimulus.seg.ITI = 1;
+stimulus.seg.cue = 2;
+stimulus.seg.stim1 = 3;
+stimulus.seg.presp1 = 4;
+stimulus.seg.stim2 = 5;
+stimulus.seg.presp2 = 6;
+stimulus.seg.resp = 7;
+task{1}{1}.segmin = [1 1 1 .5 1 .5 2];
+task{1}{1}.segmax = [2 1 1 .5 1 .5 2];
+task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
+task{1}{1}.getResponse = [0 0 0 0 0 0 1];
 task{1}{1}.randVars.calculated.blockType = nan;
 % We will use the 2-5 pedestal of 1-6 options, to always have one above or
 % below.
@@ -135,8 +149,8 @@ task{1}{1}.randVars.calculated.imageNums = nan(1,4);
 
 % Task switching
 types = [1 2]; types = types(randperm(2));
-stimulus.fullblocks = repmat(types,1,task{1}{1}.numBlocks/2);
-stimulus.blockTypes = {'Noise','Contrast'};
+stimulus.blocks.fullblocks = repmat(types,1,task{1}{1}.numBlocks/2);
+stimulus.blocks.blockTypes = {'Noise','Contrast'};
 
 %% Full Setup
 % Initialize task (note phase == 1)
@@ -341,10 +355,10 @@ function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus
 myscreen.flushMode = 0;
-if any(task.thistrial.thisseg == [3 5])
+if any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
     stimulus.pFlag = 1;
     stimulus.pInt = (task.thistrial.thisseg - 1) / 2;
-elseif any(task.thistrial.thisseg == [1 6])
+elseif any(task.thistrial.thisseg == [stimulus.seg.resp])
     stimulus.pFlag = 2;
 else
     stimulus.pFlag = 0;
@@ -358,6 +372,16 @@ end
 function [task myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
+
+stimulus.seg.ITI = 1;
+stimulus.seg.cue = 2;
+stimulus.seg.stim1 = 3;
+stimulus.seg.presp1 = 4;
+stimulus.seg.stim2 = 5;
+stimulus.seg.presp2 = 6;
+stimulus.seg.resp = 7;
+
+
 % mglTextDraw(stimulus.blockTypes{task.thisblock.blockType},[0,5]);
 if myscreen.flushMode == 0
     mglClearScreen(stimulus.colors.reservedColor(4));
@@ -366,15 +390,18 @@ if myscreen.flushMode == 0
     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(1);
     % set the fixation color
-    if task.thistrial.thisseg == 2
+    if task.thistrial.thisseg == stimulus.seg.cue
+        % Cue segment
         upCues(task,stimulus);
         upFix(stimulus);
-    elseif any(task.thistrial.thisseg == [3 5])
+        % Either of the stimulus segments
+    elseif any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
         upCues(task,stimulus);
         upFaces(stimulus,task);
         stimulus.fixColor = stimulus.colors.reservedColor(12);
         upFix(stimulus);
-    elseif task.thistrial.thisseg == 4
+    elseif task.thistrial.thisseg == stimulus.seg.resp
+        % Resp segment?
         upCues(task,stimulus);
         upFix(stimulus);
     else
@@ -462,11 +489,11 @@ global stimulus
 
 mglClearScreen(stimulus.colors.reservedColor(4));
 
-task.thisblock.blockType = stimulus.fullblocks(task.blockTrialnum);
+task.thisblock.blockType = stimulus.blocks.fullblocks(task.blockTrialnum);
 
 myscreen.flushMode = 1;
-mglTextDraw(stimulus.blockTypes{task.thisblock.blockType},[0,0]);
-disp(sprintf('(startBlock) Block type: %s',stimulus.blockTypes{task.thisblock.blockType}));
+mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
+disp(sprintf('(startBlock) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
 
 
 %% scalePDF
@@ -540,7 +567,7 @@ for condition = 1:2
     else
         peds = stimulus.pedestals.contrast;
     end
-    blocks = stimulus.blockTypes;
+    blocks = stimulus.blocks.blockTypes;
     disp(sprintf('(Condition: %s, %0.2f ): %f (n=%i)',blocks{condition},peds(ped),s.threshold,n));
   end
 end

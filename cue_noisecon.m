@@ -118,10 +118,17 @@ myscreen = eyeCalibDisp(myscreen);
 
 % This is the contrast/noise discrimination task
 task{1}{1}.waitForBacktick = 1;
-task{1}{1}.segmin = [1 1 2 .5 2 2];
-task{1}{1}.segmax = [2 1 2 .5 2 2];
-task{1}{1}.synchToVol = [0 0 0 0 0 0];
-task{1}{1}.getResponse = [0 0 0 0 1 1];
+stimulus.seg.ITI = 1;
+stimulus.seg.cue = 2;
+stimulus.seg.stim1 = 3;
+stimulus.seg.presp1 = 4;
+stimulus.seg.stim2 = 5;
+stimulus.seg.presp2 = 6;
+stimulus.seg.resp = 7;
+task{1}{1}.segmin = [1 1 .5 1 .5 1 2];
+task{1}{1}.segmax = [2 1 .5 1 .5 1 2];
+task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
+task{1}{1}.getResponse = [0 0 0 0 0 0 1];
 task{1}{1}.randVars.calculated.blockType = nan;
 % We will use the 2-5 pedestal of 1-6 options, to always have one above or
 % below.
@@ -348,10 +355,10 @@ function [task myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus
 myscreen.flushMode = 0;
-if any(task.thistrial.thisseg == [3 5])
+if any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
     stimulus.pFlag = 1;
     stimulus.pInt = (task.thistrial.thisseg - 1) / 2;
-elseif any(task.thistrial.thisseg == [1 6])
+elseif any(task.thistrial.thisseg == [stimulus.seg.resp])
     stimulus.pFlag = 2;
 else
     stimulus.pFlag = 0;
@@ -373,16 +380,15 @@ if myscreen.flushMode == 0
     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(1);
     % set the fixation color
-    if task.thistrial.thisseg == 2
+    if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2 stimulus.seg.resp])
+        % Cue segment or the peripheral response segments or the resp
         upCues(task,stimulus);
         upFix(stimulus);
-    elseif any(task.thistrial.thisseg == [3 5])
+    elseif any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
+        % Either of the stimulus segments
         upCues(task,stimulus);
         upFaces(stimulus,task);
         stimulus.fixColor = stimulus.colors.reservedColor(12);
-        upFix(stimulus);
-    elseif task.thistrial.thisseg == 4
-        upCues(task,stimulus);
         upFix(stimulus);
     else
         upFix(stimulus);
@@ -403,7 +409,7 @@ mglFixationCross(1,1,stimulus.fixColor);
 function upCues(task,stimulus)
 
 ang = [0 0 180 180];
-if task.thistrial.cues == 1 || task.thistrial.thisseg == 5
+if task.thistrial.cues == 1 || task.thistrial.thisseg == stimulus.seg.resp
     % We can't just display all of the lines, we just want one line
     usePos1 = stimulus.pos1(task.thistrial.targetLoc);
     usePos2 = stimulus.pos2(task.thistrial.targetLoc);
