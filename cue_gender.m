@@ -94,17 +94,18 @@ elseif task.thistrial.thisseg == 2
     stimulus.p.n2 = task.thistrial.images(stimulus.pInt,2);
     
     % Presentation (Choose an image)
-    if task.thistrial.intervals == 1 && stimulus.pInt == 1
-        % There is only one interval and we are in the first one
-        task.thistrial.respond = 1;
-        stimulus.p.SOA_onset{task.trialnum}(1) = mglGetSecs;
-        stimulus.p.scramble = 0;
-        % One interval, second one
-    elseif task.thistrial.intervals == 2 && stimulus.pInt == 2
-        task.thistrial.respond = 1;
-        stimulus.p.SOA_onset{task.trialnum}(2) = mglGetSecs;
-        stimulus.p.scramble = 0;
-    elseif task.thistrial.intervals == 3
+% % % % % % %     if task.thistrial.intervals == 1 && stimulus.pInt == 1
+% % % % % % %         % There is only one interval and we are in the first one
+% % % % % % %         task.thistrial.respond = 1;
+% % % % % % %         stimulus.p.SOA_onset{task.trialnum}(1) = mglGetSecs;
+% % % % % % %         stimulus.p.scramble = 0;
+% % % % % % %         % One interval, second one
+% % % % % % %     elseif task.thistrial.intervals == 2 && stimulus.pInt == 2
+% % % % % % %         task.thistrial.respond = 1;
+% % % % % % %         stimulus.p.SOA_onset{task.trialnum}(2) = mglGetSecs;
+% % % % % % %         stimulus.p.scramble = 0;
+% % % % % % %     elseif task.thistrial.intervals == 3
+    if task.thistrial.intervals == 3
         % We should do both intervals
         task.thistrial.respond = 1;
         stimulus.p.SOA_onset{task.trialnum}(stimulus.pInt) = mglGetSecs;
@@ -117,18 +118,6 @@ elseif task.thistrial.thisseg == 2
         task = jumpSegment(task);
     end
 else
-    % We are in segment three, therefore if we were supposed to get a
-    % response we should check for it.
-    if task.thistrial.respond
-        whichGender = task.thistrial.gender(stimulus.pInt,task.thistrial.position);
-        if task.thistrial.gotResponse >= 1
-            % we did get a response and we were supposed to
-            stimulus.p.staircase{whichGender} = upDownStaircase(stimulus.p.staircase{whichGender},1);
-        else
-            % no response
-            stimulus.p.staircase{whichGender} = upDownStaircase(stimulus.p.staircase{whichGender},0);
-        end
-    end
     stimulus.p.scramble = 1;
 end
 
@@ -141,9 +130,11 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
         whichGender = task.thistrial.gender(stimulus.pInt,task.thistrial.position);
         if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
             correctIncorrect = 'correct';
+            stimulus.p.staircase{whichGender} = upDownStaircase(stimulus.p.staircase{whichGender},1);
             mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
         else
             correctIncorrect = 'incorrect';
+            stimulus.p.staircase{whichGender} = upDownStaircase(stimulus.p.staircase{whichGender},0);
             mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(14));
         end
         disp(sprintf('(Peripheral) Response %s',correctIncorrect));
