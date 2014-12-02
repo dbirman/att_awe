@@ -14,7 +14,8 @@ function myscreen = cue_noisecon(varargin)
 % add arguments later
 widthPix = []; heightPix = []; widthDeg = []; heightDeg = [];
 peripheralTask = [];
-getArgs(varargin,{'widthPix=250','heightPix=250','widthDeg=6','heightDeg=6','peripheralTask=1'});
+mainTask = [];
+getArgs(varargin,{'widthPix=250','heightPix=250','widthDeg=6','heightDeg=6','peripheralTask=1','mainTask=1'});
 
 
 %% Setup Screen
@@ -131,6 +132,7 @@ task{1}{1}.randVars.calculated.blockType = nan;
 % We will use the 2-5 pedestal of 1-6 options, to always have one above or
 % below.
 task{1}{1}.parameter.pedestal = 2:5;
+task{1}{1}.parameter.pedestalRandom = 2:5;
 task{1}{1}.parameter.interval = [1 2];
 task{1}{1}.parameter.targetLoc = 1:4;
 task{1}{1}.parameter.cues = [1 4];
@@ -140,7 +142,6 @@ task{1}{1}.numBlocks = 4;
 task{1}{1}.numTrials = 64;
 
 task{1}{1}.randVars.calculated.genderList = nan(1,4);
-task{1}{1}.randVars.calculated.pedestalList = nan(1,4);
 task{1}{1}.randVars.calculated.noiseList = nan(4,2);
 task{1}{1}.randVars.calculated.contrastList = nan(4,2);
 task{1}{1}.randVars.calculated.maxContrast = nan;
@@ -154,8 +155,10 @@ stimulus.blocks.blockTypes = {'Noise','Contrast'};
 
 %% Full Setup
 % Initialize task (note phase == 1)
-for phaseNum = 1:length(task{1})
-    [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],@startBlockCallback);
+if mainTask
+    for phaseNum = 1:length(task{1})
+        [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],@startBlockCallback);
+    end
 end
 if peripheralTask
     [task{2}, myscreen] = cue_gender(myscreen);
@@ -164,12 +167,22 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+stimulus.initThresh = zeros(2,2,4);
+for gen = 1:2
+    for cues = 1:2
+        if cues==1, t_val = .1;
+        else t_val = .2; end
+        for ped = 1:4
+            stimulus.initThresh(gen,cues,ped) = t_val;
+        end
+    end
+end
 threshold = .15;
 stepsize = .015;
 useLevittRule = 1;
 if stimulus.useStair
   disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
-  stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule);
+  stimulus = initStaircase(stimulus,stepsize,useLevittRule);
 else
 %   disp(sprintf('(noisecon) Continuing staircase from last run'));
 %   dispStaircase(stimulus);
@@ -181,7 +194,9 @@ phaseNum = 1;
 % Again, only one phase.
 while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     % update the task
-    [task{1}, myscreen, phaseNum] = updateTask(task{1},myscreen,phaseNum);
+    if mainTask
+        [task{1}, myscreen, phaseNum] = updateTask(task{1},myscreen,phaseNum);
+    end
     if peripheralTask
         [task{2}, myscreen] = updateTask(task{2},myscreen,1);
     end
@@ -189,18 +204,28 @@ while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     myscreen = tickScreen(myscreen,task);
 end
 
+dispStaircase();
+dispStaircaseP();
+
 % delete texture
-for x = 1:size(stimulus.tex,1)
-    for y = 1:size(stimulus.tex,2)
-        mglDeleteTexture(stimulus.tex{x,y});
+if isfield(stimulus,'flyTex')
+    for x = 1:size(stimulus.flyTex,1)
+        for y = 1:size(stimulus.flyTex,2)
+            mglDeleteTexture(stimulus.flyTex{x,y});
+        end
+    end
+end
+% delete texture
+if isfield(stimulus.p,'tex')
+    for x = 1:size(stimulus.p.tex,1)
+        for y = 1:size(stimulus.p.tex,2)
+            mglDeleteTexture(stimulus.p.tex{x,y});
+        end
     end
 end
 mglDeleteTexture(stimulus.mask);
-stimulus = rmfield(stimulus,'tex');
-
-
-dispStaircase(stimulus);
-dispStaircaseP(stimulus);
+stimulus = rmfield(stimulus,'flyTex');
+stimulus = rmfield(stimulus.p,'tex');
 
 clear stimulus
 
@@ -233,8 +258,11 @@ opi = 1;
 
 % We also need the randoms, if we are in a noise block then noise will get
 % the pedestals and contrast will get the randoms.
-randoms = [2 3 4 5];
-randoms = randoms(randperm(length(randoms)));
+rands = [task.thistrial.pedestalRandom-1 task.thistrial.pedestalRandom task.thistrial.pedestalRandom+1];
+rands = rands(randperm(length(rands)));
+pos = [1 2 3 4];
+randoms(pos==task.thistrial.targetLoc) = task.thistrial.pedestalRandom;
+randoms(pos~=task.thistrial.targetLoc) = rands;
 
 % Let's set the image genders
 
@@ -250,7 +278,7 @@ curGenders(curGenders==0) = gens(randperm(3));
 task.thistrial.genderList = curGenders;
 
 % Get Delta
-task.thistrial.deltaPed = getDeltaPed(task.thisblock.blockType,find(task.thistrial.cues==[1 4]),curPedestal);
+task.thistrial.deltaPed = getDeltaPed(task.thisblock.blockType,find(task.thistrial.cues==[1 4]),curPedestal-1);
 
     
 % Get maxContrast
@@ -267,19 +295,22 @@ for imagePos = 1:4
         if imagePos==task.thistrial.targetLoc
             % TARGET
             % Now we do adjustments
-            stimulus.flyTex{imagePos,int} = convertToTex(imagePos,task,randoms,1,int==task.thistrial.interval,curPedestal,p_mask);
-            task.thistrial.pedestalList(imagePos) = curPedestal;
+            [task stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,1,int,curPedestal,p_mask);
         else
             % NOT TARGET
-            stimulus.flyTex{imagePos,int} = convertToTex(imagePos,task,randoms,0,int==task.thistrial.interval,otherPedestals(opi),p_mask);
-            task.thistrial.pedestalList(imagePos) = otherPedestals(opi); opiFlag = 1;
+            [task stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,0,int,otherPedestals(opi),p_mask);
+            opiFlag = 1;
         end
     end
     if opiFlag, opi = opi + 1; end
 end
 
-function tex = convertToTex(imgNum,task,rands,isTarget,isInt,ped,p_mask)
+stop = 1;
+
+function [task, tex] = convertToTex(imgNum,task,rands,isTarget,int,ped,p_mask)
 global stimulus
+
+isInt = int==task.thistrial.interval;
 
 img = stimulus.tex{task.thistrial.genderList(imgNum)}(:,:,task.thistrial.imageNums(imgNum));
 
@@ -301,6 +332,9 @@ else
     curCon = stimulus.pedestals.contrast(ped) + add;
 end
 [curNoi, curCon] = checkValues(curNoi,curCon);
+
+task.thistrial.noiseList(imgNum,int) = curNoi;
+task.thistrial.contrastList(imgNum,int) = curCon;
 
 img_f = getHalfFourier(img);
 
@@ -347,7 +381,7 @@ end
 function deltaPed = getDeltaPed(condition,cue,p)
 global stimulus
 if stimulus.useStair
-    deltaPed = stimulus.staircase{condition}{cue}{p}.threshold;
+    deltaPed = stimulus.staircase{condition,cue,p}.threshold;
 else
     if condition == 1
         deltaPed = .2;
@@ -368,7 +402,7 @@ myscreen.flushMode = 0;
 if any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
     stimulus.pFlag = 1;
     stimulus.pInt = (task.thistrial.thisseg - 1) / 2;
-elseif any(task.thistrial.thisseg == [stimulus.seg.resp])
+elseif any(task.thistrial.thisseg == [stimulus.seg.resp stimulus.seg.ITI])
     stimulus.pFlag = 2;
 else
     stimulus.pFlag = 0;
@@ -386,8 +420,8 @@ global stimulus
 if myscreen.flushMode == 0
     mglClearScreen(stimulus.colors.reservedColor(4));
 
-    stimulus.text = num2str(task.thistrial.thisseg);
-    upText(stimulus);
+%     stimulus.text = num2str(task.thistrial.thisseg);
+%     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(1);
     % set the fixation color
     if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2 stimulus.seg.resp])
@@ -398,7 +432,9 @@ if myscreen.flushMode == 0
         % Either of the stimulus segments
         upCues(task,stimulus);
         upFaces(stimulus,task);
-        stimulus.fixColor = stimulus.colors.reservedColor(12);
+        % This turned the fixation color white, but it seems unnecessarily
+        % distracting.
+%         stimulus.fixColor = stimulus.colors.reservedColor(12);
         upFix(stimulus);
     else
         upFix(stimulus);
@@ -460,11 +496,11 @@ if any(task.thistrial.whichButton == [1 2])
         if (task.thistrial.whichButton == whichInterval)
             correctIncorrect = 'correct';
             stimulus.fixColor = stimulus.colors.reservedColor(15);
-            stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal},1);
+            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal},1);
         else
             correctIncorrect = 'incorrect';
             stimulus.fixColor = stimulus.colors.reservedColor(14);            
-            stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal},0);
+            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal},0);
         end
         disp(sprintf('(noisecon) Response %s',correctIncorrect));
         %     disp(sprintf('Cue: %s pedestal: %f deltaC: %f (%s)',stimulus.cueConditions{task.thistrial.cueCondition},task.thistrial.pedestalContrast(task.thistrial.targetLoc),stimulus.deltaContrast(task.trialnum),correctIncorrect));
@@ -535,15 +571,16 @@ image(image<mi) = mi;
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
 %%%%%%%%%%%%%%%%%%%%%%%%
-function stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule)
+function stimulus = initStaircase(stimulus,stepsize,useLevittRule)
+
 
 stimulus.staircase = cell(2,2,4);
 for condition = 1:2 % noise / contrast
     for cues = 1:2
-        for p = 1:length(stimulus.pedestals.contrast) % pedestal level 1->4
-            stimulus.staircase{condition}{cues}{p} = upDownStaircase(1,2,threshold,stepsize,useLevittRule);
-            stimulus.staircase{condition}{cues}{p}.minThreshold = 0;
-            stimulus.staircase{condition}{cues}{p}.maxThreshold = 1;
+        for p = 1:4 % pedestal level 1->4
+            stimulus.staircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p),stepsize,useLevittRule);
+            stimulus.staircase{condition,cues,p}.minThreshold = 0;
+            stimulus.staircase{condition,cues,p}.maxThreshold = 1;
         end
     end
 end
@@ -551,12 +588,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%%
-function dispStaircase(stimulus)
+function dispStaircase
+global stimulus
 
 for condition = 1:2
   for cue = 1:2
       for ped = 1:4
-        s = stimulus.staircase{condition}{cue}{ped};
+        s = stimulus.staircase{condition,cue,ped};
         if isfield(s,'strength')
           n = length(s.strength);
         else
@@ -576,15 +614,18 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
-function dispStaircaseP(stimulus)
+function dispStaircaseP
+global stimulus
 
-for gender = 1:2
-    s = stimulus.p.staircase{gender};
-    if isfield(s,'strength')
-      n = length(s.strength);
-    else
-      n = 0;
+if isfield(stimulus.p,'staircase')
+    for gender = 1:2
+        s = stimulus.p.staircase{gender};
+        if isfield(s,'strength')
+            n = length(s.strength);
+        else
+            n = 0;
+        end
+        cats = sort(stimulus.categories);
+        disp(sprintf('(Gender: %s): %f (n=%i)',cats{gender},s.threshold,n));
     end
-    cats = sort(stimulus.categories);
-    disp(sprintf('(Gender: %s): %f (n=%i)',cats{gender},s.threshold,n));
 end
