@@ -24,9 +24,7 @@ myscreen = initScreen(screen);
 
 %% Initialize Stimulus
 
-global stimulus
-clear stimulus
-global stimulus
+global stimulus %#ok<REDEF>
 myscreen = initStimulus('stimulus',myscreen);
 
 % Should we use a staircase?
@@ -90,8 +88,8 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
-stimulus.pedestals.contrast = [.1 .3 .5 .7];
-stimulus.pedestals.noise = [.1 .2 .4 .6];
+stimulus.pedestals.contrast = [ .1 .25 .4 .55 .7 .85];
+stimulus.pedestals.noise = [.1 .2 .3 .4 .6 .8];
 
 % load images
 stimulus.widthPix = widthPix;
@@ -132,7 +130,7 @@ task{1}{1}.getResponse = [0 0 0 0 0 0 1];
 task{1}{1}.randVars.calculated.blockType = nan;
 % We will use the 2-5 pedestal of 1-6 options, to always have one above or
 % below.
-task{1}{1}.parameter.pedestal = 1:4;
+task{1}{1}.parameter.pedestal = 2:5;
 task{1}{1}.parameter.interval = [1 2];
 task{1}{1}.parameter.targetLoc = 1:4;
 task{1}{1}.parameter.cues = [1 4];
@@ -198,8 +196,11 @@ end
 mglDeleteTexture(stimulus.mask);
 stimulus = rmfield(stimulus,'tex');
 
+
 dispStaircase(stimulus);
 dispStaircaseP(stimulus);
+
+clear stimulus
 
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
@@ -223,8 +224,8 @@ task.thistrial.imageNums = imgs;
 
 % Let's set the distractor image pedestals (the other three heights)
 curPedestal = task.thistrial.pedestal;
-otherPedestals = [1 2 3 4];
-otherPedestals = otherPedestals(otherPedestals~=curPedestal);
+otherPedestals = [task.thistrial.pedestal-1 task.thistrial.pedestal task.thistrial.pedestal+1];
+% otherPedestals = otherPedestals(otherPedestals~=curPedestal);
 otherPedestals = otherPedestals(randperm(length(otherPedestals)));
 opi = 1;
 
@@ -450,11 +451,11 @@ if any(task.thistrial.whichButton == [1 2])
         if (task.thistrial.whichButton == whichInterval)
             correctIncorrect = 'correct';
             stimulus.fixColor = stimulus.colors.reservedColor(15);
-            stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal},1);
+            stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal},1);
         else
             correctIncorrect = 'incorrect';
             stimulus.fixColor = stimulus.colors.reservedColor(14);            
-            stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal},0);
+            stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal},0);
         end
         disp(sprintf('(noisecon) Response %s',correctIncorrect));
         %     disp(sprintf('Cue: %s pedestal: %f deltaC: %f (%s)',stimulus.cueConditions{task.thistrial.cueCondition},task.thistrial.pedestalContrast(task.thistrial.targetLoc),stimulus.deltaContrast(task.trialnum),correctIncorrect));
