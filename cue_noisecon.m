@@ -134,8 +134,10 @@ task{1}{1}.parameter.pedestal = 2:5;
 task{1}{1}.parameter.interval = [1 2];
 task{1}{1}.parameter.targetLoc = 1:4;
 task{1}{1}.parameter.cues = [1 4];
+task{1}{1}.parameter.gender = [1 2]; % male, female
 task{1}{1}.random = 1;
 task{1}{1}.numBlocks = 4;
+task{1}{1}.numTrials = 64;
 
 task{1}{1}.randVars.calculated.genderList = nan(1,4);
 task{1}{1}.randVars.calculated.pedestalList = nan(1,4);
@@ -231,17 +233,24 @@ opi = 1;
 
 % We also need the randoms, if we are in a noise block then noise will get
 % the pedestals and contrast will get the randoms.
-randoms = [1 2 3 4];
+randoms = [2 3 4 5];
 randoms = randoms(randperm(length(randoms)));
 
 % Let's set the image genders
-genders = [1 1 2 2]; % always two male two female
-curGenders = genders(randperm(length(genders)));
+
+curGenders = [0 0 0 0];
+curGenders(task.thistrial.targetLoc) = task.thistrial.gender;
+if task.thistrial.gender == 1
+    gens = [1 2 2];
+else
+    gens = [1 1 2];
+end
+curGenders(curGenders==0) = gens(randperm(3));
 % Save
 task.thistrial.genderList = curGenders;
 
 % Get Delta
-task.thistrial.deltaPed = getDeltaPed(task.thisblock.blockType,curPedestal);
+task.thistrial.deltaPed = getDeltaPed(task.thisblock.blockType,find(task.thistrial.cues==[1 4]),curPedestal);
 
     
 % Get maxContrast
@@ -335,10 +344,10 @@ if cN > 1
 end
 
 
-function deltaPed = getDeltaPed(condition,p)
+function deltaPed = getDeltaPed(condition,cue,p)
 global stimulus
 if stimulus.useStair
-    deltaPed = stimulus.staircase{condition}{p}.threshold;
+    deltaPed = stimulus.staircase{condition}{cue}{p}.threshold;
 else
     if condition == 1
         deltaPed = .2;
@@ -451,11 +460,11 @@ if any(task.thistrial.whichButton == [1 2])
         if (task.thistrial.whichButton == whichInterval)
             correctIncorrect = 'correct';
             stimulus.fixColor = stimulus.colors.reservedColor(15);
-            stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal},1);
+            stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal},1);
         else
             correctIncorrect = 'incorrect';
             stimulus.fixColor = stimulus.colors.reservedColor(14);            
-            stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{task.thistrial.pedestal},0);
+            stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType}{find(task.thistrial.cues==[1 4])}{task.thistrial.pedestal},0);
         end
         disp(sprintf('(noisecon) Response %s',correctIncorrect));
         %     disp(sprintf('Cue: %s pedestal: %f deltaC: %f (%s)',stimulus.cueConditions{task.thistrial.cueCondition},task.thistrial.pedestalContrast(task.thistrial.targetLoc),stimulus.deltaContrast(task.trialnum),correctIncorrect));
@@ -528,11 +537,14 @@ image(image<mi) = mi;
 %%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule)
 
+stimulus.staircase = cell(2,2,4);
 for condition = 1:2 % noise / contrast
-    for p = 1:length(stimulus.pedestals.contrast) % pedestal level 1->4
-        stimulus.staircase{condition}{p} = upDownStaircase(1,2,threshold,stepsize,useLevittRule);
-        stimulus.staircase{condition}{p}.minThreshold = 0;
-        stimulus.staircase{condition}{p}.maxThreshold = 1;
+    for cues = 1:2
+        for p = 1:length(stimulus.pedestals.contrast) % pedestal level 1->4
+            stimulus.staircase{condition}{cues}{p} = upDownStaircase(1,2,threshold,stepsize,useLevittRule);
+            stimulus.staircase{condition}{cues}{p}.minThreshold = 0;
+            stimulus.staircase{condition}{cues}{p}.maxThreshold = 1;
+        end
     end
 end
 
@@ -542,20 +554,23 @@ end
 function dispStaircase(stimulus)
 
 for condition = 1:2
-  for ped = 1:4
-    s = stimulus.staircase{condition}{ped};
-    if isfield(s,'strength')
-      n = length(s.strength);
-    else
-      n = 0;
-    end
-    if condition == 1
-        peds = stimulus.pedestals.noise;
-    else
-        peds = stimulus.pedestals.contrast;
-    end
-    blocks = stimulus.blocks.blockTypes;
-    disp(sprintf('(Condition: %s, %0.2f ): %f (n=%i)',blocks{condition},peds(ped),s.threshold,n));
+  for cue = 1:2
+      for ped = 1:4
+        s = stimulus.staircase{condition}{cue}{ped};
+        if isfield(s,'strength')
+          n = length(s.strength);
+        else
+          n = 0;
+        end
+        if condition == 1
+            peds = stimulus.pedestals.noise;
+        else
+            peds = stimulus.pedestals.contrast;
+        end
+        blocks = stimulus.blocks.blockTypes;
+        cues = [1 4];
+        disp(sprintf('(Condition: %s, Cues: %i, %0.2f ): %f (n=%i)',blocks{condition},cues(cue),peds(ped),s.threshold,n));
+      end
   end
 end
 %%%%%%%%%%%%%%%%%%%%%%%
