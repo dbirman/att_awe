@@ -485,8 +485,8 @@ function [task myscreen] = getResponseCallback(task, myscreen)
 
 global stimulus
 mglClearScreen(stimulus.colors.reservedColor(4));
-stimulus.text = num2str(task.thistrial.thisseg);
-upText(stimulus);
+% stimulus.text = num2str(task.thistrial.thisseg);
+% upText(stimulus);
 
 %%%% NOTE: PARTICIPANTS ALWAYS LOOK FOR THE MORE VISIBLE ITEM, i.e. HIGHER NOISE OR CONTRAST %%%%
 
@@ -496,11 +496,11 @@ if any(task.thistrial.whichButton == [1 2])
         if (task.thistrial.whichButton == whichInterval)
             correctIncorrect = 'correct';
             stimulus.fixColor = stimulus.colors.reservedColor(15);
-            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal},1);
+            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},1);
         else
             correctIncorrect = 'incorrect';
             stimulus.fixColor = stimulus.colors.reservedColor(14);            
-            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal},0);
+            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},0);
         end
         disp(sprintf('(noisecon) Response %s',correctIncorrect));
         %     disp(sprintf('Cue: %s pedestal: %f deltaC: %f (%s)',stimulus.cueConditions{task.thistrial.cueCondition},task.thistrial.pedestalContrast(task.thistrial.targetLoc),stimulus.deltaContrast(task.trialnum),correctIncorrect));
