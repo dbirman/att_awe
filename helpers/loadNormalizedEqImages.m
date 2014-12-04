@@ -37,10 +37,15 @@ d.dirName = dirname;
 d.dir = dir(dirname);
 d.n = 0;
 
-mask_size = [100 100];
-mask = repmat([zeros(1,75),ones(1,100),zeros(1,75)],100,1);
-mask = [zeros(75,250);mask;zeros(75,250)];
-% mask = ones(mask_size(1),mask_size(2));
+if width == 250
+    mask_size = [100 100];
+    mask = repmat([zeros(1,75),ones(1,100),zeros(1,75)],100,1);
+    mask = [zeros(75,250);mask;zeros(75,250)];
+else
+    mask_size = [160 160];
+    mask = repmat([zeros(1,120),ones(1,160),zeros(1,120)],160,1);
+    mask = [zeros(120,400);mask;zeros(120,400)];
+end
 
 % load each image
 if dispFig,smartfig('loadNormalizedImages','reuse');end

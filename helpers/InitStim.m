@@ -1,4 +1,4 @@
-function stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispFig,keepAspectRatio)
+function stimulus = InitStim(stimulus,myscreen,categories,imageDirM,imageDirP,dispFig,keepAspectRatio)
 
 if ~isfield(stimulus,'cuenoise'),stimulus.imagesLoaded = 0;end
 stimulus.cuenoise = 1;
@@ -22,7 +22,8 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   for i = 1:stimulus.nCategories
     if ~any(strcmp(categories{i},{'scramble','blank','gray'}))
       % load images
-      stimulus.raw{i} = loadNormalizedEqImages(fullfile(imageDir,categories{i}),'width',stimulus.widthPix,'height',stimulus.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
+      stimulus.raw{i} = loadNormalizedEqImages(fullfile(imageDirM,categories{i}),'width',stimulus.widthPix,'height',stimulus.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
+      stimulus.p.raw{i} = loadNormalizedEqImages(fullfile(imageDirP,categories{i}),'width',stimulus.p.widthPix,'height',stimulus.p.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
 
       % make sure we opened ok
       if isempty(stimulus.raw{i})
@@ -35,26 +36,19 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
       averageN = averageN + 1;
     else
       stimulus.raw{i}.n = 0;
+      stimulus.p.raw{i}.n = 0;
     end
   end
   % compute average
   stimulus.averageMag = stimulus.averageMag/averageN;
   stimulus.averageDC = stimulus.averageDC/averageN;
   % and set that we have loaded
-  stimulus.imageDir = imageDir;
+  stimulus.imageDir = imageDirM;
+  stimulus.p.imageDir = imageDirP;
   stimulus.imagesLoaded = 1;
 
 else
   disp(sprintf('(noisecon) Stimulus already initialized'));
-end
-
-% count how many images
-nImages = [];
-for i = 1:stimulus.nCategories
-  if stimulus.raw{i}.n > 0
-    % keep number of images so that we can make scrambles with equal number of images
-    nImages(end+1) = stimulus.raw{i}.n;
-  end
 end
 
 %% Build/Load Image Array
@@ -66,31 +60,35 @@ stimulus.LUT = [];
 
 if ~loaded
     disp(sprintf('(noisecon) No file found, generating stimset... '));
-    for cat = 1:length(stimulus.raw)
-        for imgN = 1:stimulus.raw{cat}.n
-            %% Get IMAGE
-            thisImage = stimulus.raw{cat}.halfFourier{imgN};
-
+    
+    %% PERIPHERAL IMAGES
+    for cat = 1:length(stimulus.p.raw)
+        for imgN = 1:stimulus.p.raw{cat}.n
+            thisImage = stimulus.p.raw{cat}.halfFourier{imgN};
             %% Get 10-level image
             image = reconstructFromHalfFourier(thisImage);
             
             % Normalize the 10-level image by the equalized histogram
-            rmed = .33*255;
+            rmed = .5*255;
             mrmax = 255;
             mrmin = 0;
             % build the normalized PDF
-            npdf = normpdf(mrmin:mrmax,rmed,75);
+            npdf = normpdf(mrmin:mrmax,rmed,100);
             npdf = npdf / sum(npdf);
             % change the image to match the PDF
             image = (mrmax-mrmin)*histeq(image/255,npdf) + mrmin;
 
             img11 = replaceColors(image,stimulus.colors.nReservedPeripheral);            
             stimSave.p.tex{cat,1}(:,:,imgN) = img11;
-%             imwrite(img11/255,sprintf('/Users/dan/proj/att_awe/images/output/%s/image.tif',num2str(cat)),'tiff');
-            
-            % now get the correct image to save for later
+        end
+    end
+    %% MAIN IMAGES
+    for cat = 1:length(stimulus.raw)
+        for imgN = 1:stimulus.raw{cat}.n
+            thisImage = stimulus.raw{cat}.halfFourier{imgN};
             thisImage.dc = stimulus.averageDC;
             thisImage.mag = stimulus.averageMag;
+            
             image = reconstructFromHalfFourier(thisImage);
             
             image = fixBoundaries(image,stimulus.pedestals.maxRange);
@@ -110,11 +108,11 @@ end
 %     disp(sprintf('(noisecon) No file found... saved.'));
 % end
 
-%% Build Texture array
+%% Flip ud or Build Peripheral TExtures
 
 disp(sprintf('(noisecon) Building stimulus array... '));
-for cat = 1:length(stimulus.raw)
-    for imgN = 1:stimulus.raw{cat}.n                
+for cat = 1:length(stimulus.p.raw)
+    for imgN = 1:stimulus.p.raw{cat}.n                
         i = flipud(stimSave.p.tex{cat,1}(:,:,imgN));
         stimulus.p.tex{cat,1}(imgN) = mglCreateTexture(i);
         
@@ -123,7 +121,11 @@ for cat = 1:length(stimulus.raw)
             in = reshape(i(randperm(length(i(:)))),size(i));
             stimulus.p.tex{cat,m}(imgN) = mglCreateTexture(in);
         end
+    end
+end
         
+for cat = 1:length(stimulus.raw)
+    for imgN = 1:stimulus.raw{cat}.n       
         for range = 1:stimulus.pedestals.maxRange
             i = stimSave.tex{cat}(:,:,imgN);
             stimulus.tex{cat}(:,:,imgN) = flipud(i);

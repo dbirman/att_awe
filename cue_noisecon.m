@@ -15,7 +15,7 @@ function myscreen = cue_noisecon(varargin)
 widthPix = []; heightPix = []; widthDeg = []; heightDeg = [];
 peripheralTask = [];
 mainTask = [];
-getArgs(varargin,{'widthPix=250','heightPix=250','widthDeg=6','heightDeg=6','peripheralTask=1','mainTask=1'});
+getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6','heightDeg=6','peripheralTask=1','mainTask=1'});
 
 
 %% Setup Screen
@@ -89,24 +89,27 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
-stimulus.pedestals.contrast = [ .125 .25 .5 .75 .95];
+stimulus.pedestals.contrast = [ .175 .25 .5 .75 .9];
 stimulus.pedestals.noise = [ .1 .3 .5 .7 .9];
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
 stimulus.widthPix = widthPix;
 stimulus.heightPix = heightPix;
+stimulus.p.widthPix = 250;
+stimulus.p.heightPix = 250;
 stimulus.widthDeg = widthDeg;
 stimulus.heightDeg = heightDeg;
 stimulus.pos1 = [-5 +5 -5 +5];
 stimulus.pos2 = [-5 -5 +5 +5];
 categories = {'m' 'f'};
 name = getenv('USER');
-imageDir = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
+imageDir_per = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
+imageDir_main = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
-stimulus = InitStim(stimulus,myscreen,categories,imageDir,dispLoadFig,keepAspectRatio);
+stimulus = InitStim(stimulus,myscreen,categories,imageDir_main,imageDir_per,dispLoadFig,keepAspectRatio);
 
 %% EYE CALIB
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
