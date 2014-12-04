@@ -59,15 +59,6 @@ end
 
 %% Build/Load Image Array
 
-% disp(sprintf('(noisecon) Checking for stimulus file.'));
-% if ~exist(saveFile,'file')
-%     loaded = 0;
-% else
-%     loaded = 1;
-%     disp(sprintf('(noisecon) File found... loading...'));
-%     load(saveFile);
-%     disp(sprintf('(noisecon) File found... loaded.'));
-% end
 loaded = 0;
 
 % note: stimulus.tex{GENDER,RANGE}(:,:,#)
@@ -79,17 +70,28 @@ if ~loaded
         for imgN = 1:stimulus.raw{cat}.n
             %% Get IMAGE
             thisImage = stimulus.raw{cat}.halfFourier{imgN};
-            thisImage.dc = stimulus.averageDC;
-            thisImage.mag = stimulus.averageMag;
 
             %% Get 10-level image
             image = reconstructFromHalfFourier(thisImage);
+            
+            % Normalize the 10-level image by the equalized histogram
+            rmed = .33*255;
+            mrmax = 255;
+            mrmin = 0;
+            % build the normalized PDF
+            npdf = normpdf(mrmin:mrmax,rmed,75);
+            npdf = npdf / sum(npdf);
+            % change the image to match the PDF
+            image = (mrmax-mrmin)*histeq(image/255,npdf) + mrmin;
+
             img11 = replaceColors(image,stimulus.colors.nReservedPeripheral);            
             stimSave.p.tex{cat,1}(:,:,imgN) = img11;
 %             imwrite(img11/255,sprintf('/Users/dan/proj/att_awe/images/output/%s/image.tif',num2str(cat)),'tiff');
             
-            % image is currently the image, with the full range (whatever
-            % that happens to be)
+            % now get the correct image to save for later
+            thisImage.dc = stimulus.averageDC;
+            thisImage.mag = stimulus.averageMag;
+            image = reconstructFromHalfFourier(thisImage);
             
             image = fixBoundaries(image,stimulus.pedestals.maxRange);
             stimSave.tex{cat}(:,:,imgN) = image;

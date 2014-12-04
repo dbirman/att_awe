@@ -25,7 +25,7 @@ myscreen = initScreen(screen);
 
 %% Initialize Stimulus
 
-global stimulus %#ok<REDEF>
+global stimulus
 myscreen = initStimulus('stimulus',myscreen);
 
 % Should we use a staircase?
@@ -89,8 +89,9 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
-stimulus.pedestals.contrast = [ .1 .25 .4 .55 .7 .85];
-stimulus.pedestals.noise = [.1 .2 .3 .4 .6 .8];
+stimulus.pedestals.contrast = [ .125 .25 .5 .75 .95];
+stimulus.pedestals.noise = [ .1 .3 .5 .7 .9];
+stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
 stimulus.widthPix = widthPix;
@@ -98,10 +99,10 @@ stimulus.heightPix = heightPix;
 stimulus.widthDeg = widthDeg;
 stimulus.heightDeg = heightDeg;
 stimulus.pos1 = [-5 +5 -5 +5];
-stimulus.pos2 = [-4 -4 +4 +4];
+stimulus.pos2 = [-5 -5 +5 +5];
 categories = {'m' 'f'};
 name = getenv('USER');
-imageDir = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
+imageDir = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
@@ -129,18 +130,19 @@ task{1}{1}.segmax = [2 1 .5 1 .5 1 2];
 task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 0 0 1];
 task{1}{1}.randVars.calculated.blockType = nan;
-% We will use the 2-5 pedestal of 1-6 options, to always have one above or
+% We will use the 2-4 pedestal of 1-5 options, to always have one above or
 % below.
-task{1}{1}.parameter.pedestal = 2:5;
-task{1}{1}.parameter.pedestalRandom = 2:5;
-task{1}{1}.parameter.interval = [1 2];
-task{1}{1}.parameter.targetLoc = 1:4;
-task{1}{1}.parameter.cues = [1 4];
-task{1}{1}.parameter.gender = [1 2]; % male, female
+task{1}{1}.parameter.pedestal = 2:4; %% IMPORTANT %%
+task{1}{1}.parameter.pedestalRandom = 2:4; %% IMPORTANT%%
+task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
+stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
 task{1}{1}.numBlocks = 4;
-task{1}{1}.numTrials = 64;
+task{1}{1}.numTrials = 18;
 
+task{1}{1}.randVars.calculated.interval = nan;
+task{1}{1}.randVars.calculated.targetLoc = nan;
+task{1}{1}.randVars.calculated.gender = nan;
 task{1}{1}.randVars.calculated.genderList = nan(1,4);
 task{1}{1}.randVars.calculated.noiseList = nan(4,2);
 task{1}{1}.randVars.calculated.contrastList = nan(4,2);
@@ -167,22 +169,23 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-stimulus.initThresh = zeros(2,2,4);
-for gen = 1:2
+stimulus.initThresh = zeros(2,2,3);
+init = [.15    .25
+        .12    .1];
+mult = [.5 .75 1];
+for cond = 1:2
     for cues = 1:2
-        if cues==1, t_val = .1;
-        else t_val = .2; end
-        for ped = 1:4
-            stimulus.initThresh(gen,cues,ped) = t_val;
+        t_val = init(cond,cues);
+        for ped = 1:length(mult)
+            stimulus.initThresh(cond,cues,ped) = t_val * mult(ped);
         end
     end
 end
-threshold = .15;
-stepsize = .015;
+stimulus.stepSizes = stimulus.initThresh / 7.5;
 useLevittRule = 1;
 if stimulus.useStair
-  disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
-  stimulus = initStaircase(stimulus,stepsize,useLevittRule);
+  disp(sprintf('(noisecon) Initializing staircase useLevittRule: %i',useLevittRule));
+  stimulus = initStaircase(stimulus,useLevittRule);
 else
 %   disp(sprintf('(noisecon) Continuing staircase from last run'));
 %   dispStaircase(stimulus);
@@ -237,10 +240,20 @@ myscreen = endTask(myscreen,task);
 %%%%%%%% Runs at the start of each Trial %%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [task myscreen] = startTrialCallback(task,myscreen)
+function [task, myscreen] = startTrialCallback(task,myscreen)
 
 global stimulus
 stimulus.values = zeros(4,2);
+
+disp(sprintf('(cue_noisecon) Starting trial %i',task.blockTrialnum));
+
+% Set the basic missing parameters
+pos_int = 1:2;
+task.thistrial.interval = pos_int(randi(2));
+pos_loc = 1:4;
+task.thistrial.targetLoc = pos_loc(randi(4));
+pos_gen = 1:2;
+task.thistrial.gender = pos_gen(randi(2));
 
 % Let's get four random images, with no repetitions
 imgs = zeros(1,4);
@@ -249,16 +262,16 @@ while any(imgs==0) || length(unique(imgs))<length(imgs)
 end
 task.thistrial.imageNums = imgs;
 
-% Let's set the distractor image pedestals (the other three heights)
+% Let's set the distractor image pedestals (the other three heights)  
 curPedestal = task.thistrial.pedestal;
-otherPedestals = [task.thistrial.pedestal-1 task.thistrial.pedestal task.thistrial.pedestal+1];
+otherPedestals = [randi(stimulus.nPedestals) randi(stimulus.nPedestals) randi(stimulus.nPedestals)];
 % otherPedestals = otherPedestals(otherPedestals~=curPedestal);
 otherPedestals = otherPedestals(randperm(length(otherPedestals)));
 opi = 1;
 
 % We also need the randoms, if we are in a noise block then noise will get
 % the pedestals and contrast will get the randoms.
-rands = [task.thistrial.pedestalRandom-1 task.thistrial.pedestalRandom task.thistrial.pedestalRandom+1];
+rands = [randi(stimulus.nPedestals) randi(stimulus.nPedestals) randi(stimulus.nPedestals)];
 rands = rands(randperm(length(rands)));
 pos = [1 2 3 4];
 randoms(pos==task.thistrial.targetLoc) = task.thistrial.pedestalRandom;
@@ -266,16 +279,14 @@ randoms(pos~=task.thistrial.targetLoc) = rands;
 
 % Let's set the image genders
 
-curGenders = [0 0 0 0];
-curGenders(task.thistrial.targetLoc) = task.thistrial.gender;
+task.thistrial.genderList = [0 0 0 0];
+task.thistrial.genderList(task.thistrial.targetLoc) = task.thistrial.gender;
 if task.thistrial.gender == 1
     gens = [1 2 2];
 else
     gens = [1 1 2];
 end
-curGenders(curGenders==0) = gens(randperm(3));
-% Save
-task.thistrial.genderList = curGenders;
+task.thistrial.genderList(task.thistrial.genderList==0) = gens(randperm(3));
 
 % Get Delta
 task.thistrial.deltaPed = getDeltaPed(task.thisblock.blockType,find(task.thistrial.cues==[1 4]),curPedestal-1);
@@ -295,17 +306,15 @@ for imagePos = 1:4
         if imagePos==task.thistrial.targetLoc
             % TARGET
             % Now we do adjustments
-            [task stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,1,int,curPedestal,p_mask);
+            [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,1,int,curPedestal,p_mask);
         else
             % NOT TARGET
-            [task stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,0,int,otherPedestals(opi),p_mask);
+            [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,0,int,otherPedestals(opi),p_mask);
             opiFlag = 1;
         end
     end
     if opiFlag, opi = opi + 1; end
 end
-
-stop = 1;
 
 function [task, tex] = convertToTex(imgNum,task,rands,isTarget,int,ped,p_mask)
 global stimulus
@@ -395,7 +404,7 @@ end
 %%%%%%%% Runs at the start of each Segment %%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [task myscreen] = startSegmentCallback(task, myscreen)
+function [task, myscreen] = startSegmentCallback(task, myscreen)
 
 global stimulus
 myscreen.flushMode = 0;
@@ -413,7 +422,7 @@ end
 %%%%%%%% Refreshes the Screen %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [task myscreen] = screenUpdateCallback(task, myscreen)
+function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
 % mglTextDraw(stimulus.blockTypes{task.thisblock.blockType},[0,5]);
@@ -440,11 +449,6 @@ if myscreen.flushMode == 0
         upFix(stimulus);
     end
 end
-
-%%
-function upText(stimulus)
-
-mglTextDraw(stimulus.text,[-10,8]);
 
 %%
 function upFix(stimulus)
@@ -571,14 +575,14 @@ image(image<mi) = mi;
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
 %%%%%%%%%%%%%%%%%%%%%%%%
-function stimulus = initStaircase(stimulus,stepsize,useLevittRule)
+function stimulus = initStaircase(stimulus,useLevittRule)
 
 
 stimulus.staircase = cell(2,2,4);
 for condition = 1:2 % noise / contrast
     for cues = 1:2
-        for p = 1:4 % pedestal level 1->4
-            stimulus.staircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p),stepsize,useLevittRule);
+        for p = 1:stimulus.nPedestalOpts % pedestal level 1->4
+            stimulus.staircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p),stimulus.stepSizes(condition,cues,p),useLevittRule);
             stimulus.staircase{condition,cues,p}.minThreshold = 0;
             stimulus.staircase{condition,cues,p}.maxThreshold = 1;
         end
@@ -593,7 +597,7 @@ global stimulus
 
 for condition = 1:2
   for cue = 1:2
-      for ped = 1:4
+      for ped = 1:stimulus.nPedestalOpts
         s = stimulus.staircase{condition,cue,ped};
         if isfield(s,'strength')
           n = length(s.strength);
