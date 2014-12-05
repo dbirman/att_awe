@@ -24,7 +24,7 @@ if flip
 else
     stimulus.p.responseLetters = [10 9];
 end
-stimulus.p.init_SOA = .25;   
+stimulus.p.init_SOA = .15;   
 stimulus.p.scram.rate = 15;
 stimulus.p.scram.last = 0;
 stimulus.p.scram.left = 0;
