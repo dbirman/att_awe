@@ -7,7 +7,7 @@
 %    from cue_noisecon to display.
 %
 
-function [task myscreen] = cue_gender(myscreen)
+function [task, myscreen] = cue_gender(myscreen)
 %% Initialize Stimulus
 
 % NOTE: MALE = 9, FEMALE = 0. Note that this depends on the order of the
@@ -33,18 +33,18 @@ stimulus.p.scram.right = 0;
 %% Task Params
 
 % Segments are: NOTHING, MASK STREAM, PRESENTATION, PRESENTATION MASK
-task{1}.segmin = [inf 0 inf 1]; 
+task{1}.segmin = [inf .010 inf 1]; 
 task{1}.segmax = [inf .3 inf 1]; 
 % We only get responses after presentation
 task{1}.getResponse = [0 0 1 1];
 task{1}.parameter.position = [1 2];
+task{1}.parameter.intervals = 3; % Note, you can set this to 0/1/2 to have the images only show up during some of the intervals
+task{1}.random = 1;
 task{1}.randVars.calculated.gender = nan(1,2);
 task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
 task{1}.randVars.calculated.SOA = nan;
 task{1}.randVars.calculated.sOnset = nan;
-task{1}.parameter.intervals = 3; % Note, you can set this to 0/1/2 to have the images only show up during some of the intervals
-task{1}.random = 1;
 task{1}.waitForBacktick = 1;
 
 %%
@@ -63,15 +63,14 @@ else
 end
 
 %% Initialize Task
-[task{1} myscreen] = initTask(task{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback,@trialCallback);
-
+[task{1}, myscreen] = initTask(task{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback,@trialCallback);
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% Segment Callback %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [task myscreen] = startSegmentCallback(task, myscreen)
+function [task, myscreen] = startSegmentCallback(task, myscreen)
 global stimulus
 
 curGender = task.thistrial.gender(task.thistrial.position);
@@ -127,7 +126,7 @@ else
 end
 
 % **************************IN GET RESPONSE CALLBACK**********************************
-function [task myscreen] = responseCallback(task, myscreen)
+function [task, myscreen] = responseCallback(task, myscreen)
 global stimulus
 
 if any(task.thistrial.whichButton == stimulus.p.responseLetters)
@@ -179,12 +178,12 @@ end
     
 if stimulus.p.scramble == 1 
 % Just draw random stuff
-    imgDraw(stimulus.p.g1,stimulus.p.n1,1,1,stimulus.p.scram.left);
-    imgDraw(stimulus.p.g2,stimulus.p.n2,2,1,stimulus.p.scram.right);
+    imgDraw(stimulus.p.g1,stimulus.p.n1,1,1,stimulus.p.scram.left,stimulus);
+    imgDraw(stimulus.p.g2,stimulus.p.n2,2,1,stimulus.p.scram.right,stimulus);
 else
     % Draw the correct image on one side, scrambled on the other
-    imgDraw(stimulus.p.g1,stimulus.p.n1,1,task.thistrial.position==1,stimulus.p.scram.left);
-    imgDraw(stimulus.p.g2,stimulus.p.n2,2,task.thistrial.position==2,stimulus.p.scram.right);
+    imgDraw(stimulus.p.g1,stimulus.p.n1,1,task.thistrial.position==1,stimulus.p.scram.left,stimulus);
+    imgDraw(stimulus.p.g2,stimulus.p.n2,2,task.thistrial.position==2,stimulus.p.scram.right,stimulus);
 end
 
 % Jump segment when the timing calls for it
@@ -192,8 +191,7 @@ if task.thistrial.thisseg == 3 && (mglGetSecs - stimulus.p.SOA_onset{task.trialn
     task = jumpSegment(task);
 end
 
-function imgDraw(gen,imgN,pos,scramble,s)
-global stimulus
+function imgDraw(gen,imgN,pos,scramble,s,stimulus)
 
 if scramble == 1
     % get a mask image
@@ -212,7 +210,7 @@ mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.widthDeg
 %%%%%%%% Trial Callback %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [task myscreen] = trialCallback(task, myscreen)
+function [task, myscreen] = trialCallback(task, myscreen)
 global stimulus
 
 % by default, don't look for responses later

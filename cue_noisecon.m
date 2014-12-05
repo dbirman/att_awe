@@ -93,8 +93,10 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
-stimulus.pedestals.contrast = [ .175 .25 .5 .75 .9];
-stimulus.pedestals.noise = [ .1 .3 .5 .7 .9];
+stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
+baseThresh(:,2) = [.1 .15 .2];
+stimulus.pedestals.noise = [ .10 .20 .35 .55 .85 ];
+basethresh(:,1) = [.2 .25 .3];
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -177,16 +179,14 @@ end
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 stimulus.initThresh = zeros(2,2,3);
-init = [.15    .25 %% noise
-        .12    .2]; %% contrast
-mult = [.5 .75 1];
+
 for cond = 1:2
-    for cues = 1:2
-        t_val = init(cond,cues);
-        for ped = 1:length(mult)
-            stimulus.initThresh(cond,cues,ped) = t_val * mult(ped);
-        end
-    end
+    cues = 1;
+    mult = .5;
+    stimulus.initThresh(cond,cues,ped) = baseThresh(ped,cond)*mult;
+    cues = 2;
+    mult = 1;
+    stimulus.initThresh(cond,cues,ped) = baseThresh(ped,cond)*mult;
 end
 stimulus.stepSizes = stimulus.initThresh / 7.5;
 useLevittRule = 1;
@@ -214,8 +214,8 @@ while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     myscreen = tickScreen(myscreen,task);
 end
 
-dispStaircase();
-dispStaircaseP();
+dispStaircase(stimulus);
+dispStaircaseP(stimulus);
 
 % delete texture
 if isfield(stimulus,'flyTex')
@@ -440,9 +440,14 @@ if myscreen.flushMode == 0
 %     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(1);
     % set the fixation color
-    if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2 stimulus.seg.resp])
-        % Cue segment or the peripheral response segments or the resp
+    if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2])
+        % Cue segment or the peripheral response segments
         upCues(task,stimulus);
+        upFix(stimulus);
+    elseif task.thistrial.thisseg == stimulus.seg.resp
+        % Resp -- uses bright fixation cross
+        upCues(task,stimulus);
+        stimulus.fixColor = stimulus.colors.reservedColor(11);
         upFix(stimulus);
     elseif any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
         % Either of the stimulus segments
@@ -450,7 +455,6 @@ if myscreen.flushMode == 0
         upFaces(stimulus,task);
         % This turned the fixation color white, but it seems unnecessarily
         % distracting.
-%         stimulus.fixColor = stimulus.colors.reservedColor(12);
         upFix(stimulus);
     else
         upFix(stimulus);
@@ -477,7 +481,7 @@ else
 end
 ang = d2r(ang);
 mglLines2(cos(ang + atan(usePos1./usePos2))*.1,sin(ang + atan(usePos1./usePos2))*.1, ...
-    cos(ang + atan(usePos1./usePos2))*.75,sin(ang + atan(usePos1./usePos2))*.75,1,stimulus.colors.reservedColor(1));
+    cos(ang + atan(usePos1./usePos2))*.75,sin(ang + atan(usePos1./usePos2))*.75,1,stimulus.fixColor);
 
 function upFaces(stimulus,task)
 
@@ -492,10 +496,10 @@ end
 %%%%%%%% Called When a Response Occurs %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-function [task myscreen] = getResponseCallback(task, myscreen)
+function [task, myscreen] = getResponseCallback(task, myscreen)
 
 global stimulus
-mglClearScreen(stimulus.colors.reservedColor(4));
+mglClearScreen(stimulus.colors.reservedColor(6));
 % stimulus.text = num2str(task.thistrial.thisseg);
 % upText(stimulus);
 
@@ -526,7 +530,7 @@ upFix(stimulus);
 %%%%%%%% Block Call Back %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-function [task myscreen] = startBlockCallback(task, myscreen)
+function [task, myscreen] = startBlockCallback(task, myscreen)
 
 global stimulus
 
@@ -599,8 +603,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%%
-function dispStaircase
-global stimulus
+function dispStaircase(stimulus)
 
 for condition = 1:2
   for cue = 1:2
@@ -625,8 +628,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
-function dispStaircaseP
-global stimulus
+function dispStaircaseP(stimulus)
 
 if isfield(stimulus.p,'staircase')
     for gender = 1:2

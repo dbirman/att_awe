@@ -72,7 +72,7 @@ stimulus.mask = mglCreateTexture(mask);
 
 %% MGL Parameters
 
-mglTextSet('fontColor',[stimulus.colors.reservedColor(]);
+mglTextSet('fontColor',[stimulus.colors.reservedColor(12) stimulus.colors.reservedColor(12) stimulus.colors.reservedColor(12)]);
     
 %% Gamma Table Initialization
 
@@ -93,8 +93,9 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
-stimulus.pedestals.contrast = [ .175 .25 .5 .75 .9];
-stimulus.pedestals.noise = [ .1 .3 .5 .7 .9];
+stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
+baseThresh(:,2) = [.1 .15 .2];
+stimulus.pedestals.noise = [ .10 .20 .35 .55 .80 ];
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -109,7 +110,7 @@ stimulus.pos2 = [-5 -5 +5 +5];
 categories = {'m' 'f'};
 name = getenv('USER');
 stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
-stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
+stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
@@ -177,13 +178,11 @@ end
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 stimulus.initThresh = zeros(2,2,3);
-init = [.15    .25 %% noise
-        .12    .2]; %% contrast
-mult = [.5 .75 1];
+
 for cond = 1:2
     for cues = 1:2
         t_val = init(cond,cues);
-        for ped = 1:length(mult)
+        for ped = 1:3
             stimulus.initThresh(cond,cues,ped) = t_val * mult(ped);
         end
     end
@@ -214,8 +213,8 @@ while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     myscreen = tickScreen(myscreen,task);
 end
 
-dispStaircase();
-dispStaircaseP();
+dispStaircase(stimulus);
+dispStaircaseP(stimulus);
 
 % delete texture
 if isfield(stimulus,'flyTex')
@@ -434,15 +433,20 @@ global stimulus
 
 % mglTextDraw(stimulus.blockTypes{task.thisblock.blockType},[0,5]);
 if myscreen.flushMode == 0
-    mglClearScreen(stimulus.colors.reservedColor(4));
+    mglClearScreen(stimulus.colors.reservedColor(6));
 
 %     stimulus.text = num2str(task.thistrial.thisseg);
 %     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(1);
     % set the fixation color
-    if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2 stimulus.seg.resp])
-        % Cue segment or the peripheral response segments or the resp
+    if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2])
+        % Cue segment or the peripheral response segments
         upCues(task,stimulus);
+        upFix(stimulus);
+    elseif task.thistrial.thisseg == stimulus.seg.resp
+        % Resp -- uses bright fixation cross
+        upCues(task,stimulus);
+        stimulus.fixColor = stimulus.colors.reservedColor(11);
         upFix(stimulus);
     elseif any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
         % Either of the stimulus segments
@@ -450,7 +454,6 @@ if myscreen.flushMode == 0
         upFaces(stimulus,task);
         % This turned the fixation color white, but it seems unnecessarily
         % distracting.
-%         stimulus.fixColor = stimulus.colors.reservedColor(12);
         upFix(stimulus);
     else
         upFix(stimulus);
@@ -477,7 +480,7 @@ else
 end
 ang = d2r(ang);
 mglLines2(cos(ang + atan(usePos1./usePos2))*.1,sin(ang + atan(usePos1./usePos2))*.1, ...
-    cos(ang + atan(usePos1./usePos2))*.75,sin(ang + atan(usePos1./usePos2))*.75,1,stimulus.colors.reservedColor(1));
+    cos(ang + atan(usePos1./usePos2))*.75,sin(ang + atan(usePos1./usePos2))*.75,1,stimulus.fixColor);
 
 function upFaces(stimulus,task)
 
@@ -492,10 +495,10 @@ end
 %%%%%%%% Called When a Response Occurs %%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-function [task myscreen] = getResponseCallback(task, myscreen)
+function [task, myscreen] = getResponseCallback(task, myscreen)
 
 global stimulus
-mglClearScreen(stimulus.colors.reservedColor(4));
+mglClearScreen(stimulus.colors.reservedColor(6));
 % stimulus.text = num2str(task.thistrial.thisseg);
 % upText(stimulus);
 
@@ -526,7 +529,7 @@ upFix(stimulus);
 %%%%%%%% Block Call Back %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%
-function [task myscreen] = startBlockCallback(task, myscreen)
+function [task, myscreen] = startBlockCallback(task, myscreen)
 
 global stimulus
 
@@ -599,8 +602,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%%
-function dispStaircase
-global stimulus
+function dispStaircase(stimulus)
 
 for condition = 1:2
   for cue = 1:2
@@ -625,8 +627,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
-function dispStaircaseP
-global stimulus
+function dispStaircaseP(stimulus)
 
 if isfield(stimulus.p,'staircase')
     for gender = 1:2
