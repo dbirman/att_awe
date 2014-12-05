@@ -141,7 +141,7 @@ task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
 task{1}{1}.numBlocks = 4;
-task{1}{1}.numTrials = 18;
+task{1}{1}.numTrials = 36;
 
 task{1}{1}.randVars.calculated.interval = nan;
 task{1}{1}.randVars.calculated.targetLoc = nan;
@@ -173,8 +173,8 @@ end
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 stimulus.initThresh = zeros(2,2,3);
-init = [.15    .25
-        .12    .1];
+init = [.15    .25 %% noise
+        .12    .2]; %% contrast
 mult = [.5 .75 1];
 for cond = 1:2
     for cues = 1:2
