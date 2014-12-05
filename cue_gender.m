@@ -24,7 +24,7 @@ if flip
 else
     stimulus.p.responseLetters = [10 9];
 end
-stimulus.p.init_SOA = .15;   
+stimulus.p.init_SOA = .05;   
 stimulus.p.scram.rate = 15;
 stimulus.p.scram.last = 0;
 stimulus.p.scram.left = 0;
@@ -32,15 +32,18 @@ stimulus.p.scram.right = 0;
 
 %% Task Params
 
-% Segments are: MASK STREAM, PRESENTATION, PRESENTATION MASK
-task{1}.seglen = [inf inf 1]; 
+% Segments are: NOTHING, MASK STREAM, PRESENTATION, PRESENTATION MASK
+task{1}.segmin = [inf 0 inf 1]; 
+task{1}.segmax = [inf .3 inf 1]; 
 % We only get responses after presentation
 task{1}.getResponse = [0 1 1];
 task{1}.parameter.position = [1 2];
-task{1}.randVars.calculated.gender = nan(2,2);
-task{1}.randVars.calculated.images = nan(2,2);
+task{1}.randVars.calculated.gender = nan(1,2);
+task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
-task{1}.parameter.intervals = [3]; % Note, you can set this to 0/1/2 to have the images only show up during some of the intervals
+task{1}.randVars.calculated.SOA = nan;
+task{1}.randVars.calculated.sOnset = nan;
+task{1}.parameter.intervals = 3; % Note, you can set this to 0/1/2 to have the images only show up during some of the intervals
 task{1}.random = 1;
 task{1}.waitForBacktick = 1;
 
@@ -49,7 +52,7 @@ task{1}.waitForBacktick = 1;
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 threshold = stimulus.p.init_SOA;
-stepsize = .025;
+stepsize = .01;
 useLevittRule = 1;
 if stimulus.useStair
   disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
@@ -71,27 +74,28 @@ end
 function [task myscreen] = startSegmentCallback(task, myscreen)
 global stimulus
 
-if task.thistrial.thisseg == 1
+curGender = task.thistrial.gender(task.thistrial.position);
+if task.thistrial.thisseg == 2
+    task.thistrial.SOA = stimulus.staircase{curGender}.threshold;
     % Everything is random to get a nice scramble, no need to track.
     stimulus.p.g1 = randi(2);
     stimulus.p.g2 = randi(2);
     stimulus.p.n1 = randi(stimulus.p.numImages);
     stimulus.p.n2 = randi(stimulus.p.numImages);
     stimulus.p.scramble = 1;
-elseif task.thistrial.thisseg == 2
+elseif task.thistrial.thisseg == 3
     % Tracking is important
-    stimulus.p.g1 = task.thistrial.gender(stimulus.pInt,1);
-    stimulus.p.g2 = task.thistrial.gender(stimulus.pInt,2);
+    stimulus.p.g1 = task.thistrial.gender(1); % gender(POSITION)
+    stimulus.p.g2 = task.thistrial.gender(2);
     
     if stimulus.useStair    
-        curGender = task.thistrial.gender(stimulus.pInt,task.thistrial.position);
         stimulus.p.cur_SOA = stimulus.p.staircase{curGender}.threshold;
     else
         stimulus.p.cur_SOA = stimulus.p.init_SOA;
     end
     
-    stimulus.p.n1 = task.thistrial.images(stimulus.pInt,1);
-    stimulus.p.n2 = task.thistrial.images(stimulus.pInt,2);
+    stimulus.p.n1 = task.thistrial.images(1);
+    stimulus.p.n2 = task.thistrial.images(2);
     
     % Presentation (Choose an image)
 % % % % % % %     if task.thistrial.intervals == 1 && stimulus.pInt == 1
@@ -108,14 +112,15 @@ elseif task.thistrial.thisseg == 2
     if task.thistrial.intervals == 3
         % We should do both intervals
         task.thistrial.respond = 1;
-        stimulus.p.SOA_onset{task.trialnum}(stimulus.pInt) = mglGetSecs;
+        stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
         stimulus.p.scramble = 0;
     else
-        % 0 response trials, we don't care which we are in.
-        % We just skip to the mask phase immediately
-        task.thistrial.respond = 0;
-        stimulus.p.SOA_onset{task.trialnum}(stimulus.pInt) = mglGetSecs;
-        task = jumpSegment(task);
+%         % 0 response trials, we don't care which we are in.
+%         % We just skip to the mask phase immediately
+%         task.thistrial.respond = 0;
+%         stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
+%         task = jumpSegment(task);
+        warning('Shouldn''t get here');
     end
 else
     stimulus.p.scramble = 1;
@@ -127,7 +132,7 @@ global stimulus
 
 if any(task.thistrial.whichButton == stimulus.p.responseLetters)
     if task.thistrial.gotResponse == 0 
-        whichGender = task.thistrial.gender(stimulus.pInt,task.thistrial.position);
+        whichGender = task.thistrial.gender(task.thistrial.position);
         if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
             correctIncorrect = 'correct';
             stimulus.p.staircase{whichGender} = upDownStaircase(stimulus.p.staircase{whichGender},1);
@@ -145,8 +150,10 @@ end
 
 % ********************************screen update callback  ******************************
 
-function [task myscreen] = screenUpdateCallback(task, myscreen)
+function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
+
+mglTextDraw(num2str(task.thistrial.thisseg),[0,-8]);
 
 % at every screen refresh, check the flags:
 if stimulus.pFlag == 2
@@ -155,6 +162,10 @@ if stimulus.pFlag == 2
 elseif stimulus.pFlag == 1  % If the main task has set the start flag to 1
   stimulus.pFlag = 0;   % reset it to 0
   task = jumpSegment(task);       %  and start the subsidiary task by jumping to the next segment
+end
+
+if task.thistrial.thisseg == 1
+    return
 end
 
 if stimulus.p.scram.left == 0 || (mglGetSecs - stimulus.p.scram.last) > (1 / stimulus.p.scram.rate)
@@ -177,7 +188,7 @@ else
 end
 
 % Jump segment when the timing calls for it
-if task.thistrial.thisseg == 2 && (mglGetSecs - stimulus.p.SOA_onset{task.trialnum}(stimulus.pInt)) > stimulus.p.cur_SOA
+if task.thistrial.thisseg == 3 && (mglGetSecs - stimulus.p.SOA_onset{task.trialnum}) > stimulus.p.cur_SOA
     task = jumpSegment(task);
 end
 
@@ -208,8 +219,8 @@ global stimulus
 task.thistrial.respond = 0;
 
 genBase = [1 2];
-task.thistrial.gender = [genBase(randperm(2));genBase(randperm(2))];
-task.thistrial.images = randi(stimulus.p.numImages,2,2);
+task.thistrial.gender = genBase(randperm(2));
+task.thistrial.images = randi(stimulus.p.numImages,1,2);
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
@@ -219,5 +230,5 @@ function stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule)
 for gender = 1:2 % female / male
     stimulus.p.staircase{gender} = upDownStaircase(1,2,threshold,stepsize,useLevittRule);
     stimulus.p.staircase{gender}.minThreshold = 0;
-    stimulus.p.staircase{gender}.maxThreshold = 1;
+    stimulus.p.staircase{gender}.maxThreshold = .2;
 end

@@ -1,4 +1,4 @@
-function stimulus = InitStim(stimulus,myscreen,categories,imageDirM,imageDirP,dispFig,keepAspectRatio)
+function stimulus = InitStim(stimulus,myscreen,categories,dispFig,keepAspectRatio)
 
 if ~isfield(stimulus,'cuenoise'),stimulus.imagesLoaded = 0;end
 stimulus.cuenoise = 1;
@@ -12,7 +12,7 @@ if iseven(stimulus.heightPix), stimulus.heightPix = stimulus.heightPix-1;end
 
 % check whether images are loaded
 averageN = 0;
-if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(stimulus.categories,categories) || ~isequal(stimulus.imageDirMain,imageDirM) || dispFig
+if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(stimulus.categories,categories) || dispFig
   stimulus.nCategories = length(categories);
 
   % keep the averageMag and averageDc so that we can normalize images
@@ -22,8 +22,8 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   for i = 1:stimulus.nCategories
     if ~any(strcmp(categories{i},{'scramble','blank','gray'}))
       % load images
-      stimulus.raw{i} = loadNormalizedEqImages(fullfile(imageDirM,categories{i}),'width',stimulus.widthPix,'height',stimulus.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
-      stimulus.p.raw{i} = loadNormalizedEqImages(fullfile(imageDirP,categories{i}),'width',stimulus.p.widthPix,'height',stimulus.p.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
+      stimulus.raw{i} = loadNormalizedEqImages(fullfile(stimulus.imageDirMain,categories{i}),'width',stimulus.widthPix,'height',stimulus.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
+      stimulus.p.raw{i} = loadNormalizedEqImages(fullfile(stimulus.imageDirPer,categories{i}),'width',stimulus.p.widthPix,'height',stimulus.p.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
 
       % make sure we opened ok
       if isempty(stimulus.raw{i})
@@ -43,8 +43,8 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   stimulus.averageMag = stimulus.averageMag/averageN;
   stimulus.averageDC = stimulus.averageDC/averageN;
   % and set that we have loaded
-  stimulus.imageDir = imageDirM;
-  stimulus.p.imageDir = imageDirP;
+  stimulus.imageDir = stimulus.imageDirMain;
+  stimulus.p.imageDir = stimulus.imageDirPer;
   stimulus.imagesLoaded = 1;
 
 else

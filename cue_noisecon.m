@@ -70,6 +70,10 @@ mask = .3*255*ones(size(win,1),size(win,2),4);
 mask(:,:,4) = win;
 stimulus.mask = mglCreateTexture(mask);
 
+%% MGL Parameters
+
+mglTextSet('fontColor',[stimulus.colors.reservedColor(12) stimulus.colors.reservedColor(12) stimulus.colors.reservedColor(12)]);
+    
 %% Gamma Table Initialization
 
 % set the reserved colors
@@ -104,12 +108,12 @@ stimulus.pos1 = [-5 +5 -5 +5];
 stimulus.pos2 = [-5 -5 +5 +5];
 categories = {'m' 'f'};
 name = getenv('USER');
-imageDir_per = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
-imageDirMain = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
+stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
+stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
-stimulus = InitStim(stimulus,myscreen,categories,imageDirMain,imageDir_per,dispLoadFig,keepAspectRatio);
+stimulus = InitStim(stimulus,myscreen,categories,dispLoadFig,keepAspectRatio);
 
 %% EYE CALIB
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,11 +141,11 @@ task{1}{1}.randVars.calculated.blockType = nan;
 % below.
 task{1}{1}.parameter.pedestal = 2:4; %% IMPORTANT %%
 task{1}{1}.parameter.pedestalRandom = 2:4; %% IMPORTANT%%
+task{1}{1}.parameter.dummy = 1:3; % This just makes sure the number of trials is large enough
 task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
-task{1}{1}.numBlocks = 4;
-task{1}{1}.numTrials = 36;
+task{1}{1}.numBlocks = 12;
 
 task{1}{1}.randVars.calculated.interval = nan;
 task{1}{1}.randVars.calculated.targetLoc = nan;
@@ -414,7 +418,7 @@ myscreen.flushMode = 0;
 if any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
     stimulus.pFlag = 1;
     stimulus.pInt = (task.thistrial.thisseg - 1) / 2;
-elseif any(task.thistrial.thisseg == [stimulus.seg.resp stimulus.seg.ITI])
+elseif any(task.thistrial.thisseg == [stimulus.seg.resp stimulus.seg.ITI stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2])
     stimulus.pFlag = 2;
 else
     stimulus.pFlag = 0;
