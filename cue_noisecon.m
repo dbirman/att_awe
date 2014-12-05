@@ -109,7 +109,7 @@ stimulus.pos2 = [-5 -5 +5 +5];
 categories = {'m' 'f'};
 name = getenv('USER');
 stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
-stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
+stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
@@ -434,7 +434,7 @@ global stimulus
 
 % mglTextDraw(stimulus.blockTypes{task.thisblock.blockType},[0,5]);
 if myscreen.flushMode == 0
-    mglClearScreen(stimulus.colors.reservedColor(4));
+    mglClearScreen(stimulus.colors.reservedColor(6));
 
 %     stimulus.text = num2str(task.thistrial.thisseg);
 %     upText(stimulus);

@@ -36,7 +36,7 @@ stimulus.p.scram.right = 0;
 task{1}.segmin = [inf 0 inf 1]; 
 task{1}.segmax = [inf .3 inf 1]; 
 % We only get responses after presentation
-task{1}.getResponse = [0 1 1];
+task{1}.getResponse = [0 0 1 1];
 task{1}.parameter.position = [1 2];
 task{1}.randVars.calculated.gender = nan(1,2);
 task{1}.randVars.calculated.images = nan(1,2);
@@ -52,7 +52,7 @@ task{1}.waitForBacktick = 1;
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 threshold = stimulus.p.init_SOA;
-stepsize = .01;
+stepsize = .005;
 useLevittRule = 1;
 if stimulus.useStair
   disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
@@ -153,7 +153,7 @@ end
 function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
-mglTextDraw(num2str(task.thistrial.thisseg),[0,-8]);
+% % mglTextDraw(num2str(task.thistrial.thisseg),[0,-8]);
 
 % at every screen refresh, check the flags:
 if stimulus.pFlag == 2

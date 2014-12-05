@@ -73,7 +73,7 @@ if ~loaded
             mrmax = 255;
             mrmin = 0;
             % build the normalized PDF
-            npdf = normpdf(mrmin:mrmax,rmed,100);
+            npdf = normpdf(mrmin:mrmax,rmed,35);
             npdf = npdf / sum(npdf);
             % change the image to match the PDF
             image = (mrmax-mrmin)*histeq(image/255,npdf) + mrmin;
