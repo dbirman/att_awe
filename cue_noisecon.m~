@@ -95,7 +95,8 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
 baseThresh(:,2) = [.1 .15 .2];
-stimulus.pedestals.noise = [ .10 .20 .35 .55 .80 ];
+stimulus.pedestals.noise = [ .10 .20 .35 .55 .85 ];
+baseThresh(:,1) = [.2 .25 .3];
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -180,11 +181,13 @@ end
 stimulus.initThresh = zeros(2,2,3);
 
 for cond = 1:2
-    for cues = 1:2
-        t_val = init(cond,cues);
-        for ped = 1:3
-            stimulus.initThresh(cond,cues,ped) = t_val * mult(ped);
-        end
+    for ped = 1:3
+        cues = 1;
+        mult = .5;
+        stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
+        cues = 2;
+        mult = 1;
+        stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
     end
 end
 stimulus.stepSizes = stimulus.initThresh / 7.5;
@@ -368,7 +371,14 @@ npdf = scalePdf(npdf,mrmin:mrmax,curCon / task.thistrial.maxContrast);
 % change the image to match the PDF
 img = (mrmax-mrmin)*histeq(img/255,npdf) + mrmin;
 
+imageSaver(img,curCon,curNoi,task.thistrial.maxContrast);
+
 tex = mglCreateTexture(img);
+
+function imageSaver(img,c,n,m)
+
+warning('IMAGE SAVER ENABLED!!!');
+imwrite(img,sprintf('~/data/im,'tif')
 
 function maxC = getMaxContrast(task,stimulus,cPed,rands)
 

@@ -95,8 +95,8 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
 baseThresh(:,2) = [.1 .15 .2];
-stimulus.pedestals.noise = [ .10 .20 .35 .55 .85 ];
-basethresh(:,1) = [.2 .25 .3];
+stimulus.pedestals.noise = [ .125 .175 .275 .45 .65 ];
+baseThresh(:,1) = [.2 .25 .3];
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -181,12 +181,14 @@ end
 stimulus.initThresh = zeros(2,2,3);
 
 for cond = 1:2
-    cues = 1;
-    mult = .5;
-    stimulus.initThresh(cond,cues,ped) = baseThresh(ped,cond)*mult;
-    cues = 2;
-    mult = 1;
-    stimulus.initThresh(cond,cues,ped) = baseThresh(ped,cond)*mult;
+    for ped = 1:3
+        cues = 1;
+        mult = .5;
+        stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
+        cues = 2;
+        mult = 1;
+        stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
+    end
 end
 stimulus.stepSizes = stimulus.initThresh / 7.5;
 useLevittRule = 1;
@@ -269,18 +271,21 @@ while any(imgs==0) || length(unique(imgs))<length(imgs)
 end
 task.thistrial.imageNums = imgs;
 
+pos = [1 2 3 4];
 % Let's set the distractor image pedestals (the other three heights)  
 curPedestal = task.thistrial.pedestal;
 otherPedestals = [randi(stimulus.nPedestals) randi(stimulus.nPedestals) randi(stimulus.nPedestals)];
 % otherPedestals = otherPedestals(otherPedestals~=curPedestal);
 otherPedestals = otherPedestals(randperm(length(otherPedestals)));
-opi = 1;
+
+pedestals(pos==task.thistrial.targetLoc) = task.thistrial.pedestal;
+pedestals(pos~=task.thistrial.targetLoc) = otherPedestals;
 
 % We also need the randoms, if we are in a noise block then noise will get
 % the pedestals and contrast will get the randoms.
 rands = [randi(stimulus.nPedestals) randi(stimulus.nPedestals) randi(stimulus.nPedestals)];
 rands = rands(randperm(length(rands)));
-pos = [1 2 3 4];
+
 randoms(pos==task.thistrial.targetLoc) = task.thistrial.pedestalRandom;
 randoms(pos~=task.thistrial.targetLoc) = rands;
 
@@ -307,31 +312,18 @@ setGammaTableForMaxContrast(task.thistrial.maxContrast);
 % Set up each of the image textures into stimulus.flyTex
 for imagePos = 1:4
     p_mask = rand(1,length(stimulus.raw{1}.halfFourier{1}.phase))*2*pi;
-    opiFlag = 0;
     for int = 1:2
-        % Check if we are the target
-        if imagePos==task.thistrial.targetLoc
-            % TARGET
-            % Now we do adjustments
-            [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,1,int,curPedestal,p_mask);
-        else
-            % NOT TARGET
-            [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,randoms,0,int,otherPedestals(opi),p_mask);
-            opiFlag = 1;
-        end
+        [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,1,int,pedestals(imagePos),randoms(imagePos),p_mask);
     end
-    if opiFlag, opi = opi + 1; end
 end
 
-function [task, tex] = convertToTex(imgNum,task,rands,isTarget,int,ped,p_mask)
+function [task, tex] = convertToTex(imgNum,task,isTarget,int,ped,pedR,p_mask)
 global stimulus
-
-isInt = int==task.thistrial.interval;
 
 img = stimulus.tex{task.thistrial.genderList(imgNum)}(:,:,task.thistrial.imageNums(imgNum));
 
 add = 0;
-if isTarget && isInt
+if isTarget && int==task.thistrial.interval
     % Get the pedestal delta note, this value depends on blocktype and is
     % specific to contrast or noise.
     add = task.thistrial.deltaPed;
@@ -341,10 +333,10 @@ end
 if task.thisblock.blockType == 1
     %%%% PEDESTAL = NOISE %%%%
     curNoi = stimulus.pedestals.noise(ped) + add;
-    curCon = stimulus.pedestals.contrast(rands(imgNum));
+    curCon = stimulus.pedestals.contrast(pedR);
 else
     %%%% PEDESTAL = CONTRAST %%%%
-    curNoi = stimulus.pedestals.noise(rands(imgNum));
+    curNoi = stimulus.pedestals.noise(pedR);
     curCon = stimulus.pedestals.contrast(ped) + add;
 end
 [curNoi, curCon] = checkValues(curNoi,curCon);
@@ -369,7 +361,18 @@ npdf = scalePdf(npdf,mrmin:mrmax,curCon / task.thistrial.maxContrast);
 % change the image to match the PDF
 img = (mrmax-mrmin)*histeq(img/255,npdf) + mrmin;
 
+% imageSaver(img,imgNum,curCon,curNoi,task.thistrial.maxContrast);
+
 tex = mglCreateTexture(img);
+
+function imageSaver(img,num,c,n,m)
+warning('IMAGE SAVER ENABLED!!!');
+if m==.8
+    if ~isdir(sprintf('~/data/imageExamples/%s',num2str(num)))
+        mkdir(sprintf('~/data/imageExamples/%s',num2str(num)));
+    end
+    imwrite(flipud(img/255),sprintf('~/data/imageExamples/%s/image%i_c%0.2f_n%0.2f_m%0.2f.tif',num2str(num),c,n,m),'tif');
+end
 
 function maxC = getMaxContrast(task,stimulus,cPed,rands)
 
@@ -621,7 +624,7 @@ for condition = 1:2
         end
         blocks = stimulus.blocks.blockTypes;
         cues = [1 4];
-        disp(sprintf('(Condition: %s, Cues: %i, %0.2f ): %f (n=%i)',blocks{condition},cues(cue),peds(ped),s.threshold,n));
+        disp(sprintf('(Condition: %s, Cues: %i, %0.2f ): %f (n=%i)',blocks{condition},cues(cue),peds(ped+1),s.threshold,n));
       end
   end
 end
