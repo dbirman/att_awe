@@ -12,7 +12,7 @@ if iseven(stimulus.heightPix), stimulus.heightPix = stimulus.heightPix-1;end
 
 % check whether images are loaded
 averageN = 0;
-if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(stimulus.categories,categories) || ~isequal(stimulus.imageDir,imageDir) || dispFig
+if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(stimulus.categories,categories) || ~isequal(stimulus.imageDirMain,imageDirM) || dispFig
   stimulus.nCategories = length(categories);
 
   % keep the averageMag and averageDc so that we can normalize images

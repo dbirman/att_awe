@@ -105,11 +105,11 @@ stimulus.pos2 = [-5 -5 +5 +5];
 categories = {'m' 'f'};
 name = getenv('USER');
 imageDir_per = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
-imageDir_main = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
+imageDirMain = fullfile(sprintf('/Users/%s/proj/grustim/images/all_faces/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 % saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
-stimulus = InitStim(stimulus,myscreen,categories,imageDir_main,imageDir_per,dispLoadFig,keepAspectRatio);
+stimulus = InitStim(stimulus,myscreen,categories,imageDirMain,imageDir_per,dispLoadFig,keepAspectRatio);
 
 %% EYE CALIB
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -499,7 +499,7 @@ mglClearScreen(stimulus.colors.reservedColor(4));
 
 if any(task.thistrial.whichButton == [1 2])
     if task.thistrial.gotResponse == 0
-        whichInterval = find(task.thistrial.interval == task.parameter.interval);
+        whichInterval = find(task.thistrial.interval == [1 2]);
         if (task.thistrial.whichButton == whichInterval)
             correctIncorrect = 'correct';
             stimulus.fixColor = stimulus.colors.reservedColor(15);
