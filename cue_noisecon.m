@@ -316,10 +316,11 @@ setGammaTableForMaxContrast(task.thistrial.maxContrast);
 for imagePos = 1:4
     p_mask = rand(1,length(stimulus.raw{1}.halfFourier{1}.phase))*2*pi;
     for int = 1:2
-        [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,1,int,pedestals(imagePos),randoms(imagePos),p_mask);
+        [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,imagePos==task.thistrial.targetLoc,int,pedestals(imagePos),randoms(imagePos),p_mask);
     end
 end
 
+%% CONVERT TO TEX
 function [task, tex] = convertToTex(imgNum,task,isTarget,int,ped,pedR,p_mask)
 global stimulus
 
@@ -368,6 +369,8 @@ img = (mrmax-mrmin)*histeq(img/255,npdf) + mrmin;
 
 tex = mglCreateTexture(img);
 
+%% IMG SAVE
+
 function imageSaver(img,num,c,n,m)
 warning('IMAGE SAVER ENABLED!!!');
 if m==.8
@@ -376,6 +379,8 @@ if m==.8
     end
     imwrite(flipud(img/255),sprintf('~/data/imageExamples/%s/image%i_c%0.2f_n%0.2f_m%0.2f.tif',num2str(num),c,n,m),'tif');
 end
+
+%% getMaxContrast
 
 function maxC = getMaxContrast(task,stimulus,cPed,peds,rands)
 
@@ -399,6 +404,7 @@ if cN > 1
     cN = 1;
 end
 
+%% getDeltaPed
 
 function deltaPed = getDeltaPed(condition,cue,p)
 global stimulus
