@@ -308,7 +308,7 @@ task.thistrial.deltaPed = getDeltaPed(task.thisblock.blockType,find(task.thistri
 
     
 % Get maxContrast
-task.thistrial.maxContrast = getMaxContrast(task,stimulus,curPedestal,randoms);
+task.thistrial.maxContrast = getMaxContrast(task,stimulus,curPedestal,pedestals,randoms);
 if task.thistrial.maxContrast > 1, task.thistrial.maxContrast = 1; end % Make sure we don't exceed 1
 setGammaTableForMaxContrast(task.thistrial.maxContrast);
 
@@ -377,7 +377,7 @@ if m==.8
     imwrite(flipud(img/255),sprintf('~/data/imageExamples/%s/image%i_c%0.2f_n%0.2f_m%0.2f.tif',num2str(num),c,n,m),'tif');
 end
 
-function maxC = getMaxContrast(task,stimulus,cPed,rands)
+function maxC = getMaxContrast(task,stimulus,cPed,peds,rands)
 
 if task.thisblock.blockType == 1
     % Pedestal = noise, so the max contrast will be the maximum value of
@@ -386,7 +386,7 @@ if task.thisblock.blockType == 1
 else
     % Pedestal = contrast, so the max contrast will be the maximum value of
     % either the top contrast
-    maxC = max(stimulus.pedestals.contrast(cPed)+task.thistrial.deltaPed,stimulus.pedestals.contrast(end));
+    maxC = max(stimulus.pedestals.contrast(cPed)+task.thistrial.deltaPed,max(peds));
 end
 
 function [cN, cC] = checkValues(cN,cC)
