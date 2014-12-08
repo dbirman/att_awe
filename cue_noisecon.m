@@ -7,7 +7,7 @@
 %             different numbers of stimuli.
 %
 
-function myscreen = cue_noisecon(varargin)
+function [myscreen] = cue_noisecon(varargin)
 
 %% Initialize Variables
 
@@ -144,6 +144,12 @@ task{1}{1}.parameter.pedestal = 2:4; %% IMPORTANT %%
 task{1}{1}.parameter.pedestalRandom = 2:4; %% IMPORTANT%%
 task{1}{1}.parameter.dummy = 1:3; % This just makes sure the number of trials is large enough
 task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
+%% FOR TESTING:
+% % % % % % % task{1}{1}.parameter.pedestal = 2; %% IMPORTANT %%
+% % % % % % % task{1}{1}.parameter.pedestalRandom = 2; %% IMPORTANT%%
+% % % % % % % task{1}{1}.parameter.dummy = 1; % This just makes sure the number of trials is large enough
+% % % % % % % task{1}{1}.parameter.cues = 1; %% IMPORTANT %%
+%%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
 task{1}{1}.numBlocks = 2;
@@ -237,8 +243,6 @@ end
 mglDeleteTexture(stimulus.mask);
 stimulus = rmfield(stimulus,'flyTex');
 stimulus = rmfield(stimulus.p,'tex');
-
-clear stimulus
 
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
@@ -542,9 +546,8 @@ task.thisblock.blockType = stimulus.blocks.fullblocks(task.blockTrialnum);
 
 myscreen.flushMode = 1;
 mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
-disp(sprintf('(startBlock) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
+disp(sprintf('(noisecon) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
 mglFlush
-% mglWaitSecs(10);
 
 %% scalePDF
 

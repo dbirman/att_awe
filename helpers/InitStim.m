@@ -1,9 +1,5 @@
 function stimulus = InitStim(stimulus,myscreen,categories,dispFig,keepAspectRatio)
 
-if ~isfield(stimulus,'cuenoise'),stimulus.imagesLoaded = 0;end
-stimulus.cuenoise = 1;
-stimulus.thisTex = [];
-
 %% Image Loading
 
 % make sure widht and height are odd
