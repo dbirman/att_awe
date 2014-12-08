@@ -152,7 +152,7 @@ task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
 %%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
-task{1}{1}.numBlocks = 2;
+task{1}{1}.numBlocks = 1;
 
 task{1}{1}.randVars.calculated.interval = nan;
 task{1}{1}.randVars.calculated.targetLoc = nan;
@@ -166,7 +166,7 @@ task{1}{1}.randVars.calculated.imageNums = nan(1,4);
 
 % Task switching
 types = [1 2]; types = types(randperm(2));
-stimulus.blocks.fullblocks = repmat(types,1,task{1}{1}.numBlocks/2);
+stimulus.blocks.fullblocks = types(1);%repmat(types,1,task{1}{1}.numBlocks/2);
 stimulus.blocks.blockTypes = {'Noise','Contrast'};
 
 %% Full Setup
