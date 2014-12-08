@@ -37,9 +37,8 @@ task{1}.segmin = [inf .010 inf 1];
 task{1}.segmax = [inf .3 inf 1]; 
 % We only get responses after presentation
 task{1}.getResponse = [0 0 1 1];
-task{1}.parameter.position = [1 2];
-task{1}.parameter.intervals = 3; % Note, you can set this to 0/1/2 to have the images only show up during some of the intervals
-task{1}.random = 1;
+task{1}.randVars.calculated.position = nan;
+task{1}.randVars.calculated.intervals = nan; % Note, you can set this to 0/1/2 to have the images only show up during some of the intervals
 task{1}.randVars.calculated.gender = nan(1,2);
 task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
@@ -217,6 +216,8 @@ global stimulus
 task.thistrial.respond = 0;
 
 genBase = [1 2];
+task.thistrial.position = randi(2);
+task.thistrial.intervals = 3;
 task.thistrial.gender = genBase(randperm(2));
 task.thistrial.images = randi(stimulus.p.numImages,1,2);
 

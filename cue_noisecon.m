@@ -114,7 +114,6 @@ stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/grustim/images/real_face
 stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
-% saveFile = fullfile(sprintf('/Users/%s/proj/att_awe/nc_sf.mat',name));
 stimulus = InitStim(stimulus,myscreen,categories,dispLoadFig,keepAspectRatio);
 
 %% EYE CALIB
@@ -147,7 +146,7 @@ task{1}{1}.parameter.dummy = 1:3; % This just makes sure the number of trials is
 task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
-task{1}{1}.numBlocks = 12;
+task{1}{1}.numBlocks = 2;
 
 task{1}{1}.randVars.calculated.interval = nan;
 task{1}{1}.randVars.calculated.targetLoc = nan;
@@ -537,21 +536,21 @@ function [task, myscreen] = startBlockCallback(task, myscreen)
 
 global stimulus
 
-mglClearScreen(stimulus.colors.reservedColor(4));
+mglClearScreen(stimulus.colors.reservedColor(2));
 
 task.thisblock.blockType = stimulus.blocks.fullblocks(task.blockTrialnum);
 
 myscreen.flushMode = 1;
 mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
 disp(sprintf('(startBlock) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
-
+mglFlush
+% mglWaitSecs(10);
 
 %% scalePDF
 
 function [scaled, X2] = scalePdf(unscaled,X,factor)
 if factor > 1
-    warning('Scale not designed for scale > 1');
-    stop = 1;
+    error('Scale not designed for scale > 1');
 end
 
 X2 = min(X):factor*(X(2)-X(1)):max(X);
