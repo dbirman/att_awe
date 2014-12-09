@@ -24,7 +24,10 @@ if flip
 else
     stimulus.p.responseLetters = [10 9];
 end
-stimulus.p.init_SOA = .05;   
+stimulus.p.init_SOA = .05;  
+if stimulus.testing
+    stimulus.p.init_SOA = .15;
+end
 stimulus.p.scram.rate = 15;
 stimulus.p.scram.last = 0;
 stimulus.p.scram.left = 0;
@@ -72,7 +75,7 @@ global stimulus
 
 curGender = task.thistrial.gender(task.thistrial.position);
 if task.thistrial.thisseg == 2
-    task.thistrial.SOA = stimulus.staircase.threshold;
+    task.thistrial.SOA = stimulus.p.staircase.threshold;
     % Everything is random to get a nice scramble, no need to track.
     stimulus.p.g1 = randi(2);
     stimulus.p.g2 = randi(2);
@@ -127,11 +130,11 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
         whichGender = task.thistrial.gender(task.thistrial.position);
         if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
             correctIncorrect = 'correct';
-            stimulus.p.staircase{whichGender} = upDownStaircase(stimulus.p.staircase{whichGender},1);
+            stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
             mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
         else
             correctIncorrect = 'incorrect';
-            stimulus.p.staircase{whichGender} = upDownStaircase(stimulus.p.staircase{whichGender},0);
+            stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
             mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(14));
         end
         disp(sprintf('(Peripheral) Response %s',correctIncorrect));

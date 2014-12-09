@@ -77,6 +77,10 @@ stimulus.pActive = peripheralTask;
 stimulus.colors.nReservedPeripheral = 13;
 stimulus.colors.maxPer = .6;
 stimulus.colors.minPer = .4;
+if stimulus.testing
+    stimulus.colors.maxPer = .9;
+    stimulus.colors.minPer = .1;
+end
 values = stimulus.colors.minPer:(stimulus.colors.maxPer- ...
     stimulus.colors.minPer)/(stimulus.colors.nReservedPeripheral-1):stimulus.colors.maxPer;
 stimulus.colors.reservedColors = [values',values',values'];
@@ -691,14 +695,11 @@ end
 function dispStaircaseP(stimulus)
 
 if isfield(stimulus.p,'staircase')
-    for gender = 1:2
-        s = stimulus.p.staircase{gender};
+        s = stimulus.p.staircase;
         if isfield(s,'strength')
             n = length(s.strength);
         else
             n = 0;
         end
-        cats = sort(stimulus.categories);
-        disp(sprintf('(Gender: %s): %f (n=%i)',cats{gender},s.threshold,n));
-    end
+        disp(sprintf('(Peripheral: %f (n=%i)',s.threshold,n));
 end

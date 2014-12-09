@@ -14,6 +14,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   % keep the averageMag and averageDc so that we can normalize images
   stimulus.averageMag = 0;
   stimulus.averageDC = 0;
+  stimulus.p.averageMag = 0;
 
   for i = 1:stimulus.nCategories
     if ~any(strcmp(categories{i},{'scramble','blank','gray'}))
@@ -28,6 +29,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
       end
       % get average mag
       stimulus.averageMag = stimulus.averageMag + stimulus.raw{i}.averageMag;
+      stimulus.p.averageMag = stimulus.p.averageMag + stimulus.p.raw{i}.averageMag;
       stimulus.averageDC = stimulus.averageDC +stimulus.raw{i}.averageDC;
       averageN = averageN + 1;
     else
@@ -37,6 +39,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   end
   % compute average
   stimulus.averageMag = stimulus.averageMag/averageN;
+  stimulus.p.averageMag = stimulus.p.averageMag/averageN;
   stimulus.averageDC = stimulus.averageDC/averageN;
   % and set that we have loaded
   stimulus.imageDir = stimulus.imageDirMain;
@@ -49,6 +52,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   for cat = 1:length(stimulus.p.raw)
       for imgN = 1:stimulus.p.raw{cat}.n
           thisImage = stimulus.p.raw{cat}.halfFourier{imgN};
+          thisImage.mag = stimulus.p.averageMag;
           %% Get 10-level image
           image = reconstructFromHalfFourier(thisImage);
           
