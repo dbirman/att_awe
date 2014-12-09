@@ -72,7 +72,7 @@ global stimulus
 
 curGender = task.thistrial.gender(task.thistrial.position);
 if task.thistrial.thisseg == 2
-    task.thistrial.SOA = stimulus.staircase{curGender}.threshold;
+    task.thistrial.SOA = stimulus.staircase.threshold;
     % Everything is random to get a nice scramble, no need to track.
     stimulus.p.g1 = randi(2);
     stimulus.p.g2 = randi(2);
@@ -84,7 +84,7 @@ elseif task.thistrial.thisseg == 3
     stimulus.p.g1 = task.thistrial.gender(1); % gender(POSITION)
     stimulus.p.g2 = task.thistrial.gender(2);
     
-    stimulus.p.cur_SOA = stimulus.p.staircase{curGender}.threshold;
+    stimulus.p.cur_SOA = stimulus.p.staircase.threshold;
     
     stimulus.p.n1 = task.thistrial.images(1);
     stimulus.p.n2 = task.thistrial.images(2);
@@ -222,8 +222,6 @@ task.thistrial.images = randi(stimulus.p.numImages,1,2);
 %%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule)
 
-for gender = 1:2 % female / male
-    stimulus.p.staircase{gender} = upDownStaircase(1,2,threshold,stepsize,useLevittRule);
-    stimulus.p.staircase{gender}.minThreshold = 0;
-    stimulus.p.staircase{gender}.maxThreshold = .2;
-end
+stimulus.p.staircase = upDownStaircase(1,2,threshold,stepsize,useLevittRule);
+stimulus.p.staircase.minThreshold = 0;
+stimulus.p.staircase.maxThreshold = .2;
