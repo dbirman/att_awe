@@ -1,4 +1,4 @@
-function stimulus = InitStim(stimulus,myscreen,categories,dispFig,keepAspectRatio)
+function stimulus = InitStim(stimulus,categories,dispFig,keepAspectRatio)
 
 %% Image Loading
 

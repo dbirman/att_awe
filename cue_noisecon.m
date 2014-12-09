@@ -161,7 +161,7 @@ stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/grustim/images/real_face
 stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
-stimulus = InitStim(stimulus,myscreen,categories,dispLoadFig,keepAspectRatio);
+stimulus = InitStim(stimulus,categories,dispLoadFig,keepAspectRatio);
 
 %% EYE CALIB
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
