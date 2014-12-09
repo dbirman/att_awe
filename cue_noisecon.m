@@ -157,7 +157,7 @@ stimulus.pos1 = [-5 +5 -5 +5];
 stimulus.pos2 = [-5 -5 +5 +5];
 categories = {'m' 'f'};
 name = getenv('USER');
-stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/grustim/images/real_faces/',name));
+stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/real_faces/',name));
 stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
