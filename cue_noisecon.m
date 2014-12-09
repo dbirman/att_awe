@@ -51,6 +51,11 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
         end
         stimulus.staircase = s.stimulus.staircase;
         stimulus.p.staircase = s.stimulus.p.staircase;
+        
+        % load blocks too
+        stimulus.blocks = s.stimulus.blocks;
+        stimulus.blocks.loaded = 1;
+        
         clear s;
         stimulus.initStair = 0;
     end
@@ -162,8 +167,8 @@ stimulus.seg.presp1 = 4;
 stimulus.seg.stim2 = 5;
 stimulus.seg.presp2 = 6;
 stimulus.seg.resp = 7;
-task{1}{1}.segmin = [1 1 .5 1 .5 1 2];
-task{1}{1}.segmax = [2 1 .5 1 .5 1 2];
+task{1}{1}.segmin = [1 1 .5 .8 .5 .8 1.4];
+task{1}{1}.segmax = [1 1 .5 .8 .5 .8 1.4];
 task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 0 0 1];
 task{1}{1}.randVars.calculated.blockType = nan;
@@ -173,11 +178,6 @@ task{1}{1}.parameter.pedestal = 2:4; %% IMPORTANT %%
 task{1}{1}.parameter.pedestalRandom = 2:4; %% IMPORTANT%%
 task{1}{1}.parameter.dummy = 1:3; % This just makes sure the number of trials is large enough
 task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
-%% FOR TESTING:
-% % % % % % % task{1}{1}.parameter.pedestal = 2; %% IMPORTANT %%
-% % % % % % % task{1}{1}.parameter.pedestalRandom = 2; %% IMPORTANT%%
-% % % % % % % task{1}{1}.parameter.dummy = 1; % This just makes sure the number of trials is large enough
-% % % % % % % task{1}{1}.parameter.cues = 1; %% IMPORTANT %%
 %%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
@@ -193,10 +193,20 @@ task{1}{1}.randVars.calculated.maxContrast = nan;
 task{1}{1}.randVars.calculated.deltaPed = nan;
 task{1}{1}.randVars.calculated.imageNums = nan(1,4);
 
-% Task switching
-types = [1 2]; types = types(randperm(2));
-stimulus.blocks.fullblocks = types(1);%repmat(types,1,task{1}{1}.numBlocks/2);
-stimulus.blocks.blockTypes = {'Noise','Contrast'};
+if isfield(stimulus,'blocks') & isfield(stimulus.blocks,'loaded')
+    % We already have our blocks
+    stimulus.blocks.counter = stimulus.blocks.counter + 1;
+    stimulus.blocks = rmfield(stimulus.blocks,'loaded'); % remove the load field, otherwise it gets saved across runs
+else
+    % This is the first run, build up the blocks
+    % Task switching
+    types = [1 2];
+    stimulus.blocks.fullBlocks = types(randperm(2));%repmat(types,1,task{1}{1}.numBlocks/2);
+    stimulus.blocks.blockTypes = {'Noise','Contrast'};
+    stimulus.blocks.counter = 0;
+end
+stimulus.blocks.curBlock = stimulus.blocks.fullBlocks(mod(stimulus.blocks.counter,2)+1);
+stimulus.blocks.blockList(stimulus.blocks.counter+1) = stimulus.blocks.curBlock;
 
 %% Full Setup
 % Initialize task (note phase == 1)
@@ -567,7 +577,7 @@ global stimulus
 
 mglClearScreen(stimulus.colors.reservedColor(2));
 
-task.thisblock.blockType = stimulus.blocks.fullblocks(task.blockTrialnum);
+task.thisblock.blockType = stimulus.blocks.curBlock;
 
 myscreen.flushMode = 1;
 mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
