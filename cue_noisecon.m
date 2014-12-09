@@ -75,12 +75,12 @@ stimulus.pActive = peripheralTask;
 
 % Colors: We reserve the first few colors
 stimulus.colors.nReservedPeripheral = 13;
-stimulus.colors.maxPer = .6;
-stimulus.colors.minPer = .4;
+stimulus.colors.maxPer = .54;
+stimulus.colors.minPer = .46;
 values = stimulus.colors.minPer:(stimulus.colors.maxPer- ...
     stimulus.colors.minPer)/(stimulus.colors.nReservedPeripheral-1):stimulus.colors.maxPer;
 stimulus.colors.reservedColors = [values',values',values'];
-stimulus.colors.reservedColors = [stimulus.colors.reservedColors;1 0 0;0 1 0];
+stimulus.colors.reservedColors = [stimulus.colors.reservedColors;1 0 0;0 1 0;1 1 1;0 0 0];
 
 stimulus.colors.nReservedColors = size(stimulus.colors.reservedColors,1);
 stimulus.maxIndex = 255;
@@ -112,7 +112,7 @@ stimulus.mask = mglCreateTexture(mask);
 
 %% MGL Parameters
 
-mglTextSet('fontColor',[stimulus.colors.reservedColor(12) stimulus.colors.reservedColor(12) stimulus.colors.reservedColor(12)]);
+mglTextSet('fontColor',[stimulus.colors.reservedColor(16) stimulus.colors.reservedColor(16) stimulus.colors.reservedColor(16)]);
     
 %% Gamma Table Initialization
 
@@ -491,7 +491,7 @@ global stimulus
 
 
 if myscreen.flushMode == 0
-    mglClearScreen(stimulus.colors.reservedColor(6));
+    mglClearScreen(stimulus.colors.reservedColor(7));
     if stimulus.testing
         for i = 1:4
             mglTextDraw(num2str(i),[stimulus.pos1(i),stimulus.pos2(i)]);
@@ -500,7 +500,7 @@ if myscreen.flushMode == 0
     end
 %     stimulus.text = num2str(task.thistrial.thisseg);
 %     upText(stimulus);
-    stimulus.fixColor = stimulus.colors.reservedColor(1);
+    stimulus.fixColor = stimulus.colors.reservedColor(17);
     % set the fixation color
     if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2])
         % Cue segment or the peripheral response segments
@@ -509,7 +509,7 @@ if myscreen.flushMode == 0
     elseif task.thistrial.thisseg == stimulus.seg.resp
         % Resp -- uses bright fixation cross
         upCues(task,stimulus);
-        stimulus.fixColor = stimulus.colors.reservedColor(11);
+        stimulus.fixColor = stimulus.colors.reservedColor(16);
         upFix(stimulus);
     elseif any(task.thistrial.thisseg == [stimulus.seg.stim1 stimulus.seg.stim2])
         % Either of the stimulus segments
@@ -561,7 +561,7 @@ end
 function [task, myscreen] = getResponseCallback(task, myscreen)
 
 global stimulus
-mglClearScreen(stimulus.colors.reservedColor(6));
+mglClearScreen(stimulus.colors.reservedColor(7));
 % stimulus.text = num2str(task.thistrial.thisseg);
 % upText(stimulus);
 
@@ -596,7 +596,7 @@ function [task, myscreen] = startBlockCallback(task, myscreen)
 
 global stimulus
 
-mglClearScreen(stimulus.colors.reservedColor(2));
+mglClearScreen(stimulus.colors.reservedColor(7));
 
 task.thisblock.blockType = stimulus.blocks.curBlock;
 
