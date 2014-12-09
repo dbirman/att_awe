@@ -9,13 +9,15 @@
 
 function [myscreen] = cue_noisecon(varargin)
 
+global stimulus
 %% Initialize Variables
 
 % add arguments later
 widthPix = []; heightPix = []; widthDeg = []; heightDeg = [];
 peripheralTask = [];
 mainTask = [];
-getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6','heightDeg=6','peripheralTask=1','mainTask=1'});
+stimFileNum = [];
+getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6','heightDeg=6','peripheralTask=1','mainTask=1','stimFileNum=-1'});
 
 
 %% Setup Screen
@@ -23,13 +25,40 @@ getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6','heightDeg=6','per
 screen.screenNumber = 2;
 myscreen = initScreen(screen);
 
+%% Open Old Stimfile
+stimulus.initStair = 1;
+
+if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
+    % Directory exists, check for a stimefile
+    files = dir(sprintf('~/data/cue_noisecon/%s',mglGetSID));
+    while files(1).name(1)=='.'
+        if length(files)>1
+            files = files(2:end);
+            empty = 0;
+        else
+            empty = 1;
+            break
+        end
+    end
+    if ~empty
+        if stimFileNum == -1
+            if length(files) > 1
+                warning('Multiple stimfiles found, loading last one. If you wanted a different functionality use stimFileNum=#');
+            end
+            s = load(sprintf('~/data/cue_noisecon/%s/%s',mglGetSID,files(end).name));
+        else
+            s = load(sprintf('~/data/cue_noisecon/%s/%s',mglGetSID,files(stimFileNum).name));
+        end
+        stimulus.staircase = s.stimulus.staircase;
+        stimulus.p.staircase = s.stimulus.p.staircase;
+        clear s;
+        stimulus.initStair = 0;
+    end
+end
+
 %% Initialize Stimulus
 
-global stimulus
 myscreen = initStimulus('stimulus',myscreen);
-
-% Should we use a staircase?
-stimulus.useStair = 1;
 
 % Setup for second task
 stimulus.pFlag = 0;
@@ -183,26 +212,25 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-stimulus.initThresh = zeros(2,2,3);
+if stimulus.initStair
+    stimulus.initThresh = zeros(2,2,3);
 
-for cond = 1:2
-    for ped = 1:3
-        cues = 1;
-        mult = .5;
-        stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
-        cues = 2;
-        mult = 1;
-        stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
+    for cond = 1:2
+        for ped = 1:3
+            cues = 1;
+            mult = .5;
+            stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
+            cues = 2;
+            mult = 1;
+            stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
+        end
     end
-end
-stimulus.stepSizes = stimulus.initThresh / 7.5;
-useLevittRule = 1;
-if stimulus.useStair
-  disp(sprintf('(noisecon) Initializing staircase useLevittRule: %i',useLevittRule));
-  stimulus = initStaircase(stimulus,useLevittRule);
+    stimulus.stepSizes = stimulus.initThresh / 7.5;
+    useLevittRule = 1;
+    disp(sprintf('(noisecon) Initializing staircase useLevittRule: %i',useLevittRule));
+    stimulus = initStaircase(stimulus,useLevittRule);
 else
-%   disp(sprintf('(noisecon) Continuing staircase from last run'));
-%   dispStaircase(stimulus);
+    disp('(noisecon) Re-using staircase from previous run');
 end
 
 %% Main Task Loop
@@ -242,7 +270,7 @@ if isfield(stimulus.p,'tex')
 end
 mglDeleteTexture(stimulus.mask);
 stimulus = rmfield(stimulus,'flyTex');
-stimulus = rmfield(stimulus.p,'tex');
+stimulus.p = rmfield(stimulus.p,'tex');
 
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
@@ -304,7 +332,7 @@ end
 task.thistrial.genderList(task.thistrial.genderList==0) = gens(randperm(3));
 
 % Get Delta
-task.thistrial.deltaPed = getDeltaPed(task.thisblock.blockType,find(task.thistrial.cues==[1 4]),curPedestal-1);
+task.thistrial.deltaPed = getDeltaPed(stimulus,task.thisblock.blockType,find(task.thistrial.cues==[1 4]),curPedestal-1);
 
     
 % Get maxContrast
@@ -406,17 +434,8 @@ end
 
 %% getDeltaPed
 
-function deltaPed = getDeltaPed(condition,cue,p)
-global stimulus
-if stimulus.useStair
-    deltaPed = stimulus.staircase{condition,cue,p}.threshold;
-else
-    if condition == 1
-        deltaPed = .2;
-    else
-        deltaPed = .3;
-    end
-end
+function deltaPed = getDeltaPed(stimulus,condition,cue,p)
+deltaPed = stimulus.staircase{condition,cue,p}.threshold;
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -600,10 +619,10 @@ image(image<mi) = mi;
 function stimulus = initStaircase(stimulus,useLevittRule)
 
 
-stimulus.staircase = cell(2,2,4);
+stimulus.staircase = cell(2,2,stimulus.nPedestalOpts);
 for condition = 1:2 % noise / contrast
     for cues = 1:2
-        for p = 1:stimulus.nPedestalOpts % pedestal level 1->4
+        for p = 1:stimulus.nPedestalOpts % pedestal level 1->3 (or 2->4 really)
             stimulus.staircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p),stimulus.stepSizes(condition,cues,p),useLevittRule);
             stimulus.staircase{condition,cues,p}.minThreshold = 0;
             stimulus.staircase{condition,cues,p}.maxThreshold = 1;

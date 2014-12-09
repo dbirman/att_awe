@@ -50,16 +50,14 @@ task{1}.waitForBacktick = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init staircase
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-threshold = stimulus.p.init_SOA;
-stepsize = .005;
-useLevittRule = 1;
-if stimulus.useStair
-  disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
-  stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule);
-else
-%   disp(sprintf('(noisecon) Continuing staircase from last run'));
-%   dispStaircase(stimulus);
+if stimulus.initStair
+    threshold = stimulus.p.init_SOA;
+    stepsize = .005;
+    useLevittRule = 1;
+    disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
+    stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule);
 end
+
 
 %% Initialize Task
 [task{1}, myscreen] = initTask(task{1},myscreen,@startSegmentCallback,@screenUpdateCallback,@responseCallback,@trialCallback);
@@ -86,11 +84,7 @@ elseif task.thistrial.thisseg == 3
     stimulus.p.g1 = task.thistrial.gender(1); % gender(POSITION)
     stimulus.p.g2 = task.thistrial.gender(2);
     
-    if stimulus.useStair    
-        stimulus.p.cur_SOA = stimulus.p.staircase{curGender}.threshold;
-    else
-        stimulus.p.cur_SOA = stimulus.p.init_SOA;
-    end
+    stimulus.p.cur_SOA = stimulus.p.staircase{curGender}.threshold;
     
     stimulus.p.n1 = task.thistrial.images(1);
     stimulus.p.n2 = task.thistrial.images(2);
