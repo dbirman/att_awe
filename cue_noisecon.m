@@ -582,7 +582,6 @@ task.thisblock.blockType = stimulus.blocks.curBlock;
 myscreen.flushMode = 1;
 mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
 disp(sprintf('(noisecon) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
-mglFlush
 
 %% scalePDF
 
