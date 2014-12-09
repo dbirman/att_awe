@@ -17,9 +17,12 @@ widthPix = []; heightPix = []; widthDeg = []; heightDeg = [];
 peripheralTask = [];
 mainTask = [];
 stimFileNum = [];
-getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6','heightDeg=6','peripheralTask=1','mainTask=1','stimFileNum=-1'});
+testing = [];
+getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6', ...
+    'heightDeg=6','peripheralTask=1','mainTask=1','stimFileNum=-1', ...
+    'testing=0'});
 
-
+stimulus.testing = testing;
 %% Setup Screen
 
 screen.screenNumber = 2;
@@ -131,6 +134,13 @@ stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
 baseThresh(:,2) = [.1 .15 .2];
 stimulus.pedestals.noise = [ .125 .175 .275 .45 .65 ];
 baseThresh(:,1) = [.2 .25 .3];
+%%%% TESTING %%%%
+if testing
+    stimulus.pedestals.contrast = [ .3 .3 .3 .3 .3 ];
+    baseThresh(:,2) = [.6 .6 .6];
+    stimulus.pedestals.noise = [ .1 .1 .1 .1 .1 ];
+    baseThresh(:,1) = [.7 .7 .7];
+end
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -473,10 +483,18 @@ end
 function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
-% mglTextDraw(stimulus.blockTypes{task.thisblock.blockType},[0,5]);
+
+
+
+
 if myscreen.flushMode == 0
     mglClearScreen(stimulus.colors.reservedColor(6));
-
+    if stimulus.testing
+        for i = 1:4
+            mglTextDraw(num2str(i),[stimulus.pos1(i),stimulus.pos2(i)]);
+        end
+        mglTextDraw(num2str(task.thistrial.targetLoc),[0,-5]);
+    end
 %     stimulus.text = num2str(task.thistrial.thisseg);
 %     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(1);
@@ -510,7 +528,7 @@ mglFixationCross(1,1,stimulus.fixColor);
 %%
 function upCues(task,stimulus)
 
-ang = [0 0 180 180];
+ang = [180 0 180 0];
 if task.thistrial.cues == 1 || task.thistrial.thisseg == stimulus.seg.resp
     % We can't just display all of the lines, we just want one line
     usePos1 = stimulus.pos1(task.thistrial.targetLoc);
