@@ -40,7 +40,7 @@ d.n = 0;
 if width == 250
     mask_size = [100 100];
     mask = repmat([zeros(1,75),ones(1,100),zeros(1,75)],100,1);
-    mask = [zeros(75,250);mask;zeros(75,250)];
+    mask = [zeros(90,250);mask;zeros(60,250)];
 else
     mask_size = [160 160];
     mask = repmat([zeros(1,120),ones(1,160),zeros(1,120)],160,1);
