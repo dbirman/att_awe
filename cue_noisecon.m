@@ -74,8 +74,11 @@ stimulus.pInt = 0;
 stimulus.pActive = peripheralTask;
 
 % Colors: We reserve the first few colors
-stimulus.colors.nReservedPeripheral = 12;
-values = 0:1/stimulus.colors.nReservedPeripheral:1;
+stimulus.colors.nReservedPeripheral = 13;
+stimulus.colors.maxPer = .6;
+stimulus.colors.minPer = .4;
+values = stimulus.colors.minPer:(stimulus.colors.maxPer- ...
+    stimulus.colors.minPer)/(stimulus.colors.nReservedPeripheral-1):stimulus.colors.maxPer;
 stimulus.colors.reservedColors = [values',values',values'];
 stimulus.colors.reservedColors = [stimulus.colors.reservedColors;1 0 0;0 1 0];
 
