@@ -493,10 +493,6 @@ end
 function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
-
-
-
-
 if myscreen.flushMode == 0
     mglClearScreen(stimulus.colors.reservedColor(7));
     if stimulus.testing

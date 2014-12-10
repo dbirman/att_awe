@@ -107,6 +107,10 @@ disppercent(inf);
 stimulus.trialStart = mglGetSecs;
 stimulus.categories = categories;
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    processPeripheralImage        %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function img11 = processPeripheralImage(stimulus,image,npdf,mrmax,mrmin)
 
 % change the image to match the PDF
@@ -117,7 +121,7 @@ img11 = replaceColors(image,stimulus.colors.nReservedPeripheral);
 img11 = flipud(img11);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-%% pinkNoise %%%%%%%%%%%%%
+%        pinkNoise       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function image = pinkNoise(img,img_f,K)
@@ -184,17 +188,3 @@ end
 image = image * (rmax - rmin) / (ma - mi);
 % Move to the image median
 image = image - min(image(:)) + rmin;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    imExpand             %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Rescale an image with any range to be within 0->255 + offset from the
-% number of reserved colors. NOTE: this affects the mean luminance!!!
-
-function i3 = imExpand(image)
-
-i3(1,:,:) = image;
-i3(2,:,:) = image;
-i3(3,:,:) = image;
-i3(4,:,:) = 255;
