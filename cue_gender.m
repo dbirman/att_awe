@@ -45,6 +45,7 @@ task{1}.randVars.calculated.intervals = nan;
 task{1}.randVars.calculated.gender = nan(1,2);
 task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
+task{1}.randVars.calculated.responseCorrect = nan;
 task{1}.randVars.calculated.SOA = nan;
 task{1}.randVars.calculated.sOnset = nan;
 task{1}.waitForBacktick = 1;
@@ -130,7 +131,8 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
         whichGender = task.thistrial.gender(task.thistrial.position);
         if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
             correctIncorrect = 'correct';
-            % Use this code to control for "performance
+            task.thistrial.responseCorrect = 1;
+            % Use this code to control for "performance"
 %             if stimulus.dual
 %                 stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
 %             else
@@ -139,6 +141,8 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
             mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
         else
             correctIncorrect = 'incorrect';
+            task.thistrial.responseCorrect = 0;
+            % This was the old code for "performance"
 %             if stimulus.dual
 %                 stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
 %             else
@@ -221,33 +225,45 @@ function [task, myscreen] = trialCallback(task, myscreen)
 global stimulus
 
 % This code is used to assess "awareness", the code in respCallback is used
-% to assess "performance".
-if task.lasttrial.respond == 1
-    if task.lasttrial.gotResponse == 1
-        if stimulus.dual
-            stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
+% to assess "performance". This new code tries to run the staircase
+% simultaneously for both awareness (75% of trials) AND performance
+% (male/female when available) simultaneously.
+if ~isempty(task.lasttrial)
+    if task.lasttrial.respond == 1
+        if task.lasttrial.gotResponse == 1
+            disp('(gender) Correct: Got response, expected response.');
+            if stimulus.dual
+                if task.lasttrial.responseCorrect
+                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
+                else
+                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
+                end
+            else
+                if task.lasttrial.responseCorrect
+                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+                else
+                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
+                end
+            end
         else
-            stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+            disp('(gender) Incorrect: Got no response, expected response.');
+            if stimulus.dual
+                stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
+            else
+                stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
+            end
         end
     else
-        if stimulus.dual
-            stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
+        if task.lasttrial.gotResponse == 1
+            disp('(gender) Incorrect: Got response, did not expect response.');
+            % False alarm, don't do anything
         else
-            stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
-        end
-    end
-else
-    if task.lasttrial.gotResponse == 1
-        if stimulus.dual
-            stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
-        else
-            stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
-        end
-    else
-        if stimulus.dual
-            stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
-        else
-            stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+            disp('(gender) Correct: Got no response, expected no response.');
+            if stimulus.dual
+                stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
+            else
+                stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+            end
         end
     end
 end
