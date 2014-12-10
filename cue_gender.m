@@ -94,19 +94,7 @@ elseif task.thistrial.thisseg == 3
     stimulus.p.n1 = task.thistrial.images(1);
     stimulus.p.n2 = task.thistrial.images(2);
     
-    % Presentation (Choose an image)
-% % % % % % %     if task.thistrial.intervals == 1 && stimulus.pInt == 1
-% % % % % % %         % There is only one interval and we are in the first one
-% % % % % % %         task.thistrial.respond = 1;
-% % % % % % %         stimulus.p.SOA_onset{task.trialnum}(1) = mglGetSecs;
-% % % % % % %         stimulus.p.scramble = 0;
-% % % % % % %         % One interval, second one
-% % % % % % %     elseif task.thistrial.intervals == 2 && stimulus.pInt == 2
-% % % % % % %         task.thistrial.respond = 1;
-% % % % % % %         stimulus.p.SOA_onset{task.trialnum}(2) = mglGetSecs;
-% % % % % % %         stimulus.p.scramble = 0;
-% % % % % % %     elseif task.thistrial.intervals == 3
-    if task.thistrial.intervals == 3
+    if task.thistrial.intervals == 1
         % We should do both intervals
         task.thistrial.respond = 1;
         stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
@@ -273,7 +261,7 @@ task.thistrial.respond = 0;
 
 genBase = [1 2];
 task.thistrial.position = randi(2);
-intOpts = [0 3 3 3];
+intOpts = [0 1 1];
 task.thistrial.intervals = intOpts(randi(length(intOpts)));
 task.thistrial.gender = genBase(randperm(2));
 task.thistrial.images = randi(stimulus.p.numImages,1,2);
