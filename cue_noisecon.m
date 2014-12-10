@@ -20,9 +20,11 @@ stimFileNum = [];
 testing = [];
 getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6', ...
     'heightDeg=6','peripheralTask=1','mainTask=1','stimFileNum=-1', ...
-    'testing=0'});
+    'testing=0','dual=0'});
 
 stimulus.testing = testing;
+stimulus.dual = dual;
+stimulus.counter = 1; % This keeps track of what "run" we are on.
 %% Setup Screen
 
 screen.screenNumber = 2;
@@ -33,34 +35,31 @@ stimulus.initStair = 1;
 
 if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
     % Directory exists, check for a stimefile
-    files = dir(sprintf('~/data/cue_noisecon/%s',mglGetSID));
-    while files(1).name(1)=='.'
-        if length(files)>1
-            files = files(2:end);
-            empty = 0;
-        else
-            empty = 1;
-            break
-        end
-    end
-    if ~empty
+    files = dir(sprintf('~/data/cue_noisecon/%s/*mat',mglGetSID));
+
+    if length(files) >= 1
         if stimFileNum == -1
             if length(files) > 1
                 warning('Multiple stimfiles found, loading last one. If you wanted a different functionality use stimFileNum=#');
             end
-            s = load(sprintf('~/data/cue_noisecon/%s/%s',mglGetSID,files(end).name));
+            fname = files(end).name;
         else
-            s = load(sprintf('~/data/cue_noisecon/%s/%s',mglGetSID,files(stimFileNum).name));
+            fname = files(stimFileNum).name;
         end
+        s = load(sprintf('~/data/cue_noisecon/%s/%s',mglGetSID,fname));
         stimulus.staircase = s.stimulus.staircase;
         stimulus.p.staircase = s.stimulus.p.staircase;
-        
+        stimulus.dualstaircase = s.stimulus.dualstaircase;
+        stimulus.p.dualstaircase = s.stimulus.p.dualstaircase;
+        stimulus.counter = s.stimulus.counter + 1;
+
         % load blocks too
         stimulus.blocks = s.stimulus.blocks;
         stimulus.blocks.loaded = 1;
-        
+
         clear s;
         stimulus.initStair = 0;
+        disp(sprintf('(noisecon) Data file: %s loaded, this is run #%i',fname,stimulus.counter));
     end
 end
 
@@ -75,8 +74,8 @@ stimulus.pActive = peripheralTask;
 
 % Colors: We reserve the first few colors
 stimulus.colors.nReservedPeripheral = 13;
-stimulus.colors.maxPer = .6;
-stimulus.colors.minPer = .4;
+stimulus.colors.maxPer = .62;
+stimulus.colors.minPer = .38;
 if stimulus.testing
     stimulus.colors.maxPer = .9;
     stimulus.colors.minPer = .1;
@@ -462,7 +461,11 @@ end
 %% getDeltaPed
 
 function deltaPed = getDeltaPed(stimulus,condition,cue,p)
-deltaPed = stimulus.staircase{condition,cue,p}.threshold;
+if stimulus.dual
+    deltaPed = stimulus.dualstaircase{condition,cue,p}.threshold;
+else
+    deltaPed = stimulus.staircase{condition,cue,p}.threshold;
+end
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -577,11 +580,19 @@ if any(task.thistrial.whichButton == [1 2])
         if (task.thistrial.whichButton == whichInterval)
             correctIncorrect = 'correct';
             stimulus.fixColor = stimulus.colors.reservedColor(15);
-            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},1);
+            if stimulus.dual
+                stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},1);
+            else
+                stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},1);
+            end
         else
             correctIncorrect = 'incorrect';
-            stimulus.fixColor = stimulus.colors.reservedColor(14);            
-            stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},0);
+            stimulus.fixColor = stimulus.colors.reservedColor(14);   
+            if stimulus.dual     
+                stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},0);
+            else
+                stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},0);
+            end
         end
         disp(sprintf('(noisecon) Response %s',correctIncorrect));
         %     disp(sprintf('Cue: %s pedestal: %f deltaC: %f (%s)',stimulus.cueConditions{task.thistrial.cueCondition},task.thistrial.pedestalContrast(task.thistrial.targetLoc),stimulus.deltaContrast(task.trialnum),correctIncorrect));
@@ -603,6 +614,8 @@ global stimulus
 mglClearScreen(stimulus.colors.reservedColor(7));
 
 task.thisblock.blockType = stimulus.blocks.curBlock;
+stimulus.blockList(stimulus.counter) = stimulus.blocks.curBlock;
+stimulus.dualList(stimulus.counter) = stimulus.dual;
 
 myscreen.flushMode = 1;
 mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
@@ -657,9 +670,12 @@ stimulus.staircase = cell(2,2,stimulus.nPedestalOpts);
 for condition = 1:2 % noise / contrast
     for cues = 1:2
         for p = 1:stimulus.nPedestalOpts % pedestal level 1->3 (or 2->4 really)
-            stimulus.staircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p),stimulus.stepSizes(condition,cues,p),useLevittRule);
+            stimulus.staircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p)*.75,stimulus.stepSizes(condition,cues,p),useLevittRule);
             stimulus.staircase{condition,cues,p}.minThreshold = 0;
             stimulus.staircase{condition,cues,p}.maxThreshold = 1;
+            stimulus.dualstaircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p)*1.25,stimulus.stepSizes(condition,cues,p),useLevittRule);
+            stimulus.dualstaircase{condition,cues,p}.minThreshold = 0;
+            stimulus.dualstaircase{condition,cues,p}.maxThreshold = 1;
         end
     end
 end
@@ -689,6 +705,26 @@ for condition = 1:2
       end
   end
 end
+for condition = 1:2
+  for cue = 1:2
+      for ped = 1:stimulus.nPedestalOpts
+        s = stimulus.dualstaircase{condition,cue,ped};
+        if isfield(s,'strength')
+          n = length(s.strength);
+        else
+          n = 0;
+        end
+        if condition == 1
+            peds = stimulus.pedestals.noise;
+        else
+            peds = stimulus.pedestals.contrast;
+        end
+        blocks = stimulus.blocks.blockTypes;
+        cues = [1 4];
+        disp(sprintf('(DUAL Condition: %s, Cues: %i, %0.2f ): %f (n=%i)',blocks{condition},cues(cue),peds(ped+1),s.threshold,n));
+      end
+  end
+end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
@@ -702,4 +738,13 @@ if isfield(stimulus.p,'staircase')
             n = 0;
         end
         disp(sprintf('(Peripheral: %f (n=%i)',s.threshold,n));
+end
+if isfield(stimulus.p,'staircase')
+        s = stimulus.p.dualstaircase;
+        if isfield(s,'strength')
+            n = length(s.strength);
+        else
+            n = 0;
+        end
+        disp(sprintf('(DUAL Peripheral: %f (n=%i)',s.threshold,n));
 end
