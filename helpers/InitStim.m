@@ -64,7 +64,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
      
           stimulus.p.images{cat,1}(:,:,imgN) = processPeripheralImage(stimulus,i,npdf,mrmax,mrmin);
           for pi = 2:10
-              i_ps = pinkNoise(i,thisImage,.085);
+              i_ps = pinkNoise(i,thisImage,.05);
               stimulus.p.images{cat,pi}(:,:,imgN) = processPeripheralImage(stimulus,i_ps,npdf,mrmax,mrmin);
           end
       end
