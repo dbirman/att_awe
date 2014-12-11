@@ -36,8 +36,8 @@ stimulus.p.scram.right = 0;
 %% Task Params
 
 % Segments are: NOTHING, MASK STREAM, PRESENTATION, PRESENTATION MASK
-task{1}.segmin = [inf .010 inf .75]; 
-task{1}.segmax = [inf .25 inf .75]; 
+task{1}.segmin = [inf .010 inf 1]; 
+task{1}.segmax = [inf .25 inf 1]; 
 % We only get responses after presentation
 task{1}.getResponse = [0 0 1 1];
 task{1}.randVars.calculated.position = nan;

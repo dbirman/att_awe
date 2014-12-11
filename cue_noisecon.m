@@ -185,8 +185,13 @@ stimulus.seg.presp1 = 4;
 stimulus.seg.stim2 = 5;
 stimulus.seg.presp2 = 6;
 stimulus.seg.resp = 7;
-task{1}{1}.segmin = [1 1 .5 .8 .5 .8 1.4];
-task{1}{1}.segmax = [1 1 .5 .8 .5 .8 1.4];
+task{1}{1}.segmin = [1 1 .5 1 .5 1 1.4];
+task{1}{1}.segmax = [1 1 .5 1 .5 1 1.4];
+if testing
+    
+    task{1}{1}.segmin = [1 1 .5 0 .5 .8 1.4];
+    task{1}{1}.segmax = [1 1 .5 0 .5 .8 1.4];
+end
 task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 0 0 1];
 task{1}{1}.randVars.calculated.blockType = nan;
@@ -497,12 +502,12 @@ global stimulus
 
 if myscreen.flushMode == 0
     mglClearScreen(stimulus.colors.reservedColor(7));
-    if stimulus.testing
-        for i = 1:4
-            mglTextDraw(num2str(i),[stimulus.pos1(i),stimulus.pos2(i)]);
-        end
-        mglTextDraw(num2str(task.thistrial.targetLoc),[0,-5]);
-    end
+%     if stimulus.testing
+%         for i = 1:4
+%             mglTextDraw(num2str(i),[stimulus.pos1(i),stimulus.pos2(i)]);
+%         end
+%         mglTextDraw(num2str(task.thistrial.targetLoc),[0,-5]);
+%     end
 %     stimulus.text = num2str(task.thistrial.thisseg);
 %     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(17);
