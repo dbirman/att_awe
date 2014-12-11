@@ -10,7 +10,7 @@
 function [task, myscreen] = cue_gender(myscreen)
 %% Initialize Stimulus
 
-% NOTE: MALE = 9, FEMALE = 0. Note that this depends on the order of the
+% NOTE: MALE = 8, FEMALE = 9. Note that this depends on the order of the
 % folders.
 flip = 0; %when flipped, 9 = FEMALE
 
@@ -20,9 +20,9 @@ stimulus.p.posx = [12 -12];
 stimulus.p.posy = [0 0];
 stimulus.p.numImages = length(stimulus.p.tex{1});
 if flip
-    stimulus.p.responseLetters = [9 10];
+    stimulus.p.responseLetters = [8 9 10];
 else
-    stimulus.p.responseLetters = [10 9];
+    stimulus.p.responseLetters = [9 8 10];
 end
 stimulus.p.init_SOA = .175;  
 if stimulus.testing
@@ -45,7 +45,6 @@ task{1}.randVars.calculated.intervals = nan;
 task{1}.randVars.calculated.gender = nan(1,2);
 task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
-task{1}.randVars.calculated.responseCorrect = nan;
 task{1}.randVars.calculated.SOA = nan;
 task{1}.randVars.calculated.sOnset = nan;
 task{1}.waitForBacktick = 1;
@@ -115,32 +114,51 @@ global stimulus
 
 if any(task.thistrial.whichButton == stimulus.p.responseLetters)
     if task.thistrial.gotResponse == 0 
-        % Use this code to control for "awareness"
         whichGender = task.thistrial.gender(task.thistrial.position);
-        if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
-            correctIncorrect = 'correct';
-            task.thistrial.responseCorrect = 1;
-            % Use this code to control for "performance"
-%             if stimulus.dual
-%                 stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
-%             else
-%                 stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
-%             end
-            mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
+        if task.thistrial.respond == 0
+            % Nothing displayed
+            if task.thistrial.whichButton == stimulus.p.responseLetters(3)
+                % Participant says they saw nothing (correct)                
+                correctIncorrect = 'correct';
+                if stimulus.dual
+                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
+                else
+                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+                end
+                mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
+            else
+                correctIncorrect = 'incorrect';
+                % Participant saw something (incorrect)
+                if stimulus.dual
+                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
+                else
+                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
+                end
+                mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(14));
+            end
         else
-            correctIncorrect = 'incorrect';
-            task.thistrial.responseCorrect = 0;
-            % This was the old code for "performance"
-%             if stimulus.dual
-%                 stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
-%             else
-%                 stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
-%             end
-            mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(14));
+            % Something displayed, check if they got it correct
+            if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
+                correctIncorrect = 'correct';
+                if stimulus.dual
+                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
+                else
+                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+                end
+                mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
+            else
+                correctIncorrect = 'incorrect';
+                if stimulus.dual
+                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
+                else
+                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
+                end
+                mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(14));
+            end
         end
-        disp(sprintf('(Peripheral) Response %s',correctIncorrect));
+        disp(sprintf('(gender) Response %s',correctIncorrect));
     else
-        disp(sprintf('(Peripheral) Multiple responses... (%i ignored)',task.thistrial.whichButton));
+        disp(sprintf('(gender) Multiple responses... (%i ignored)',task.thistrial.whichButton));
     end
 end
 
@@ -212,49 +230,6 @@ mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.widthDeg
 function [task, myscreen] = trialCallback(task, myscreen)
 global stimulus
 
-% This code is used to assess "awareness", the code in respCallback is used
-% to assess "performance". This new code tries to run the staircase
-% simultaneously for both awareness (75% of trials) AND performance
-% (male/female when available) simultaneously.
-if ~isempty(task.lasttrial)
-    if task.lasttrial.respond == 1
-        if task.lasttrial.gotResponse == 1
-            disp('(gender) Correct: Got response, expected response.');
-            if stimulus.dual
-                if task.lasttrial.responseCorrect
-                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
-                else
-                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
-                end
-            else
-                if task.lasttrial.responseCorrect
-                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
-                else
-                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
-                end
-            end
-        else
-            disp('(gender) Incorrect: Got no response, expected response.');
-            if stimulus.dual
-                stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
-            else
-                stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
-            end
-        end
-    else
-        if task.lasttrial.gotResponse == 1
-            disp('(gender) Incorrect: Got response, did not expect response.');
-            % False alarm, don't do anything
-        else
-            disp('(gender) Correct: Got no response, expected no response.');
-            if stimulus.dual
-                stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
-            else
-                stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
-            end
-        end
-    end
-end
 
 % by default, don't look for responses later
 task.thistrial.respond = 0;
