@@ -99,8 +99,7 @@ elseif task.thistrial.thisseg == 3
         stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
         stimulus.p.scramble = 0;
     else
-%         % 0 response trials, we don't care which we are in.
-%         % We just skip to the mask phase immediately
+        stimulus.p.scramble = 1;
         stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
         task = jumpSegment(task);
     end
