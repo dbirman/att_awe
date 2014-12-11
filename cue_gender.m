@@ -230,6 +230,8 @@ mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.widthDeg
 function [task, myscreen] = trialCallback(task, myscreen)
 global stimulus
 
+stimulus.p.scram.left = 0;
+stimulus.p.scram.right = 0;
 
 % by default, don't look for responses later
 task.thistrial.respond = 0;

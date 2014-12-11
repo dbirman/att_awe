@@ -52,8 +52,6 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   % and set that we have loaded
   stimulus.imageDir = stimulus.imageDirMain;
   stimulus.p.imageDir = stimulus.imageDirPer;
-
-  disp(sprintf('(noisecon) No file found, generating stimset... \n'));
   
   %% PERIPHERAL IMAGES
   for cat = 1:length(stimulus.p.raw)
@@ -64,7 +62,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
      
           stimulus.p.images{cat,1}(:,:,imgN) = processPeripheralImage(stimulus,i,npdf,mrmax,mrmin);
           for pi = 2:10
-              i_ps = pinkNoise(i,thisImage,.05);
+              i_ps = pinkNoise(i,thisImage,.01);
               stimulus.p.images{cat,pi}(:,:,imgN) = processPeripheralImage(stimulus,i_ps,npdf,mrmax,mrmin);
           end
       end
