@@ -18,13 +18,15 @@ peripheralTask = [];
 mainTask = [];
 stimFileNum = [];
 testing = [];
+training = [];
 getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6', ...
     'heightDeg=6','peripheralTask=1','mainTask=1','stimFileNum=-1', ...
-    'testing=0','dual=0'});
+    'testing=0','dual=0','training=0'});
 
 stimulus.testing = testing;
 stimulus.dual = dual;
 stimulus.counter = 1; % This keeps track of what "run" we are on.
+stimulus.training = training;
 %% Setup Screen
 
 screen.screenNumber = 2;

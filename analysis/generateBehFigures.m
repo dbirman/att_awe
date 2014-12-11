@@ -102,8 +102,14 @@ for fi = 1:length(files)
         exp{1}.stairConDual = squeeze(stimulus.dualstaircase(2,:,:));
         exp{1}.p.stair = squeeze(stimulus.p.staircase);
         exp{1}.p.stairDual = squeeze(stimulus.p.dualstaircase);
+        %% run Variables
+        exp{3}.runVars.blocks = stimulus.blockList;
+        exp{3}.runVars.dual = stimulus.dualList;
+        exp{3}.runVars.pedestals = stimulus.pedestals;
+        exp{3}.runVars.trainingRun = stimulus.training;
         %% Save
         disp(sprintf('(noisecon_analysis) Saving fix file %s',fixFile));
-        
+        exp_holder{stimulus.counter} = exp;
+        save(fixFile,'exp');
     end
 end
