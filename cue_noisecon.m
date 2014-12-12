@@ -256,7 +256,6 @@ if stimulus.initStair
         end
     end
     stimulus.stepSizes = stimulus.initThresh / 5;
-    useLevittRule = 1;
     disp(sprintf('(noisecon) Initializing staircases'));
     stimulus = initStaircase(stimulus);
 else
@@ -334,9 +333,7 @@ task.thistrial.imageNums = imgs;
 
 pos = [1 2 3 4];
 % Let's set the distractor image pedestals (the other three heights)  
-curPedestal = task.thistrial.pedestal;
 otherPedestals = [randi(stimulus.nPedestals) randi(stimulus.nPedestals) randi(stimulus.nPedestals)];
-% otherPedestals = otherPedestals(otherPedestals~=curPedestal);
 otherPedestals = otherPedestals(randperm(length(otherPedestals)));
 
 pedestals(pos==task.thistrial.targetLoc) = task.thistrial.pedestal;
@@ -362,11 +359,11 @@ end
 task.thistrial.genderList(task.thistrial.genderList==0) = gens(randperm(3));
 
 % Get Delta
-task.thistrial.deltaPed = getDeltaPed(stimulus,task.thisblock.blockType,find(task.thistrial.cues==[1 4]),curPedestal-1);
+[task.thistrial.deltaPed, stimulus] = getDeltaPed(stimulus,task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1);
 
     
 % Get maxContrast
-task.thistrial.maxContrast = getMaxContrast(task,stimulus,curPedestal,pedestals,randoms);
+task.thistrial.maxContrast = getMaxContrast(task,stimulus,task.thistrial.pedestal,pedestals,randoms);
 if task.thistrial.maxContrast > 1, task.thistrial.maxContrast = 1; end % Make sure we don't exceed 1
 setGammaTableForMaxContrast(task.thistrial.maxContrast);
 
@@ -464,11 +461,11 @@ end
 
 %% getDeltaPed
 
-function deltaPed = getDeltaPed(stimulus,condition,cue,p)
+function [deltaPed, stimulus] = getDeltaPed(stimulus,condition,cue,p)
 if stimulus.dual
-    deltaPed = stimulus.dualstaircase{condition,cue,p}.threshold;
+    [deltaPed, stimulus.dualstaircase{condition,cue,p}] = doStaircase('testValue',stimulus.dualstaircase{condition,cue,p});
 else
-    deltaPed = stimulus.staircase{condition,cue,p}.threshold;
+    [deltaPed, stimulus.staircase{condition,cue,p}] = doStaircase('testValue',stimulus.staircase{condition,cue,p});
 end
 
 %%
@@ -574,6 +571,10 @@ mglClearScreen(stimulus.colors.reservedColor(7));
 
 %%%% NOTE: PARTICIPANTS ALWAYS LOOK FOR THE MORE VISIBLE ITEM, i.e. HIGHER NOISE OR CONTRAST %%%%
 
+block = task.thisblock.blockType;
+cue = find(task.thistrial.cues==[1 4]);
+pedPos = task.thistrial.pedestal-1;    
+
 if any(task.thistrial.whichButton == [1 2])
     if task.thistrial.gotResponse == 0
         whichInterval = find(task.thistrial.interval == [1 2]);
@@ -581,23 +582,26 @@ if any(task.thistrial.whichButton == [1 2])
             correctIncorrect = 'correct';
             stimulus.fixColor = stimulus.colors.reservedColor(15);
             if stimulus.dual
-                stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},1);
+                stimulus.dualstaircase{block,cue,pedPos} = ...
+                    doStaircase('update',stimulus.dualstaircase{block,cue,pedPos},1);
             else
-                stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},1);
+                stimulus.staircase{block,cue,pedPos} = ...
+                    doStaircase('update',stimulus.staircase{block,cue,pedPos},1);
             end
         else
             correctIncorrect = 'incorrect';
-            stimulus.fixColor = stimulus.colors.reservedColor(14);   
-            if stimulus.dual     
-                stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.dualstaircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},0);
+            stimulus.fixColor = stimulus.colors.reservedColor(14);  
+            if stimulus.dual
+                stimulus.dualstaircase{block,cue,pedPos} = ...
+                    doStaircase('update',stimulus.dualstaircase{block,cue,pedPos},0);
             else
-                stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1} = upDownStaircase(stimulus.staircase{task.thisblock.blockType,find(task.thistrial.cues==[1 4]),task.thistrial.pedestal-1},0);
+                stimulus.staircase{block,cue,pedPos} = ...
+                    doStaircase('update',stimulus.staircase{block,cue,pedPos},0);
             end
         end
         disp(sprintf('(noisecon) Response %s',correctIncorrect));
-        %     disp(sprintf('Cue: %s pedestal: %f deltaC: %f (%s)',stimulus.cueConditions{task.thistrial.cueCondition},task.thistrial.pedestalContrast(task.thistrial.targetLoc),stimulus.deltaContrast(task.trialnum),correctIncorrect));
     else
-        %     disp(sprintf('Subject responded multiple times: %i',task.thistrial.gotResponse+1));
+        disp(sprintf('Subject responded multiple times: %i',task.thistrial.gotResponse+1));
     end
 end
 myscreen.flushMode = 1;
@@ -663,19 +667,17 @@ image(image<mi) = mi;
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
 %%%%%%%%%%%%%%%%%%%%%%%%
-function stimulus = initStaircase(stimulus,useLevittRule)
-
+function stimulus = initStaircase(stimulus)
 
 stimulus.staircase = cell(2,2,stimulus.nPedestalOpts);
 for condition = 1:2 % noise / contrast
     for cues = 1:2
         for p = 1:stimulus.nPedestalOpts % pedestal level 1->3 (or 2->4 really)
-            stimulus.staircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p)*.75,stimulus.stepSizes(condition,cues,p),useLevittRule);
-            stimulus.staircase{condition,cues,p}.minThreshold = 0;
-            stimulus.staircase{condition,cues,p}.maxThreshold = 1;
-            stimulus.dualstaircase{condition,cues,p} = upDownStaircase(1,2,stimulus.initThresh(condition,cues,p)*1.25,stimulus.stepSizes(condition,cues,p),useLevittRule);
-            stimulus.dualstaircase{condition,cues,p}.minThreshold = 0;
-            stimulus.dualstaircase{condition,cues,p}.maxThreshold = 1;
+            stimulus.staircase{condition,cues,p} = doStaircase('init','upDown', ...
+                'initialThreshold',stimulus.initThresh(condition,cues,p), ...
+                'initialStepsize',stimulus.stepSizes(condition,cues,p), ...
+                'minThreshold=0','maxThreshold=1','stepRule','levitt');
+            stimulus.dualstaircase{condition,cues,p} = stimulus.staircase{condition,cues,p};
         end
     end
 end
@@ -688,29 +690,34 @@ function dispStaircase(stimulus)
 figure
 hold on
 title('Noise, R->G->B High');
-plot(stimulus.staircase{1,1,1}.strength,'red');
-plot(stimulus.staircase{1,1,2}.strength,'green');
-plot(stimulus.staircase{1,1,3}.strength,'blue');
-plot(stimulus.staircase{1,2,1}.strength,'--r');
-plot(stimulus.staircase{1,2,2}.strength,'--g');
-plot(stimulus.staircase{1,2,3}.strength,'--b');
-tN11 = mean(stimulus.staircase{1,1,1}.strength(stimulus.staircase{1,1,1}.reversals));
-tN12 = mean(stimulus.staircase{1,1,2}.strength(stimulus.staircase{1,1,2}.reversals));
-tN13 = mean(stimulus.staircase{1,1,3}.strength(stimulus.staircase{1,1,3}.reversals));
-tN41 = mean(stimulus.staircase{1,2,1}.strength(stimulus.staircase{1,2,1}.reversals));
-tN42 = mean(stimulus.staircase{1,2,2}.strength(stimulus.staircase{1,2,2}.reversals));
-tN43 = mean(stimulus.staircase{1,2,3}.strength(stimulus.staircase{1,2,3}.reversals));
+out = doStaircase('hist',stimulus.staircase{1,1,1}); % noise, 1 cue, lowest
+plot(out.testValues,'-r');
+out = doStaircase('hist',stimulus.staircase{1,1,2}); % noise, 1 cue, mid
+plot(out.testValues,'-g');
+out = doStaircase('hist',stimulus.staircase{1,1,3}); % noise, 1 cue, highest
+plot(out.testValues,'-b');
+out = doStaircase('hist',stimulus.staircase{1,2,1}); % noise, 4 cue, lowest
+plot(out.testValues,'--r');
+out = doStaircase('hist',stimulus.staircase{1,2,2}); % noise, 4 cue, mid
+plot(out.testValues,'--g');
+out = doStaircase('hist',stimulus.staircase{1,2,3}); % noise, 4 cue, highest
+plot(out.testValues,'--b');
 
 figure
 hold on
 title('Contrast, R->G->B High');
-plot(stimulus.staircase{2,1,1}.strength,'red');
-plot(stimulus.staircase{2,1,2}.strength,'green');
-plot(stimulus.staircase{2,1,3}.strength,'blue');
-plot(stimulus.staircase{2,2,1}.strength,'--r');
-plot(stimulus.staircase{2,2,2}.strength,'--g');
-plot(stimulus.staircase{2,2,3}.strength,'--b');
-hold off
+out = doStaircase('hist',stimulus.staircase{2,1,1}); % noise, 1 cue, lowest
+plot(out.testValues,'-r');
+out = doStaircase('hist',stimulus.staircase{2,1,2}); % noise, 1 cue, mid
+plot(out.testValues,'-g');
+out = doStaircase('hist',stimulus.staircase{2,1,3}); % noise, 1 cue, highest
+plot(out.testValues,'-b');
+out = doStaircase('hist',stimulus.staircase{2,2,1}); % noise, 4 cue, lowest
+plot(out.testValues,'--r');
+out = doStaircase('hist',stimulus.staircase{2,2,2}); % noise, 4 cue, mid
+plot(out.testValues,'--g');
+out = doStaircase('hist',stimulus.staircase{2,2,3}); % noise, 4 cue, highest
+plot(out.testValues,'--b');
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
@@ -722,5 +729,7 @@ out = doStaircase('hist',stimulus.p.staircase);
 outDual = doStaircase('hist',stimulus.p.dualstaircase);
 plot(out.testValues,'-c');
 plot(outDual.testValues,'--c');
-tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
-disp(sprintf('(gender) Best estimated threshold: %.03f',mean(tout.meanOfReversals{1}(2:end))));
+title('Gender Task Staircases');
+% % tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
+% % % disp(sprintf('(gender) Best estimated threshold: %.03f',mean(tout.meanOfReversals{1}(2:end))));
+% % title('Gender Task -- estimated Threshold');
