@@ -722,9 +722,5 @@ out = doStaircase('hist',stimulus.p.staircase);
 outDual = doStaircase('hist',stimulus.p.dualstaircase);
 plot(out.testValues,'-c');
 plot(outDual.testValues,'--c');
-reversal_vals = out.testValues(~out.response);
-reversal_vals = reversal_vals(2:end); % remove the first
-reversal_vals2 = outDual.testValues(~outDual.response);
-reversal_vals2 = reversal_vals2(2:end); % remove the first
-disp(sprintf('Gender -- estimated threshold: %0.2f',mean(reversal_vals)));
-disp(sprintf('Gender (DUAL) -- estimated threshold: %0.2f',mean(reversal_vals2)));
+tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
+disp(sprintf('(gender) Best estimated threshold: %.03f',mean(tout.meanOfReversals{1}(2:end))));
