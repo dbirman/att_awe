@@ -139,9 +139,9 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
-baseThresh(:,2) = [.1 .15 .2];
+baseThresh(:,2) = [.2 .225 .25];
 stimulus.pedestals.noise = [ .125 .175 .275 .45 .65 ];
-baseThresh(:,1) = [.2 .25 .3];
+baseThresh(:,1) = [.35 .4 .45];
 %%%% TESTING %%%%
 if testing
     stimulus.pedestals.contrast = [ .3 .3 .3 .3 .3 ];
@@ -249,19 +249,16 @@ if stimulus.initStair
     stimulus.initThresh = zeros(2,2,3);
 
     for cond = 1:2
-        for ped = 1:3
-            cues = 1;
-            mult = .5;
-            stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
-            cues = 2;
-            mult = 1;
-            stimulus.initThresh(cond,cues,ped) = mult*baseThresh(ped,cond);
+        for cues = 1:2
+            for ped = 1:3
+                stimulus.initThresh(cond,cues,ped) = baseThresh(ped,cond);
+            end
         end
     end
-    stimulus.stepSizes = stimulus.initThresh / 7.5;
+    stimulus.stepSizes = stimulus.initThresh / 5;
     useLevittRule = 1;
-    disp(sprintf('(noisecon) Initializing staircase useLevittRule: %i',useLevittRule));
-    stimulus = initStaircase(stimulus,useLevittRule);
+    disp(sprintf('(noisecon) Initializing staircases'));
+    stimulus = initStaircase(stimulus);
 else
     disp('(noisecon) Re-using staircase from previous run');
 end
@@ -688,66 +685,46 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 function dispStaircase(stimulus)
 
-for condition = 1:2
-  for cue = 1:2
-      for ped = 1:stimulus.nPedestalOpts
-        s = stimulus.staircase{condition,cue,ped};
-        if isfield(s,'strength')
-          n = length(s.strength);
-        else
-          n = 0;
-        end
-        if condition == 1
-            peds = stimulus.pedestals.noise;
-        else
-            peds = stimulus.pedestals.contrast;
-        end
-        blocks = stimulus.blocks.blockTypes;
-        cues = [1 4];
-        disp(sprintf('(Condition: %s, Cues: %i, %0.2f ): %f (n=%i)',blocks{condition},cues(cue),peds(ped+1),s.threshold,n));
-      end
-  end
-end
-for condition = 1:2
-  for cue = 1:2
-      for ped = 1:stimulus.nPedestalOpts
-        s = stimulus.dualstaircase{condition,cue,ped};
-        if isfield(s,'strength')
-          n = length(s.strength);
-        else
-          n = 0;
-        end
-        if condition == 1
-            peds = stimulus.pedestals.noise;
-        else
-            peds = stimulus.pedestals.contrast;
-        end
-        blocks = stimulus.blocks.blockTypes;
-        cues = [1 4];
-        disp(sprintf('(DUAL Condition: %s, Cues: %i, %0.2f ): %f (n=%i)',blocks{condition},cues(cue),peds(ped+1),s.threshold,n));
-      end
-  end
-end
+figure
+hold on
+title('Noise, R->G->B High');
+plot(stimulus.staircase{1,1,1}.strength,'red');
+plot(stimulus.staircase{1,1,2}.strength,'green');
+plot(stimulus.staircase{1,1,3}.strength,'blue');
+plot(stimulus.staircase{1,2,1}.strength,'--r');
+plot(stimulus.staircase{1,2,2}.strength,'--g');
+plot(stimulus.staircase{1,2,3}.strength,'--b');
+tN11 = mean(stimulus.staircase{1,1,1}.strength(stimulus.staircase{1,1,1}.reversals));
+tN12 = mean(stimulus.staircase{1,1,2}.strength(stimulus.staircase{1,1,2}.reversals));
+tN13 = mean(stimulus.staircase{1,1,3}.strength(stimulus.staircase{1,1,3}.reversals));
+tN41 = mean(stimulus.staircase{1,2,1}.strength(stimulus.staircase{1,2,1}.reversals));
+tN42 = mean(stimulus.staircase{1,2,2}.strength(stimulus.staircase{1,2,2}.reversals));
+tN43 = mean(stimulus.staircase{1,2,3}.strength(stimulus.staircase{1,2,3}.reversals));
+
+figure
+hold on
+title('Contrast, R->G->B High');
+plot(stimulus.staircase{2,1,1}.strength,'red');
+plot(stimulus.staircase{2,1,2}.strength,'green');
+plot(stimulus.staircase{2,1,3}.strength,'blue');
+plot(stimulus.staircase{2,2,1}.strength,'--r');
+plot(stimulus.staircase{2,2,2}.strength,'--g');
+plot(stimulus.staircase{2,2,3}.strength,'--b');
+hold off
+
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
 function dispStaircaseP(stimulus)
 
-if isfield(stimulus.p,'staircase')
-        s = stimulus.p.staircase;
-        if isfield(s,'strength')
-            n = length(s.strength);
-        else
-            n = 0;
-        end
-        disp(sprintf('(Peripheral: %f (n=%i)',s.threshold,n));
-end
-if isfield(stimulus.p,'staircase')
-        s = stimulus.p.dualstaircase;
-        if isfield(s,'strength')
-            n = length(s.strength);
-        else
-            n = 0;
-        end
-        disp(sprintf('(DUAL Peripheral: %f (n=%i)',s.threshold,n));
-end
+figure
+out = doStaircase('hist',stimulus.p.staircase);
+outDual = doStaircase('hist',stimulus.p.dualstaircase);
+plot(out.testValues,'-c');
+plot(outDual.testValues,'--c');
+reversal_vals = out.testValues(~out.response);
+reversal_vals = reversal_vals(2:end); % remove the first
+reversal_vals2 = outDual.testValues(~outDual.response);
+reversal_vals2 = reversal_vals2(2:end); % remove the first
+disp(sprintf('Gender -- estimated threshold: %0.2f',mean(reversal_vals)));
+disp(sprintf('Gender (DUAL) -- estimated threshold: %0.2f',mean(reversal_vals2)));

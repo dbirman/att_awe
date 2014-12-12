@@ -113,3 +113,7 @@ for fi = 1:length(files)
         save(fixFile,'exp');
     end
 end
+
+
+%% Generate 
+

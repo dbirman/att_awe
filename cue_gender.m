@@ -24,7 +24,7 @@ if flip
 else
     stimulus.p.responseLetters = [9 8 10];
 end
-stimulus.p.init_SOA = .175;  
+stimulus.p.init_SOA = .25;  
 if stimulus.testing
     stimulus.p.init_SOA = .175;
 end
@@ -55,10 +55,10 @@ task{1}.waitForBacktick = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if stimulus.initStair
     threshold = stimulus.p.init_SOA;
-    stepsize = .005;
+    stepsize = .05;
     useLevittRule = 1;
     disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
-    stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule);
+    stimulus = initStaircase(threshold,stimulus,stepsize);
 end
 
 
@@ -74,11 +74,6 @@ function [task, myscreen] = startSegmentCallback(task, myscreen)
 global stimulus
 
 if task.thistrial.thisseg == 2
-    if stimulus.dual
-        task.thistrial.SOA = stimulus.p.dualstaircase.threshold;
-    else
-        task.thistrial.SOA = stimulus.p.staircase.threshold;
-    end
     % Everything is random to get a nice scramble, no need to track.
     stimulus.p.g1 = randi(2);
     stimulus.p.g2 = randi(2);
@@ -120,18 +115,18 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
                 % Participant says they saw nothing (correct)                
                 correctIncorrect = 'correct';
                 if stimulus.dual
-                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
+                    stimulus.p.dualstaircase = doStaircase('update',stimulus.p.dualstaircase,1);
                 else
-                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+                    stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,1);
                 end
                 mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
             else
                 correctIncorrect = 'incorrect';
                 % Participant saw something (incorrect)
                 if stimulus.dual
-                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
+                    stimulus.p.dualstaircase = doStaircase('update',stimulus.p.dualstaircase,0);
                 else
-                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
+                    stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,0);
                 end
                 mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(14));
             end
@@ -140,17 +135,17 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
             if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
                 correctIncorrect = 'correct';
                 if stimulus.dual
-                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,1);
+                    stimulus.p.dualstaircase = doStaircase('update',stimulus.p.dualstaircase,1);
                 else
-                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,1);
+                    stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,1);
                 end
                 mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(15));
             else
                 correctIncorrect = 'incorrect';
                 if stimulus.dual
-                    stimulus.p.dualstaircase = upDownStaircase(stimulus.p.dualstaircase,0);
+                    stimulus.p.dualstaircase = doStaircase('update',stimulus.p.dualstaircase,0);
                 else
-                    stimulus.p.staircase = upDownStaircase(stimulus.p.staircase,0);
+                    stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,0);
                 end
                 mglFillOval(0, 0, [.5 .5],  stimulus.colors.reservedColor(14));
             end
@@ -234,7 +229,12 @@ stimulus.p.scram.right = 0;
 
 % by default, don't look for responses later
 task.thistrial.respond = 0;
-
+% get the SOA for this trial
+if stimulus.dual
+    [task.thistrial.SOA, stimulus.p.dualstaircase] = doStaircase('testValue',stimulus.p.dualstaircase);
+else
+    [task.thistrial.SOA, stimulus.p.staircase] = doStaircase('testValue',stimulus.p.staircase);
+end
 genBase = [1 2];
 task.thistrial.position = randi(2);
 intOpts = [0 1 1];
@@ -245,11 +245,11 @@ task.thistrial.images = randi(stimulus.p.numImages,1,2);
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
 %%%%%%%%%%%%%%%%%%%%%%%%
-function stimulus = initStaircase(threshold,stimulus,stepsize,useLevittRule)
+function stimulus = initStaircase(threshold,stimulus,stepsize)
 
-stimulus.p.staircase = upDownStaircase(1,2,threshold*.75,stepsize,useLevittRule);
-stimulus.p.staircase.minThreshold = 0;
-stimulus.p.staircase.maxThreshold = .2;
-stimulus.p.dualstaircase = upDownStaircase(1,2,threshold*1.25,stepsize,useLevittRule);
-stimulus.p.dualstaircase.minThreshold = 0;
-stimulus.p.dualstaircase.maxThreshold = .2;
+stimulus.p.staircase = doStaircase('init','upDown','initialThreshold', ...
+    threshold,'initialStepsize',stepsize,'minThreshold=0','maxThreshold=.2', ...
+    'stepRule','levitt');
+stimulus.p.dualstaircase = doStaircase('init','upDown','initialThreshold', ...
+    threshold,'initialStepsize',stepsize,'minThreshold=0','maxThreshold=.2', ...
+    'stepRule','levitt');
