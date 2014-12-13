@@ -19,7 +19,7 @@ end
 width=[];
 height=[];
 dispFig=[];
-getArgs(varargin,{'height=250','width=250','dispFig=0'});
+getArgs(varargin,{'height=193','width=162','dispFig=0'});
 
 % check directory
 d = [];
@@ -37,15 +37,15 @@ d.dirName = dirname;
 d.dir = dir(dirname);
 d.n = 0;
 
-if width == 250
-    mask_size = [100 100];
-    mask = repmat([zeros(1,75),ones(1,100),zeros(1,75)],100,1);
-    mask = [zeros(90,250);mask;zeros(60,250)];
-else
-    mask_size = [160 160];
-    mask = repmat([zeros(1,120),ones(1,160),zeros(1,120)],160,1);
-    mask = [zeros(120,400);mask;zeros(120,400)];
-end
+% if width == 250
+%     mask_size = [100 100];
+%     mask = repmat([zeros(1,75),ones(1,100),zeros(1,75)],100,1);
+%     mask = [zeros(90,250);mask;zeros(60,250)];
+% else
+%     mask_size = [160 160];
+%     mask = repmat([zeros(1,120),ones(1,160),zeros(1,120)],160,1);
+%     mask = [zeros(120,400);mask;zeros(120,400)];
+% end
 
 % load each image
 if dispFig,smartfig('loadNormalizedImages','reuse');end
@@ -62,7 +62,7 @@ for i = 1:length(d.dir)
         % read the image
         [im m alpha] = imread(thisFilename);
         % mask the image
-        im = reshape(im(mask==1),mask_size(1),mask_size(2));
+% % % % % % % %         im = reshape(im(mask==1),mask_size(1),mask_size(2));
 %         im = histeq(im);
         % normalize to grayscale and same width height
         im = imageNormalize(im,d.width,d.height,alpha);

@@ -19,8 +19,8 @@ mainTask = [];
 stimFileNum = [];
 testing = [];
 training = [];
-getArgs(varargin,{'widthPix=400','heightPix=400','widthDeg=6', ...
-    'heightDeg=6','peripheralTask=1','mainTask=1','stimFileNum=-1', ...
+getArgs(varargin,{'widthPix=162','heightPix=193','widthDeg=5.25', ...
+    'heightDeg=6.2546','peripheralTask=1','mainTask=1','stimFileNum=-1', ...
     'testing=0','dual=0','training=0'});
 
 stimulus.testing = testing;
@@ -101,20 +101,6 @@ for i = 1:stimulus.colors.nReservedColors
   stimulus.colors.reservedColor(i) = (i-1)/stimulus.maxIndex;
 end
 
-% Setup mask
-maxIndex = 255;
-gaussianWin = mglMakeGaussian(widthDeg,heightDeg,widthDeg/2,heightDeg/2);
-if 0
-  % a gaussian window
-  win = maxIndex-maxIndex*gaussianWin;
-else
-  % a simple window
-  win = maxIndex-maxIndex*(gaussianWin>=exp(-1/2));
-end
-mask = .3*255*ones(size(win,1),size(win,2),4);
-mask(:,:,4) = win;
-stimulus.mask = mglCreateTexture(mask);
-
 %% MGL Parameters
 
 mglTextSet('fontColor',[stimulus.colors.reservedColor(16) stimulus.colors.reservedColor(16) stimulus.colors.reservedColor(16)]);
@@ -146,8 +132,8 @@ baseThresh(:,1) = [.35 .4 .45];
 if testing
     stimulus.pedestals.contrast = [ .3 .3 .3 .3 .3 ];
     baseThresh(:,2) = [.6 .6 .6];
-    stimulus.pedestals.noise = [ .1 .1 .1 .1 .1 ];
-    baseThresh(:,1) = [.7 .7 .7];
+    stimulus.pedestals.noise = [ .5 .5 .5 .5 .5 ];
+    baseThresh(:,1) = [.4 .4 .4];
 end
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
@@ -158,12 +144,14 @@ stimulus.p.widthPix = 250;
 stimulus.p.heightPix = 250;
 stimulus.widthDeg = widthDeg;
 stimulus.heightDeg = heightDeg;
-stimulus.pos1 = [-5 +5 -5 +5];
-stimulus.pos2 = [-5 -5 +5 +5];
+stimulus.pos1 = [-3.8 +3.8 -3.8 +3.8];
+stimulus.pos2 = [-3.8 -3.8 +3.8 +3.8];
 categories = {'m' 'f'};
 name = getenv('USER');
-stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/real_faces/',name));
-stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
+% stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/real_faces/',name));
+% stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
+stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/brazil_faces/',name));
+stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/brazil_faces/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 stimulus = InitStim(stimulus,categories,dispLoadFig,keepAspectRatio);
@@ -189,8 +177,8 @@ task{1}{1}.segmin = [1 1 .5 1 .5 1 1.4];
 task{1}{1}.segmax = [1 1 .5 1 .5 1 1.4];
 if testing
     
-    task{1}{1}.segmin = [1 1 .5 0 .5 .8 1.4];
-    task{1}{1}.segmax = [1 1 .5 0 .5 .8 1.4];
+    task{1}{1}.segmin = [1 1 1 0 1 .8 1.4];
+    task{1}{1}.segmax = [1 1 1 0 1 .8 1.4];
 end
 task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 0 0 1];
@@ -297,7 +285,6 @@ if isfield(stimulus.p,'tex')
         end
     end
 end
-mglDeleteTexture(stimulus.mask);
 stimulus = rmfield(stimulus,'flyTex');
 stimulus.p = rmfield(stimulus.p,'tex');
 

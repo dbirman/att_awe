@@ -16,7 +16,7 @@ flip = 0; %when flipped, 9 = FEMALE
 
 global stimulus
 stimulus.p.lastpick = zeros(1,4);
-stimulus.p.posx = [12 -12];
+stimulus.p.posx = [10 -10];
 stimulus.p.posy = [0 0];
 stimulus.p.numImages = length(stimulus.p.tex{1});
 if flip
