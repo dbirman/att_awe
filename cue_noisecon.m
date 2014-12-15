@@ -281,11 +281,26 @@ if isfield(stimulus.p,'tex')
         end
     end
 end
-stimulus = rmfield(stimulus,'flyTex');
-stimulus.p = rmfield(stimulus.p,'tex');
+    stimulus = rmfield(stimulus,'flyTex');
+    stimulus.p = rmfield(stimulus.p,'tex');
+
+if stimulus.counter > 1
+    % Temporarily remove raw files to limit stimfile size, then replace these
+    % so they can be used.
+    stimbackup = stimulus;
+    stimulus = rmfield(stimulus,'raw');
+    stimulus = rmfield(stimulus,'images');
+    stimulus.p = rmfield(stimulus.p,'raw');
+    stimulus.p = rmfield(stimulus.p,'images');
+end
 
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
+
+if stimulus.counter > 1
+    stimulus = stimbackup;
+    clear stimbackup
+end
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

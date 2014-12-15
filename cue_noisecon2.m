@@ -174,10 +174,9 @@ stimulus.seg.presp1 = 4;
 stimulus.seg.stim2 = 5;
 stimulus.seg.presp2 = 6;
 stimulus.seg.resp = 7;
-task{1}{1}.segmin = [1 1 .5 1 .5 1 1.4];
-task{1}{1}.segmax = [1 1 .5 1 .5 1 1.4];
+task{1}{1}.segmin = [.75 1 .5 1 .5 1 1];
+task{1}{1}.segmax = [.75 1 .5 1 .5 1 1];
 if testing
-    
     task{1}{1}.segmin = [1 1 1 0 1 .8 1.4];
     task{1}{1}.segmax = [1 1 1 0 1 .8 1.4];
 end
@@ -286,8 +285,23 @@ end
 stimulus = rmfield(stimulus,'flyTex');
 stimulus.p = rmfield(stimulus.p,'tex');
 
+if stimulus.counter > 1
+    % Temporarily remove raw files to limit stimfile size, then replace these
+    % so they can be used.
+    stimbackup = stimulus;
+    stimulus = rmfield(stimulus,'raw');
+    stimulus = rmfield(stimulus,'images');
+    stimulus.p = rmfield(stimulus.p,'raw');
+    stimulus.p = rmfield(stimulus.p,'images');
+end
+
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
+
+if stimulus.counter > 1
+    stimulus = stimbackup;
+    clear stimbackup
+end
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
