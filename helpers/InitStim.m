@@ -36,7 +36,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
 
       % make sure we opened ok
       if isempty(stimulus.raw{i}) || isempty(stimulus.p.raw{i})
-        disp(sprintf('(noisecon) Could not load images; %s',categories{i}));
+        disp(sprintf('(initstim) Could not load images; %s',categories{i}));
         keyboard
       end
       % get average mag
@@ -58,6 +58,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   stimulus.p.imageDir = stimulus.imageDirPer;
   
   %% PERIPHERAL IMAGES
+  disp(sprintf('(initstim) Building peripheral images... ___'));
   for cat = 1:length(stimulus.p.raw)
       for imgN = 1:stimulus.p.raw{cat}.n
           thisImage = stimulus.p.raw{cat}.halfFourier{imgN};
@@ -71,6 +72,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
           end
       end
   end
+  disp(sprintf('(initstim) Building main images... ___'));
   %% MAIN IMAGES
   for cat = 1:length(stimulus.raw)
       for imgN = 1:stimulus.raw{cat}.n
@@ -81,7 +83,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
           image = reconstructFromHalfFourier(thisImage);
           
           image = fixBoundaries(image,stimulus.pedestals.maxRange);
-          stimulus.tex{cat}(:,:,imgN) = flipud(image);
+          stimulus.images{cat}(:,:,imgN) = flipud(image);
           
           % Display percent done
           disppercent(calcPercentDone(cat,length(stimulus.raw),imgN,stimulus.raw{cat}.n));
@@ -90,11 +92,11 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   
   stimulus.imagesLoaded = 1;
 else
-  disp(sprintf('(noisecon) Stimulus already initialized'));
+  disp(sprintf('(initstim) Stimulus already initialized'));
 end
 
 %% Build Peripheral TExtures
-disp(sprintf('(noisecon) Building stimulus array... \n'));
+disp(sprintf('(initstim) Building peripheral textures... ___'));
 for cat = 1:length(stimulus.p.raw)
     for imgN = 1:stimulus.p.raw{cat}.n                
         for m = 1:10

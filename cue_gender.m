@@ -77,19 +77,18 @@ if task.thistrial.thisseg == 2
     % Everything is random to get a nice scramble, no need to track.
     stimulus.p.g1 = randi(2);
     stimulus.p.g2 = randi(2);
-    stimulus.p.n1 = randi(stimulus.p.numImages);
-    stimulus.p.n2 = randi(stimulus.p.numImages);
+    
+    stimulus.p.n1 = task.thistrial.images(1);
+    stimulus.p.n2 = task.thistrial.images(2);
+    
     stimulus.p.scramble = 1;
 elseif task.thistrial.thisseg == 3
     % Tracking is important
     stimulus.p.g1 = task.thistrial.gender(1); % gender(POSITION)
     stimulus.p.g2 = task.thistrial.gender(2);
     
-    stimulus.p.n1 = task.thistrial.images(1);
-    stimulus.p.n2 = task.thistrial.images(2);
-    
-    if task.thistrial.intervals == 1
-        % We should do both intervals
+    if task.thistrial.display == 1
+        % We should do this interval
         task.thistrial.respond = 1;
         stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
         stimulus.p.scramble = 0;
@@ -213,7 +212,7 @@ else
 end
 
 % Move to the correct position
-mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.widthDeg stimulus.heightDeg]);
+mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.p.widthDeg stimulus.p.heightDeg]);
 
 
 %%
@@ -238,7 +237,7 @@ end
 genBase = [1 2];
 task.thistrial.position = randi(2);
 intOpts = [0 1 1];
-task.thistrial.intervals = intOpts(randi(length(intOpts)));
+task.thistrial.display = intOpts(randi(length(intOpts)));
 task.thistrial.gender = genBase(randperm(2));
 task.thistrial.images = randi(stimulus.p.numImages,1,2);
 

@@ -19,12 +19,12 @@ end
 width=[];
 height=[];
 dispFig=[];
-getArgs(varargin,{'height=193','width=162','dispFig=0'});
+getArgs(varargin,{'height=5','width=5','dispFig=0'});
 
 % check directory
 d = [];
 if ~isdir(dirname)
-    disp(sprintf('(loadNormalizedImages) Could not find directory %s',dirname));
+    disp(sprintf('(loadNormalizedEqImages) Could not find directory %s',dirname));
     return
 end
 
@@ -37,6 +37,15 @@ d.dirName = dirname;
 d.dir = dir(dirname);
 d.n = 0;
 
+mask = [];
+if width == 681
+     %%       height  width
+    mask_size = [450 385];
+     % first build the center horizontal rows, width = 681, mask is 385 CENTERED
+    mask = repmat([zeros(1,148),ones(1,mask_size(2)),zeros(1,148)],mask_size(1),1);
+     % now add zeros on the top and bottom
+    mask = [zeros(287,681);mask;zeros(287,681)];
+end
 % if width == 250
 %     mask_size = [100 100];
 %     mask = repmat([zeros(1,75),ones(1,100),zeros(1,75)],100,1);
@@ -48,8 +57,8 @@ d.n = 0;
 % end
 
 % load each image
-if dispFig,smartfig('loadNormalizedImages','reuse');end
-disppercent(-inf,sprintf('(loadNormalizedImages) Loading images for %s',dirname));
+if dispFig,smartfig('loadNormalizedEqImages','reuse');end
+disppercent(-inf,sprintf('(loadNormalizedEqImages) Loading images for %s',dirname));
 d.im = zeros(width,height,length(d.dir));
 d.averageMag = 0;
 d.averageDC = 0;
@@ -62,8 +71,9 @@ for i = 1:length(d.dir)
         % read the image
         [im m alpha] = imread(thisFilename);
         % mask the image
-% % % % % % % %         im = reshape(im(mask==1),mask_size(1),mask_size(2));
-%         im = histeq(im);
+        if ~isempty(mask)
+            im = reshape(im(mask==1),mask_size(1),mask_size(2));
+        end
         % normalize to grayscale and same width height
         im = imageNormalize(im,d.width,d.height,alpha);
         if dispFig,clf;imagesc(im);drawnow;colormap(gray);axis equal; axis off;end
@@ -107,7 +117,7 @@ if length(imdim > 2)
 end
 
 % apply alpha (make background gray)
-grayvalue = 127;
+grayvalue = 127.5;
 im = im.*(double(alpha)/255)+grayvalue*(255-double(alpha))/255;
 
 % now resample to the same dimensions

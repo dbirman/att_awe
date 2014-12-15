@@ -13,14 +13,13 @@ global stimulus
 %% Initialize Variables
 
 % add arguments later
-widthPix = []; heightPix = []; widthDeg = []; heightDeg = [];
+widthDeg = []; heightDeg = [];
 peripheralTask = [];
-mainTask = [];
 stimFileNum = [];
 testing = [];
 training = [];
-getArgs(varargin,{'widthPix=162','heightPix=193','widthDeg=5.25', ...
-    'heightDeg=6.2546','peripheralTask=1','mainTask=1','stimFileNum=-1', ...
+getArgs(varargin,{'widthDeg=5.25', 'heightDeg=6.2546', ...
+    'peripheralTask=1','stimFileNum=-1', ...
     'testing=0','dual=0','training=0'});
 
 stimulus.testing = testing;
@@ -138,19 +137,20 @@ end
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
-stimulus.widthPix = widthPix;
-stimulus.heightPix = heightPix;
-stimulus.p.widthPix = 250;
-stimulus.p.heightPix = 250;
 stimulus.widthDeg = widthDeg;
 stimulus.heightDeg = heightDeg;
 stimulus.pos1 = [-3.8 +3.8 -3.8 +3.8];
 stimulus.pos2 = [-3.8 -3.8 +3.8 +3.8];
 categories = {'m' 'f'};
 name = getenv('USER');
-% stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/real_faces/',name));
-% stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
-stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/brazil_faces/',name));
+stimulus.p.widthPix = 681;
+stimulus.p.heightPix = 1024;
+pr = 450/385;
+stimulus.p.widthDeg = stimulus.widthDeg;
+stimulus.p.heightDeg = pr * stimulus.heightDeg;
+stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/rafd_faces/',name));
+stimulus.widthPix = 162;
+stimulus.heightPix = 193;
 stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/brazil_faces/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
@@ -221,10 +221,8 @@ stimulus.blocks.blockList(stimulus.blocks.counter+1) = stimulus.blocks.curBlock;
 
 %% Full Setup
 % Initialize task (note phase == 1)
-if mainTask
-    for phaseNum = 1:length(task{1})
-        [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],@startBlockCallback);
-    end
+for phaseNum = 1:length(task{1})
+    [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],@startBlockCallback);
 end
 if peripheralTask
     [task{2}, myscreen] = cue_gender(myscreen);
@@ -256,9 +254,7 @@ phaseNum = 1;
 % Again, only one phase.
 while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     % update the task
-    if mainTask
-        [task{1}, myscreen, phaseNum] = updateTask(task{1},myscreen,phaseNum);
-    end
+    [task{1}, myscreen, phaseNum] = updateTask(task{1},myscreen,phaseNum);
     if peripheralTask
         [task{2}, myscreen] = updateTask(task{2},myscreen,1);
     end
@@ -366,7 +362,7 @@ end
 function [task, tex] = convertToTex(imgNum,task,isTarget,int,ped,pedR,p_mask)
 global stimulus
 
-img = stimulus.tex{task.thistrial.genderList(imgNum)}(:,:,task.thistrial.imageNums(imgNum));
+img = stimulus.images{task.thistrial.genderList(imgNum)}(:,:,task.thistrial.imageNums(imgNum));
 
 add = 0;
 if isTarget && int==task.thistrial.interval
@@ -489,7 +485,7 @@ if myscreen.flushMode == 0
 %         end
 %         mglTextDraw(num2str(task.thistrial.targetLoc),[0,-5]);
 %     end
-%     stimulus.text = num2str(task.thistrial.thisseg);
+%     stimulus.imagest = num2str(task.thistrial.thisseg);
 %     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(17);
     % set the fixation color
@@ -553,7 +549,7 @@ function [task, myscreen] = getResponseCallback(task, myscreen)
 
 global stimulus
 mglClearScreen(stimulus.colors.reservedColor(7));
-% stimulus.text = num2str(task.thistrial.thisseg);
+% stimulus.imagest = num2str(task.thistrial.thisseg);
 % upText(stimulus);
 
 %%%% NOTE: PARTICIPANTS ALWAYS LOOK FOR THE MORE VISIBLE ITEM, i.e. HIGHER NOISE OR CONTRAST %%%%
