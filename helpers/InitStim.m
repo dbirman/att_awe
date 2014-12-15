@@ -28,10 +28,14 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
     if ~any(strcmp(categories{i},{'scramble','blank','gray'}))
       % load images
       stimulus.raw{i} = loadNormalizedEqImages(fullfile(stimulus.imageDirMain,categories{i}),'width',stimulus.widthPix,'height',stimulus.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
-      stimulus.p.raw{i} = loadNormalizedEqImages(fullfile(stimulus.imageDirPer,categories{i}),'width',stimulus.p.widthPix,'height',stimulus.p.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
+      if isequal(fullfile(stimulus.imageDirMain,categories{i}),fullfile(stimulus.imageDirPer,categories{i}))
+          stimulus.p.raw{i} = stimulus.raw{i};
+      else
+        stimulus.p.raw{i} = loadNormalizedEqImages(fullfile(stimulus.imageDirPer,categories{i}),'width',stimulus.p.widthPix,'height',stimulus.p.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
+      end
 
       % make sure we opened ok
-      if isempty(stimulus.raw{i})
+      if isempty(stimulus.raw{i}) || isempty(stimulus.p.raw{i})
         disp(sprintf('(noisecon) Could not load images; %s',categories{i}));
         keyboard
       end
