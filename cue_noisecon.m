@@ -735,6 +735,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 function dispStaircase(stimulus)
 
+try
 if stimulus.dual
     stairtype = 'dualstaircase';
 else
@@ -766,12 +767,16 @@ plot(stimulus.pedestals.contrast(2:4),plotting2(1,:),'-r');
 plot(stimulus.pedestals.contrast(2:4),plotting2(2,:),'--r');
 axis([stimulus.pedestals.contrast(1) stimulus.pedestals.contrast(5) 0 1]);
 
+catch
+    warning('(noisecon) Figures were not generated successfully.');
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
 function dispStaircaseP(stimulus)
 
+try
 figure
 if stimulus.dual
     title('Gender Task Staircases');
@@ -781,4 +786,7 @@ else
     title('Gender Task Staircases');
     tout = doStaircase('threshold',stimulus.p.dualstaircase,'dispFig',1);
     title('Gender Task (DUAL) -- estimated Threshold');
+end
+catch
+    warning('(gender) Figures were not generated successfully.');
 end
