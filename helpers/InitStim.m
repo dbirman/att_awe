@@ -70,6 +70,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
               i_ps = pinkNoise(i,thisImage,.01);
               stimulus.p.images{cat,pi}(:,:,imgN) = processPeripheralImage(stimulus,i_ps,npdf,mrmax,mrmin);
           end
+          disppercent(calcPercentDone(cat,length(stimulus.p.raw),imgN,stimulus.p.raw{cat}.n));
       end
   end
   disp(sprintf('(initstim) Building main images... ___'));

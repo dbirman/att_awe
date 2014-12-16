@@ -46,7 +46,7 @@ peripheralTask = [];
 stimFileNum = [];
 testing = [];
 training = [];
-getArgs(varargin,{'widthDeg=5.25', 'heightDeg=6.2546', ...
+getArgs(varargin,{'widthDeg=5.5', 'heightDeg=5.5', ...
     'peripheralTask=1','stimFileNum=-1', ...
     'testing=0','dual=0','training=0'});
 
@@ -92,7 +92,7 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
     end
 end
 
-stimulus.trainingList(counter) = stimulus.training;
+stimulus.trainingList(stimulus.counter) = stimulus.training;
 
 %% Initialize Stimulus
 
@@ -154,9 +154,9 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
-baseThresh(:,2) = [.2 .225 .25];
+baseThresh(:,2) = [.5 .225 .2];
 stimulus.pedestals.noise = [ .15 .2 .3 .475 .675 ];
-baseThresh(:,1) = [.35 .4 .45];
+baseThresh(:,1) = [.45 .4 .35];
 %%%% TESTING %%%%
 if testing
     stimulus.pedestals.contrast = [ .3 .3 .3 .3 .3 ];
@@ -179,9 +179,9 @@ pr = 450/385;
 stimulus.p.widthDeg = stimulus.widthDeg;
 stimulus.p.heightDeg = pr * stimulus.heightDeg;
 stimulus.imageDirPer = fullfile(sprintf('/Users/%s/proj/att_awe/images/rafd_faces/',name));
-stimulus.widthPix = 162;
-stimulus.heightPix = 193;
-stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/brazil_faces/',name));
+stimulus.widthPix = 400;
+stimulus.heightPix = 400;
+stimulus.imageDirMain = fullfile(sprintf('/Users/%s/proj/att_awe/images/all_faces2/',name));
 dispLoadFig = 0; keepAspectRatio = 0;
 
 stimulus = InitStim(stimulus,categories,dispLoadFig,keepAspectRatio);
