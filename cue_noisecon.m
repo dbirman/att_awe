@@ -276,6 +276,27 @@ if stimulus.initStair
     stimulus = initStaircase(stimulus);
 else
     disp('(noisecon) Re-using staircase from previous run');
+
+    % Reset staircase if necessary
+    if stimulus.dual
+        for blocks = 1:2
+            for cue = 1:2
+                for peds = 1:3
+                    stimulus.dualstaircase{blocks,cue,peds} = checkStaircaseStop(stimulus.dualstaircase{blocks,cue,peds});
+                end
+            end
+        end
+        stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase);
+    else
+        for blocks = 1:2
+            for cue = 1:2
+                for peds = 1:3
+                    stimulus.staircase{blocks,cue,peds} = checkStaircaseStop(stimulus.staircase{blocks,cue,peds});
+                end
+            end
+        end
+        stimulus.p.staircase = checkStaircaseStop(stimulus.p.staircase);
+    end
 end
 
 %% Main Task Loop
@@ -390,13 +411,6 @@ task.thistrial.genderList(task.thistrial.genderList==0) = gens(randperm(3));
 blocks = task.thisblock.blockType;
 cue = find(task.thistrial.cues==[1 4]);
 peds = task.thistrial.pedestal-1;
-% Reset staircase if necessary
-if stimulus.dual
-    stimulus.dualstaircase{blocks,cue,peds} = checkStaircaseStop(stimulus.dualstaircase{blocks,cue,peds});
-else
-    stimulus.staircase{blocks,cue,peds} = checkStaircaseStop(stimulus.staircase{blocks,cue,peds});
-end
-
 
 % Get Delta
 [task.thistrial.deltaPed, stimulus] = getDeltaPed(stimulus,blocks,cue,peds);
@@ -498,14 +512,6 @@ if cN > 1
     warning('Max noise exceeded 1. Thresholding');
     cN = 1;
 end
-
-%% checkStaircaseStop
-function [s] = checkStaircaseStop(s)
-if doStaircase('stop',s)
-    est = doStaircase('threshold',s);
-    s(end+1) = doStaircase('init',s,'initialThreshold',est.threshold);
-end
-
 %% getDeltaPed
 
 function [deltaPed, stimulus] = getDeltaPed(stimulus,condition,cue,p)
@@ -777,16 +783,21 @@ end
 function dispStaircaseP(stimulus)
 
 try
-figure
 if stimulus.dual
-    title('Gender Task Staircases');
-    tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
-    title('Gender Task -- estimated Threshold');
-else
-    title('Gender Task Staircases');
     tout = doStaircase('threshold',stimulus.p.dualstaircase,'dispFig',1);
-    title('Gender Task (DUAL) -- estimated Threshold');
+%     title('Gender Task -- estimated Threshold');
+else
+    tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
+%     title('Gender Task (DUAL) -- estimated Threshold');
 end
 catch
     warning('(gender) Figures were not generated successfully.');
+end
+
+
+%% checkStaircaseStop
+function [s] = checkStaircaseStop(s)
+if doStaircase('stop',s)
+    est = doStaircase('threshold',s);
+    s(end+1) = doStaircase('init',s,'initialThreshold',est.threshold);
 end

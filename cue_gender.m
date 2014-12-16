@@ -223,13 +223,6 @@ mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.p.widthD
 function [task, myscreen] = trialCallback(task, myscreen)
 global stimulus
 
-% Reset staircase if necessary
-if stimulus.dual
-    stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase);
-else
-    stimulus.p.staircase = checkStaircaseStop(stimulus.p.staircase);
-end
-
 stimulus.p.scram.left = 0;
 stimulus.p.scram.right = 0;
 
@@ -248,13 +241,6 @@ intOpts = [0 1 1];
 task.thistrial.display = intOpts(randi(length(intOpts)));
 task.thistrial.gender = genBase(randperm(2));
 task.thistrial.images = randi(stimulus.p.numImages,1,2);
-
-%% checkStaircaseStop
-function [s] = checkStaircaseStop(s)
-if doStaircase('stop',s)
-    est = doStaircase('threshold',s);
-    s(end+1) = doStaircase('init',s,'initialThreshold',est.threshold);
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
