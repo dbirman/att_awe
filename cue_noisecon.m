@@ -153,9 +153,9 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
-stimulus.pedestals.contrast = [ .15 .20 .45 .70 .80 ];
-baseThresh(:,2) = [.5 .225 .2];
-stimulus.pedestals.noise = [ .15 .2 .3 .475 .675 ];
+stimulus.pedestals.contrast = [ .15 .20 .30 .45 .65 ];
+baseThresh(:,2) = [.25 .225 .2];
+stimulus.pedestals.noise = [ .15 .2 .3 .45 .65 ];
 baseThresh(:,1) = [.45 .4 .35];
 %%%% TESTING %%%%
 if testing
