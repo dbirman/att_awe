@@ -1,10 +1,38 @@
 % cue_noisecon
 %
-%      usage: myscreen=cue_noisecon(stimulus)
+%      usage: myscreen=cue_noisecon()
 %         by: daniel birman
 %       date: 11/10/14
 %    purpose: contrast and noise discrimination (different blocks) cueing
 %             different numbers of stimuli.
+%
+%        use: call cue_noisecon or cue_noisecon2 to initialize. The first
+%             run takes significantly longer due to loading stimuli. Each
+%             run is either contrast or noise. For training, tell
+%             participants to perform either contrast, noise, or every
+%             FIFTH run, gender categorization. Once performance stabilizes
+%             (see the output from dispStaircase and dSP), tell
+%             participants to perform the dual task. Make sure to set
+%             dual=? and training=? during the correct runs, and let the
+%             code handle the other flags.
+%
+%             If you want to run just the main task (e.g. in the scanner)
+%             without the peripheral task, use peripheralTask=0 to disable
+%             the output.
+%
+%      flags: peripheralTask (0/1) - Flag disables the peripheral gender
+%             categorization task
+%             stimFileNum (-1/#) - Load a specific stimfile from a
+%             subject's folder. Defaults to the last stimfile. Warning:
+%             Only the first stimfile is saved with the image file data,
+%             subsequent stimfiles only contain run data.
+%             testing (0/1) - For testing purposes.
+%             dual (0/1) - Uses the dual task staircases instead of the
+%             single-task staircases. Never run a participant without
+%             correctly setting this flag!
+%             training (0/1) - Currently only puts a flag in stimulus about
+%             whether this was a training run or not. Useful for tracking
+%             runs without a separate data sheet.
 %
 
 function [myscreen] = cue_noisecon(varargin)
@@ -63,6 +91,8 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
         disp(sprintf('(noisecon) Data file: %s loaded, this is run #%i',fname,stimulus.counter));
     end
 end
+
+stimulus.trainingList(counter) = stimulus.training;
 
 %% Initialize Stimulus
 

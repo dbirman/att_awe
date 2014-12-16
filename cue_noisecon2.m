@@ -1,14 +1,47 @@
-% cue_noisecon
+% cue_noisecon2
 %
-%      usage: myscreen=cue_noisecon(stimulus)
+%      usage: myscreen=cue_noisecon2()
 %         by: daniel birman
 %       date: 11/10/14
 %    purpose: contrast and noise discrimination (different blocks) cueing
 %             different numbers of stimuli.
 %
+%        use: call cue_noisecon or cue_noisecon2 to initialize. The first
+%             run takes significantly longer due to loading stimuli. Each
+%             run is either contrast or noise. For training, tell
+%             participants to perform either contrast, noise, or every
+%             FIFTH run, gender categorization. Once performance stabilizes
+%             (see the output from dispStaircase and dSP), tell
+%             participants to perform the dual task. Make sure to set
+%             dual=? and training=? during the correct runs, and let the
+%             code handle the other flags.
+%
+%             If you want to run just the main task (e.g. in the scanner)
+%             without the peripheral task, use peripheralTask=0 to disable
+%             the output.
+%
+%             Caution! This is the help for cue_noisecon2, the 2-target 
+%             code variation of cue_noisecon. This still shows four stimuli
+%             but specifies a target and a distractor on the distributed 
+%             attention conditions.
+%
+%      flags: peripheralTask (0/1) - Flag disables the peripheral gender
+%             categorization task
+%             stimFileNum (-1/#) - Load a specific stimfile from a
+%             subject's folder. Defaults to the last stimfile. Warning:
+%             Only the first stimfile is saved with the image file data,
+%             subsequent stimfiles only contain run data.
+%             testing (0/1) - For testing purposes.
+%             dual (0/1) - Uses the dual task staircases instead of the
+%             single-task staircases. Never run a participant without
+%             correctly setting this flag!
+%             training (0/1) - Currently only puts a flag in stimulus about
+%             whether this was a training run or not. Useful for tracking
+%             runs without a separate data sheet.
+%
 
 function [myscreen] = cue_noisecon2(varargin)
-warning('You launched noisecon2, the 2 target variation code. Are you sure you meant to do this?');
+warning('You launched NOISECON2, the 2 target variation code. Are you sure you meant to do this?');
 
 global stimulus
 %% Initialize Variables
@@ -61,7 +94,7 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
 
         clear s;
         stimulus.initStair = 0;
-        disp(sprintf('(noisecon) Data file: %s loaded, this is run #%i',fname,stimulus.counter));
+        disp(sprintf('(noisecon2) Data file: %s loaded, this is run #%i',fname,stimulus.counter));
     end
 end
 
@@ -243,10 +276,10 @@ if stimulus.initStair
         end
     end
     stimulus.stepSizes = stimulus.initThresh / 5;
-    disp(sprintf('(noisecon) Initializing staircases'));
+    disp(sprintf('(noisecon2) Initializing staircases'));
     stimulus = initStaircase(stimulus);
 else
-    disp('(noisecon) Re-using staircase from previous run');
+    disp('(noisecon2) Re-using staircase from previous run');
 end
 
 %% Main Task Loop
@@ -601,7 +634,7 @@ if any(task.thistrial.whichButton == [1 2])
                     doStaircase('update',stimulus.staircase{block,cue,pedPos},0);
             end
         end
-        disp(sprintf('(noisecon) Response %s',correctIncorrect));
+        disp(sprintf('(noisecon2) Response %s',correctIncorrect));
     else
         disp(sprintf('Subject responded multiple times: %i',task.thistrial.gotResponse+1));
     end
@@ -625,7 +658,7 @@ stimulus.dualList(stimulus.counter) = stimulus.dual;
 
 myscreen.flushMode = 1;
 mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
-disp(sprintf('(noisecon) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
+disp(sprintf('(noisecon2) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
 
 %% scalePDF
 
