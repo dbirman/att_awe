@@ -741,45 +741,31 @@ else
     stairtype = 'staircase';
 end
 
+plotting = zeros(2,3);
+plotting2 = zeros(2,3);
+for cues = 1:2
+    for ped = 1:3
+        out = doStaircase('threshold',stimulus.(stairtype){1,cues,ped}); % noise, 1 cue, lowest
+        plotting(cues,ped) = out.threshold;
+        out2 = doStaircase('threshold',stimulus.(stairtype){2,cues,ped}); % noise, 1 cue, lowest
+        plotting2(cues,ped) = out2.threshold;
+    end
+end
+
 figure
 hold on
 title('Noise, R->G->B High');
-out = doStaircase('hist',stimulus.(stairtype){1,1,1}); % noise, 1 cue, lowest
-plot(out.testValues,'-r');
-out = doStaircase('hist',stimulus.(stairtype){1,1,2}); % noise, 1 cue, mid
-plot(out.testValues,'-g');
-out = doStaircase('hist',stimulus.(stairtype){1,1,3}); % noise, 1 cue, highest
-plot(out.testValues,'-b');
-out = doStaircase('hist',stimulus.(stairtype){1,2,1}); % noise, 4 cue, lowest
-plot(out.testValues,'--r');
-out = doStaircase('hist',stimulus.(stairtype){1,2,2}); % noise, 4 cue, mid
-plot(out.testValues,'--g');
-out = doStaircase('hist',stimulus.(stairtype){1,2,3}); % noise, 4 cue, highest
-plot(out.testValues,'--b');
-tout = doStaircase('threshold',[stimulus.(stairtype){1,1,1} stimulus.(stairtype){1,1,2} stimulus.(stairtype){1,1,3}],'dispFig',1);
-title('Noise Task, 1 Cue -- estimated Threshold');
-tout = doStaircase('threshold',[stimulus.(stairtype){1,2,1} stimulus.(stairtype){1,2,2} stimulus.(stairtype){1,2,3}],'dispFig',1);
-title('Noise Task, 4 Cue -- estimated Threshold');
+plot(stimulus.pedestals.noise(2:4),plotting(1,:),'-r');
+plot(stimulus.pedestals.noise(2:4),plotting(2,:),'--r');
+axis([stimulus.pedestals.noise(1) stimulus.pedestals.noise(5) 0 1]);
 
 figure
 hold on
 title('Contrast, R->G->B High');
-out = doStaircase('hist',stimulus.(stairtype){2,1,1}); % noise, 1 cue, lowest
-plot(out.testValues,'-r');
-out = doStaircase('hist',stimulus.(stairtype){2,1,2}); % noise, 1 cue, mid
-plot(out.testValues,'-g');
-out = doStaircase('hist',stimulus.(stairtype){2,1,3}); % noise, 1 cue, highest
-plot(out.testValues,'-b');
-out = doStaircase('hist',stimulus.(stairtype){2,2,1}); % noise, 4 cue, lowest
-plot(out.testValues,'--r');
-out = doStaircase('hist',stimulus.(stairtype){2,2,2}); % noise, 4 cue, mid
-plot(out.testValues,'--g');
-out = doStaircase('hist',stimulus.(stairtype){2,2,3}); % noise, 4 cue, highest
-plot(out.testValues,'--b');
-tout = doStaircase('threshold',[stimulus.(stairtype){2,1,1} stimulus.(stairtype){2,1,2} stimulus.(stairtype){1,1,3}],'dispFig',1);
-title('Contrast Task, 1 Cue -- estimated Threshold');
-tout = doStaircase('threshold',[stimulus.(stairtype){2,2,1} stimulus.(stairtype){2,2,2} stimulus.(stairtype){1,2,3}],'dispFig',1);
-title('Contrast Task, 4 Cue -- estimated Threshold');
+plot(stimulus.pedestals.contrast(2:4),plotting2(1,:),'-r');
+plot(stimulus.pedestals.contrast(2:4),plotting2(2,:),'--r');
+axis([stimulus.pedestals.contrast(1) stimulus.pedestals.contrast(5) 0 1]);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
@@ -787,10 +773,12 @@ title('Contrast Task, 4 Cue -- estimated Threshold');
 function dispStaircaseP(stimulus)
 
 figure
-out = doStaircase('hist',stimulus.p.staircase);
-outDual = doStaircase('hist',stimulus.p.dualstaircase);
-plot(out.testValues,'-c');
-plot(outDual.testValues,'--c');
-title('Gender Task Staircases');
-tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
-title('Gender Task -- estimated Threshold');
+if stimulus.dual
+    title('Gender Task Staircases');
+    tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
+    title('Gender Task -- estimated Threshold');
+else
+    title('Gender Task Staircases');
+    tout = doStaircase('threshold',stimulus.p.dualstaircase,'dispFig',1);
+    title('Gender Task (DUAL) -- estimated Threshold');
+end
