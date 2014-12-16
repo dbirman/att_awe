@@ -223,6 +223,13 @@ mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.p.widthD
 function [task, myscreen] = trialCallback(task, myscreen)
 global stimulus
 
+% Reset staircase if necessary
+if stimulus.dual
+    stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase);
+else
+    stimulus.p.staircase = checkStaircaseStop(stimulus.p.staircase);
+end
+
 stimulus.p.scram.left = 0;
 stimulus.p.scram.right = 0;
 
@@ -234,6 +241,7 @@ if stimulus.dual
 else
     [task.thistrial.SOA, stimulus.p.staircase] = doStaircase('testValue',stimulus.p.staircase);
 end
+
 genBase = [1 2];
 task.thistrial.position = randi(2);
 intOpts = [0 1 1];
@@ -241,12 +249,19 @@ task.thistrial.display = intOpts(randi(length(intOpts)));
 task.thistrial.gender = genBase(randperm(2));
 task.thistrial.images = randi(stimulus.p.numImages,1,2);
 
+%% checkStaircaseStop
+function [s] = checkStaircaseStop(s)
+if doStaircase('stop',s)
+    est = doStaircase('threshold',s);
+    s(end+1) = doStaircase('init',s,'initialThreshold',est.threshold);
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
 %%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initStaircase(threshold,stimulus,stepsize)
 
-stimulus.p.staircase = doStaircase('init','upDown','initialThreshold', ...
-    threshold,'initialStepsize',stepsize,'minThreshold=0','maxThreshold=.2', ...
-    'stepRule','levitt');
-stimulus.p.dualstaircase = stimulus.p.staircase;
+stimulus.p.staircase(1) = doStaircase('init','upDown','initialThreshold', ...
+    threshold,'initialStepsize',stepsize,'minThreshold=0','maxThreshold=.25', ...
+    'stepRule','levitt','nTrials=60');
+stimulus.p.dualstaircase(1) = stimulus.p.staircase;
