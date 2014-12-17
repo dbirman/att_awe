@@ -155,7 +155,9 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .15 .20 .30 .45 .65 ];
 baseThresh(:,2) = [.25 .25 .25];
-stimulus.pedestals.noise = [ .15 .2 .3 .45 .65 ];
+% These noise levels correspond to an SnR of 
+stimulus.pedestals.noise = [ .119 .269 .5 .731 .881 ];
+stimulus.pedestals.SnR = stimulus.pedestals.noise ./ (1-stimulus.pedestals.noise);
 baseThresh(:,1) = [.45 .45 .45];
 %%%% TESTING %%%%
 if testing
@@ -519,6 +521,7 @@ if stimulus.dual
     [deltaPed, stimulus.dualstaircase{condition,cue,p}] = doStaircase('testValue',stimulus.dualstaircase{condition,cue,p});
 else
     [deltaPed, stimulus.staircase{condition,cue,p}] = doStaircase('testValue',stimulus.staircase{condition,cue,p});
+    disp(deltaPed);
 end
 
 %%
@@ -751,15 +754,24 @@ try
     plotting = zeros(2,3);
     if task{1}{1}.thisblock.blockType == 1
         % noise
-        type = 'noise';
+        typeP = 'SnR';
         num = 1;
     else
-        type = 'contrast';
+        typeP = 'contrast';
         num = 2;
     end
     
+    figure % this is the 'staircase' figure
+    title(sprintf('%s, Staircase plot (R->G->B high)',stimulus.blocks.blockTypes{task{1}{1}.thisblock.blockType}));
+    hold on
+    drawing = {'-r' '-g' '-b'
+                '--r' '--g' '--b'};
     for cues = 1:2
         for ped = 1:3
+            try
+                plot(stimulus.(stairtype){num,cues,ped}.testValues,drawing{cues,ped});
+            catch
+            end
             try
                 out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped}); % noise, 1 cue, lowest
                 plotting(cues,ped) = out.threshold;
@@ -768,12 +780,14 @@ try
             end
         end
     end
+    hold off
     figure
     hold on
     title(sprintf('%s, R->G->B High',stimulus.blocks.blockTypes{task{1}{1}.thisblock.blockType}));
-    plot(stimulus.pedestals.(type)(2:4),plotting(1,:),'-r');
-    plot(stimulus.pedestals.(type)(2:4),plotting(2,:),'--r');
-    axis([stimulus.pedestals.(type)(1) stimulus.pedestals.(type)(5) 0 1]);
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:),'-r');
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:),'--r');
+    axis([stimulus.pedestals.(typeP)(1) stimulus.pedestals.(typeP)(5) 0 1]);
+    hold off
 
 catch
     disp('(noisecon) Figures were not generated successfully.');
@@ -786,10 +800,10 @@ function dispStaircaseP(task,stimulus)
 
 try
     if stimulus.dual
-        tout = doStaircase('threshold',stimulus.p.dualstaircase{task.thisblock.blockType},'dispFig',1);
+        doStaircase('threshold',stimulus.p.dualstaircase{task.thisblock.blockType},'dispFig',1);
     %     title('Gender Task -- estimated Threshold');
     else
-        tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
+        doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
     %     title('Gender Task (DUAL) -- estimated Threshold');
     end
 catch
@@ -801,7 +815,7 @@ end
 function [s] = checkStaircaseStop(s)
 if doStaircase('stop',s)
     est = doStaircase('threshold',s);
-    if est.threshold > 1
+    if est.threshold > 1 || est.threshold < 1
         % reset using original threshold
         warning('Threshold reset failed, restarting using the last threshold: %0.2f',s(end).s.strength(1));
         s(end+1) = doStaircase('init',s,'initialThreshold',s(end).s.strength(1));
