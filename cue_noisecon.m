@@ -798,5 +798,12 @@ end
 function [s] = checkStaircaseStop(s)
 if doStaircase('stop',s)
     est = doStaircase('threshold',s);
-    s(end+1) = doStaircase('init',s,'initialThreshold',est.threshold);
+    if est.threshold > 1
+        % reset using original threshold
+        warning('Threshold reset failed, restarting using the last threshold: %0.2f',s(end).s.strength(1));
+        s(end+1) = doStaircase('init',s,'initialThreshold',s(end).s.strength(1));
+    else
+        % reset using estimated threshold
+        s(end+1) = doStaircase('init',s,'initialThreshold',est.threshold);
+    end
 end
