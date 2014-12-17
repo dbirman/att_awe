@@ -313,8 +313,8 @@ while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     myscreen = tickScreen(myscreen,task);
 end
 
-dispStaircase(stimulus);
-dispStaircaseP(stimulus);
+dispStaircase(task,stimulus);
+dispStaircaseP(task,stimulus);
 
 % delete texture
 if isfield(stimulus,'flyTex')
@@ -739,7 +739,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%%
-function dispStaircase(stimulus)
+function dispStaircase(task,stimulus)
 
 try
     if stimulus.dual
@@ -749,29 +749,28 @@ try
     end
 
     plotting = zeros(2,3);
-    plotting2 = zeros(2,3);
+    if task.thisblock.blockType == 1
+        % noise
+        type = 'noise';
+        num = 1;
+    else
+        type = 'contrast';
+        num = 2;
+    end
+    
     for cues = 1:2
         for ped = 1:3
-            out = doStaircase('threshold',stimulus.(stairtype){1,cues,ped}); % noise, 1 cue, lowest
+            out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped}); % noise, 1 cue, lowest
             plotting(cues,ped) = out.threshold;
-            out2 = doStaircase('threshold',stimulus.(stairtype){2,cues,ped}); % noise, 1 cue, lowest
-            plotting2(cues,ped) = out2.threshold;
         end
     end
-
     figure
     hold on
-    title('Noise, R->G->B High');
-    plot(stimulus.pedestals.noise(2:4),plotting(1,:),'-r');
-    plot(stimulus.pedestals.noise(2:4),plotting(2,:),'--r');
-    axis([stimulus.pedestals.noise(1) stimulus.pedestals.noise(5) 0 1]);
+    title('%s, R->G->B High',stimulus.blocks.blockTypes{task.thisblock.blocktype});
+    plot(stimulus.pedestals.(type)(2:4),plotting(1,:),'-r');
+    plot(stimulus.pedestals.(type)(2:4),plotting(2,:),'--r');
+    axis([stimulus.pedestals.(type)(1) stimulus.pedestals.(type)(5) 0 1]);
 
-    figure
-    hold on
-    title('Contrast, R->G->B High');
-    plot(stimulus.pedestals.contrast(2:4),plotting2(1,:),'-r');
-    plot(stimulus.pedestals.contrast(2:4),plotting2(2,:),'--r');
-    axis([stimulus.pedestals.contrast(1) stimulus.pedestals.contrast(5) 0 1]);
 catch
     warning('(noisecon) Figures were not generated successfully.');
 end
@@ -779,7 +778,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
-function dispStaircaseP(stimulus)
+function dispStaircaseP(task,stimulus)
 
 try
 if stimulus.dual
