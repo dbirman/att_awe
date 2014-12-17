@@ -315,6 +315,10 @@ while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     myscreen = tickScreen(myscreen,task);
 end
 
+mglClearScreen(stimulus.colors.reservedColor(7));
+mglTextDraw('Run complete... please wait.',[0 0]);
+disp('(noisecon) Run ending, displaying stimuli...');
+
 dispStaircase(task,stimulus);
 dispStaircaseP(task,stimulus);
 
@@ -339,7 +343,7 @@ end
 
 if stimulus.counter > 1
     % Temporarily remove raw files to limit stimfile size, then replace these
-    % so they can be used.
+    % so they can be used on the next run.
     stimbackup = stimulus;
     stimulus = rmfield(stimulus,'raw');
     stimulus = rmfield(stimulus,'images');
@@ -354,6 +358,8 @@ if stimulus.counter > 1
     stimulus = stimbackup;
     clear stimbackup
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%% EXPERIMENT OVER: HELPER FUNCTIONS FOLLOW %%%%%%%%
 
 %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
