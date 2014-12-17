@@ -760,13 +760,17 @@ try
     
     for cues = 1:2
         for ped = 1:3
-            out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped}); % noise, 1 cue, lowest
-            plotting(cues,ped) = out.threshold;
+            try
+                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped}); % noise, 1 cue, lowest
+                plotting(cues,ped) = out.threshold;
+            catch
+                plotting(cues,ped) = -1;
+            end
         end
     end
     figure
     hold on
-    title('%s, R->G->B High',stimulus.blocks.blockTypes{task.thisblock.blocktype});
+    title(sprintf('%s, R->G->B High',stimulus.blocks.blockTypes{task.thisblock.blockType}));
     plot(stimulus.pedestals.(type)(2:4),plotting(1,:),'-r');
     plot(stimulus.pedestals.(type)(2:4),plotting(2,:),'--r');
     axis([stimulus.pedestals.(type)(1) stimulus.pedestals.(type)(5) 0 1]);
