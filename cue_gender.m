@@ -250,5 +250,5 @@ function stimulus = initStaircase(threshold,stimulus,stepsize)
 stimulus.p.staircase(1) = doStaircase('init','upDown','initialThreshold', ...
     threshold,'initialStepsize',stepsize,'minThreshold=0','maxThreshold=.25', ...
     'stepRule','levitt','nTrials=60');
-stimulus.p.dualstaircase{task.thisblock.blockType}{1}(1) = stimulus.p.staircase;
-stimulus.p.dualstaircase{task.thisblock.blockType}{2}(1) = stimulus.p.staircase;
+stimulus.p.dualstaircase{1}(1) = stimulus.p.staircase;
+stimulus.p.dualstaircase{2}(1) = stimulus.p.staircase;
