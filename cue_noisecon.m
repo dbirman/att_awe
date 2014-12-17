@@ -275,7 +275,7 @@ if stimulus.initStair
             end
         end
     end
-    stimulus.stepSizes = stimulus.initThresh / 5;
+    stimulus.stepSizes = stimulus.initThresh / 3;
     disp(sprintf('(noisecon) Initializing staircases'));
     stimulus = initStaircase(stimulus);
 else
@@ -322,8 +322,8 @@ mglTextDraw('Run complete... please wait.',[0 0]);
 mglFlush
 disp('(noisecon) Run ending, displaying stimuli...');
 
-dispStaircase(task,stimulus);
-dispStaircaseP(task,stimulus);
+dispStaircase(stimulus);
+dispStaircaseP(stimulus);
 
 % delete texture
 if isfield(stimulus,'flyTex')
@@ -745,7 +745,7 @@ for condition = 1:2 % noise / contrast
             stimulus.staircase{condition,cues,p}(1) = doStaircase('init','upDown', ...
                 'initialThreshold',stimulus.initThresh(condition,cues,p), ...
                 'initialStepsize',stimulus.stepSizes(condition,cues,p), ...
-                'minThreshold=0','maxThreshold=1','stepRule','levitt', ...
+                'minThreshold=0.001','maxThreshold=1','stepRule','levitt', ...
                 'nTrials=60');
             stimulus.dualstaircase{condition,cues,p}(1) = stimulus.staircase{condition,cues,p};
         end
@@ -755,7 +755,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%%
-function dispStaircase(task,stimulus)
+function dispStaircase(stimulus)
 
 try
     if stimulus.dual
@@ -767,7 +767,11 @@ try
     plotting = zeros(2,3);
     if stimulus.blocks.curBlock == 1
         % noise
-        typeP = 'SnR';
+        if isfield(stimulus.pedestals,'SnR')
+            typeP = 'SnR';
+        else
+            typeP = 'noise';
+        end
         num = 1;
     else
         typeP = 'contrast';
@@ -809,7 +813,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 %    dispStaircase    %
 %%%%%%%%%%%%%%%%%%%%%%
-function dispStaircaseP(task,stimulus)
+function dispStaircaseP(stimulus)
 
 try
     if stimulus.dual

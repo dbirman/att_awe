@@ -55,7 +55,7 @@ task{1}.waitForBacktick = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if stimulus.initStair
     threshold = stimulus.p.init_SOA;
-    stepsize = .05;
+    stepsize = threshold / 3;
     useLevittRule = 1;
     disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
     stimulus = initStaircase(threshold,stimulus,stepsize);
@@ -248,7 +248,7 @@ task.thistrial.images = randi(stimulus.p.numImages,1,2);
 function stimulus = initStaircase(threshold,stimulus,stepsize)
 
 stimulus.p.staircase(1) = doStaircase('init','upDown','initialThreshold', ...
-    threshold,'initialStepsize',stepsize,'minThreshold=0','maxThreshold=.25', ...
+    threshold,'initialStepsize',stepsize,'minThreshold=0.01','maxThreshold=.25', ...
     'stepRule','levitt','nTrials=60');
 stimulus.p.dualstaircase{1}(1) = stimulus.p.staircase;
 stimulus.p.dualstaircase{2}(1) = stimulus.p.staircase;
