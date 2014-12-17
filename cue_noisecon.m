@@ -749,7 +749,7 @@ try
     end
 
     plotting = zeros(2,3);
-    if task.thisblock.blockType == 1
+    if task{1}{1}.thisblock.blockType == 1
         % noise
         type = 'noise';
         num = 1;
@@ -770,13 +770,13 @@ try
     end
     figure
     hold on
-    title(sprintf('%s, R->G->B High',stimulus.blocks.blockTypes{task.thisblock.blockType}));
+    title(sprintf('%s, R->G->B High',stimulus.blocks.blockTypes{task{1}{1}.thisblock.blockType}));
     plot(stimulus.pedestals.(type)(2:4),plotting(1,:),'-r');
     plot(stimulus.pedestals.(type)(2:4),plotting(2,:),'--r');
     axis([stimulus.pedestals.(type)(1) stimulus.pedestals.(type)(5) 0 1]);
 
 catch
-    warning('(noisecon) Figures were not generated successfully.');
+    disp('(noisecon) Figures were not generated successfully.');
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -793,7 +793,7 @@ else
 %     title('Gender Task (DUAL) -- estimated Threshold');
 end
 catch
-    warning('(gender) Figures were not generated successfully.');
+    disp('(gender) Figures were not generated successfully.');
 end
 
 
