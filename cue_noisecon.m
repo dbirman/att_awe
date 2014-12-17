@@ -125,6 +125,7 @@ stimulus.colors.maxFaceIndex = stimulus.maxIndex;
 
 stimulus.pedestals.maxRange = (255-(stimulus.colors.nReservedColors+1))/2;
 
+
 % set the reserved colors - this gives a convenient value between 0 and 1 to use the reserved colors with
 for i = 1:stimulus.colors.nReservedColors
   stimulus.colors.reservedColor(i) = (i-1)/stimulus.maxIndex;
@@ -132,7 +133,8 @@ end
 
 %% MGL Parameters
 
-mglTextSet('fontColor',[stimulus.colors.reservedColor(16) stimulus.colors.reservedColor(16) stimulus.colors.reservedColor(16)]);
+mglTextSet('Helvetica',32,stimulus.colors.reservedColor(16),...
+0,0,0,0,0,0,0);
     
 %% Gamma Table Initialization
 
@@ -317,6 +319,7 @@ end
 
 mglClearScreen(stimulus.colors.reservedColor(7));
 mglTextDraw('Run complete... please wait.',[0 0]);
+mglFlush
 disp('(noisecon) Run ending, displaying stimuli...');
 
 dispStaircase(task,stimulus);
@@ -533,7 +536,6 @@ if stimulus.dual
     [deltaPed, stimulus.dualstaircase{condition,cue,p}] = doStaircase('testValue',stimulus.dualstaircase{condition,cue,p});
 else
     [deltaPed, stimulus.staircase{condition,cue,p}] = doStaircase('testValue',stimulus.staircase{condition,cue,p});
-    disp(deltaPed);
 end
 
 %%
