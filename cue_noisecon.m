@@ -427,7 +427,13 @@ setGammaTableForMaxContrast(task.thistrial.maxContrast);
 for imagePos = 1:4
     p_mask = rand(1,length(stimulus.raw{1}.halfFourier{1}.phase))*2*pi;
     for int = 1:2
-        [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,imagePos==task.thistrial.targetLoc,int,pedestals(imagePos),randoms(imagePos),p_mask);
+        if imagePos==task.thistrial.targetLoc || int==1
+            [task, stimulus.flyTex{imagePos,int}] = convertToTex(imagePos,task,imagePos==task.thistrial.targetLoc,int,pedestals(imagePos),randoms(imagePos),p_mask);
+        else
+            % We can save a tiny bit of time by copying the image from the
+            % other interval if this isn't the target image.
+            stimulus.flyTex{imagePos,int} = stimulus.flyTex{imagePos,1};
+        end
     end
 end
 
