@@ -410,7 +410,7 @@ end
 task.thistrial.genderList(task.thistrial.genderList==0) = gens(randperm(3));
 
 % Get details
-blocks = task.thisblock.blockType;
+blocks = stimulus.blocks.curBlock;
 cue = find(task.thistrial.cues==[1 4]);
 peds = task.thistrial.pedestal-1;
 
@@ -445,7 +445,7 @@ if isTarget && int==task.thistrial.interval
 end
 % First we need to know whether we are adjusting noise or contrast
 % randomly.
-if task.thisblock.blockType == 1
+if stimulus.blocks.curBlock == 1
     %%%% PEDESTAL = NOISE %%%%
     curNoi = stimulus.pedestals.noise(ped) + add;
     curCon = stimulus.pedestals.contrast(pedR);
@@ -495,7 +495,7 @@ end
 
 function maxC = getMaxContrast(task,stimulus,cPed,peds,rands)
 
-if task.thisblock.blockType == 1
+if stimulus.blocks.curBlock == 1
     % Pedestal = noise, so the max contrast will be the maximum value of
     % the randoms
     maxC = stimulus.pedestals.contrast(max(rands));
@@ -627,7 +627,7 @@ mglClearScreen(stimulus.colors.reservedColor(7));
 
 %%%% NOTE: PARTICIPANTS ALWAYS LOOK FOR THE MORE VISIBLE ITEM, i.e. HIGHER NOISE OR CONTRAST %%%%
 
-block = task.thisblock.blockType;
+block = stimulus.blocks.curBlock;
 cue = find(task.thistrial.cues==[1 4]);
 pedPos = task.thistrial.pedestal-1;    
 
@@ -673,13 +673,12 @@ global stimulus
 
 mglClearScreen(stimulus.colors.reservedColor(7));
 
-task.thisblock.blockType = stimulus.blocks.curBlock;
 stimulus.blockList(stimulus.counter) = stimulus.blocks.curBlock;
 stimulus.dualList(stimulus.counter) = stimulus.dual;
 
 myscreen.flushMode = 1;
-mglTextDraw(stimulus.blocks.blockTypes{task.thisblock.blockType},[0,0]);
-disp(sprintf('(noisecon) Block type: %s',stimulus.blocks.blockTypes{task.thisblock.blockType}));
+mglTextDraw(stimulus.blocks.blockTypes{stimulus.blocks.curBlock},[0,0]);
+disp(sprintf('(noisecon) Block type: %s',stimulus.blocks.blockTypes{stimulus.blocks.curBlock}));
 
 %% scalePDF
 
@@ -752,7 +751,7 @@ try
     end
 
     plotting = zeros(2,3);
-    if task{1}{1}.thisblock.blockType == 1
+    if stimulus.blocks.curBlock == 1
         % noise
         typeP = 'SnR';
         num = 1;
@@ -762,7 +761,7 @@ try
     end
     
     figure % this is the 'staircase' figure
-    title(sprintf('%s, Staircase plot (R->G->B high)',stimulus.blocks.blockTypes{task{1}{1}.thisblock.blockType}));
+    title(sprintf('%s, Staircase plot (R->G->B high)',stimulus.blocks.blockTypes{stimulus.blocks.curBlock}));
     hold on
     drawing = {'-r' '-g' '-b'
                 '--r' '--g' '--b'};
@@ -783,7 +782,7 @@ try
     hold off
     figure
     hold on
-    title(sprintf('%s, R->G->B High',stimulus.blocks.blockTypes{task{1}{1}.thisblock.blockType}));
+    title(sprintf('%s, R->G->B High',stimulus.blocks.blockTypes{stimulus.blocks.curBlock}));
     plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:),'-r');
     plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:),'--r');
     axis([stimulus.pedestals.(typeP)(1) stimulus.pedestals.(typeP)(5) 0 1]);
@@ -800,7 +799,7 @@ function dispStaircaseP(task,stimulus)
 
 try
     if stimulus.dual
-        doStaircase('threshold',stimulus.p.dualstaircase{task.thisblock.blockType},'dispFig',1);
+        doStaircase('threshold',stimulus.p.dualstaircase{stimulus.blocks.curBlock},'dispFig',1);
     %     title('Gender Task -- estimated Threshold');
     else
         doStaircase('threshold',stimulus.p.staircase,'dispFig',1);

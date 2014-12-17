@@ -114,7 +114,7 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
                 % Participant says they saw nothing (correct)                
                 correctIncorrect = 'correct';
                 if stimulus.dual
-                    stimulus.p.dualstaircase{task.thisblock.blockType} = doStaircase('update',stimulus.p.dualstaircase{task.thisblock.blockType},1);
+                    stimulus.p.dualstaircase{stimulus.blocks.curBlock} = doStaircase('update',stimulus.p.dualstaircase{stimulus.blocks.curBlock},1);
                 else
                     stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,1);
                 end
@@ -123,7 +123,7 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
                 correctIncorrect = 'incorrect';
                 % Participant saw something (incorrect)
                 if stimulus.dual
-                    stimulus.p.dualstaircase{task.thisblock.blockType} = doStaircase('update',stimulus.p.dualstaircase{task.thisblock.blockType},0);
+                    stimulus.p.dualstaircase{stimulus.blocks.curBlock} = doStaircase('update',stimulus.p.dualstaircase{stimulus.blocks.curBlock},0);
                 else
                     stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,0);
                 end
@@ -134,7 +134,7 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
             if (task.thistrial.whichButton == stimulus.p.responseLetters(whichGender))
                 correctIncorrect = 'correct';
                 if stimulus.dual
-                    stimulus.p.dualstaircase{task.thisblock.blockType} = doStaircase('update',stimulus.p.dualstaircase{task.thisblock.blockType},1);
+                    stimulus.p.dualstaircase{stimulus.blocks.curBlock} = doStaircase('update',stimulus.p.dualstaircase{stimulus.blocks.curBlock},1);
                 else
                     stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,1);
                 end
@@ -142,7 +142,7 @@ if any(task.thistrial.whichButton == stimulus.p.responseLetters)
             else
                 correctIncorrect = 'incorrect';
                 if stimulus.dual
-                    stimulus.p.dualstaircase{task.thisblock.blockType} = doStaircase('update',stimulus.p.dualstaircase{task.thisblock.blockType},0);
+                    stimulus.p.dualstaircase{stimulus.blocks.curBlock} = doStaircase('update',stimulus.p.dualstaircase{stimulus.blocks.curBlock},0);
                 else
                     stimulus.p.staircase = doStaircase('update',stimulus.p.staircase,0);
                 end
@@ -230,7 +230,7 @@ stimulus.p.scram.right = 0;
 task.thistrial.respond = 0;
 % get the SOA for this trial
 if stimulus.dual
-    [task.thistrial.SOA, stimulus.p.dualstaircase{task.thisblock.blockType}] = doStaircase('testValue',stimulus.p.dualstaircase{task.thisblock.blockType});
+    [task.thistrial.SOA, stimulus.p.dualstaircase{stimulus.blocks.curBlock}] = doStaircase('testValue',stimulus.p.dualstaircase{stimulus.blocks.curBlock});
 else
     [task.thistrial.SOA, stimulus.p.staircase] = doStaircase('testValue',stimulus.p.staircase);
 end
