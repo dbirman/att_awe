@@ -237,7 +237,7 @@ end
 
 genBase = [1 2];
 task.thistrial.position = randi(2);
-intOpts = [0 1 1];
+intOpts = [0 1 1 1];
 task.thistrial.display = intOpts(randi(length(intOpts)));
 task.thistrial.gender = genBase(randperm(2));
 task.thistrial.images = randi(stimulus.p.numImages,1,2);
