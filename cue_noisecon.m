@@ -742,37 +742,36 @@ end
 function dispStaircase(stimulus)
 
 try
-if stimulus.dual
-    stairtype = 'dualstaircase';
-else
-    stairtype = 'staircase';
-end
-
-plotting = zeros(2,3);
-plotting2 = zeros(2,3);
-for cues = 1:2
-    for ped = 1:3
-        out = doStaircase('threshold',stimulus.(stairtype){1,cues,ped}); % noise, 1 cue, lowest
-        plotting(cues,ped) = out.threshold;
-        out2 = doStaircase('threshold',stimulus.(stairtype){2,cues,ped}); % noise, 1 cue, lowest
-        plotting2(cues,ped) = out2.threshold;
+    if stimulus.dual
+        stairtype = 'dualstaircase';
+    else
+        stairtype = 'staircase';
     end
-end
 
-figure
-hold on
-title('Noise, R->G->B High');
-plot(stimulus.pedestals.noise(2:4),plotting(1,:),'-r');
-plot(stimulus.pedestals.noise(2:4),plotting(2,:),'--r');
-axis([stimulus.pedestals.noise(1) stimulus.pedestals.noise(5) 0 1]);
+    plotting = zeros(2,3);
+    plotting2 = zeros(2,3);
+    for cues = 1:2
+        for ped = 1:3
+            out = doStaircase('threshold',stimulus.(stairtype){1,cues,ped}); % noise, 1 cue, lowest
+            plotting(cues,ped) = out.threshold;
+            out2 = doStaircase('threshold',stimulus.(stairtype){2,cues,ped}); % noise, 1 cue, lowest
+            plotting2(cues,ped) = out2.threshold;
+        end
+    end
 
-figure
-hold on
-title('Contrast, R->G->B High');
-plot(stimulus.pedestals.contrast(2:4),plotting2(1,:),'-r');
-plot(stimulus.pedestals.contrast(2:4),plotting2(2,:),'--r');
-axis([stimulus.pedestals.contrast(1) stimulus.pedestals.contrast(5) 0 1]);
+    figure
+    hold on
+    title('Noise, R->G->B High');
+    plot(stimulus.pedestals.noise(2:4),plotting(1,:),'-r');
+    plot(stimulus.pedestals.noise(2:4),plotting(2,:),'--r');
+    axis([stimulus.pedestals.noise(1) stimulus.pedestals.noise(5) 0 1]);
 
+    figure
+    hold on
+    title('Contrast, R->G->B High');
+    plot(stimulus.pedestals.contrast(2:4),plotting2(1,:),'-r');
+    plot(stimulus.pedestals.contrast(2:4),plotting2(2,:),'--r');
+    axis([stimulus.pedestals.contrast(1) stimulus.pedestals.contrast(5) 0 1]);
 catch
     warning('(noisecon) Figures were not generated successfully.');
 end
@@ -784,7 +783,7 @@ function dispStaircaseP(stimulus)
 
 try
 if stimulus.dual
-    tout = doStaircase('threshold',stimulus.p.dualstaircase,'dispFig',1);
+    tout = doStaircase('threshold',stimulus.p.dualstaircase{task.thisblock.blockType},'dispFig',1);
 %     title('Gender Task -- estimated Threshold');
 else
     tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
