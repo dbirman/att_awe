@@ -154,9 +154,9 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .15 .20 .30 .45 .65 ];
-baseThresh(:,2) = [.25 .225 .2];
+baseThresh(:,2) = [.25 .25 .25];
 stimulus.pedestals.noise = [ .15 .2 .3 .45 .65 ];
-baseThresh(:,1) = [.45 .4 .35];
+baseThresh(:,1) = [.45 .45 .45];
 %%%% TESTING %%%%
 if testing
     stimulus.pedestals.contrast = [ .3 .3 .3 .3 .3 ];
@@ -785,13 +785,13 @@ end
 function dispStaircaseP(task,stimulus)
 
 try
-if stimulus.dual
-    tout = doStaircase('threshold',stimulus.p.dualstaircase{task.thisblock.blockType},'dispFig',1);
-%     title('Gender Task -- estimated Threshold');
-else
-    tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
-%     title('Gender Task (DUAL) -- estimated Threshold');
-end
+    if stimulus.dual
+        tout = doStaircase('threshold',stimulus.p.dualstaircase{task.thisblock.blockType},'dispFig',1);
+    %     title('Gender Task -- estimated Threshold');
+    else
+        tout = doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
+    %     title('Gender Task (DUAL) -- estimated Threshold');
+    end
 catch
     disp('(gender) Figures were not generated successfully.');
 end
