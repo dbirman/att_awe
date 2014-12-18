@@ -290,7 +290,8 @@ else
                 end
             end
         end
-        stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase);
+        stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase{1});
+        stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase{2});
     else
         for blocks = 1:2
             for cue = 1:2
