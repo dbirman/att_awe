@@ -746,7 +746,7 @@ for condition = 1:2 % noise / contrast
                 'initialThreshold',stimulus.initThresh(condition,cues,p), ...
                 'initialStepsize',stimulus.stepSizes(condition,cues,p), ...
                 'minThreshold=0.001','maxThreshold=1','stepRule','levitt', ...
-                'nTrials=60');
+                'nTrials=50');
             stimulus.dualstaircase{condition,cues,p}(1) = stimulus.staircase{condition,cues,p};
         end
     end
@@ -786,11 +786,15 @@ try
     for cues = 1:2
         for ped = 1:3
             try
-                plot(stimulus.(stairtype){num,cues,ped}.testValues,drawing{cues,ped});
+                testV = [];
+                for i = 1:length(stimulus.(stairtype){num,cues,ped})
+                    testV = [testV stimulus.(stairtype){num,cues,ped}(i).testValues];
+                end
+                plot(testV,drawing{cues,ped});
             catch
             end
             try
-                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped}); % noise, 1 cue, lowest
+                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
                 plotting(cues,ped) = out.threshold;
             catch
                 plotting(cues,ped) = -1;
@@ -811,7 +815,7 @@ catch
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%
-%    dispStaircase    %
+%    dispStaircaseP    %
 %%%%%%%%%%%%%%%%%%%%%%
 function dispStaircaseP(stimulus)
 

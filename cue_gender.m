@@ -24,10 +24,7 @@ if flip
 else
     stimulus.p.responseLetters = [9 8 10];
 end
-stimulus.p.init_SOA = .25;  
-if stimulus.testing
-    stimulus.p.init_SOA = .175;
-end
+stimulus.p.init_SOA = .3;
 stimulus.p.scram.rate = 12.5;
 stimulus.p.scram.last = 0;
 stimulus.p.scram.left = 0;
@@ -37,7 +34,7 @@ stimulus.p.scram.right = 0;
 
 % Segments are: NOTHING, MASK STREAM, PRESENTATION, PRESENTATION MASK
 task{1}.segmin = [inf .010 inf 1]; 
-task{1}.segmax = [inf .25 inf 1]; 
+task{1}.segmax = [inf .2 inf 1]; 
 % We only get responses after presentation
 task{1}.getResponse = [0 0 1 1];
 task{1}.randVars.calculated.position = nan;

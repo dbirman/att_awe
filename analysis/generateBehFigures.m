@@ -115,7 +115,7 @@ for fi = 1:length(files)
 end
 
 
-%% Generate
+%% Generate staircases and discrimination functions
 
 
 if stimulus.dual
@@ -124,8 +124,8 @@ else
     stairtype = 'staircase';
 end
 
-plotting = zeros(2,3);
 for i = 1:2
+    plotting = zeros(2,3);
     
     if i == 1
         % noise
@@ -134,14 +134,16 @@ for i = 1:2
         else
             typeP = 'noise';
         end
+        dispText = 'Noise';
         num = 1;
     else
         typeP = 'contrast';
+        dispText = 'Contrast';
         num = 2;
     end
 
     figure % this is the 'staircase' figure
-    title(sprintf('%s, Staircase plot (R->G->B high)',typeP));
+    title(sprintf('%s, Staircase plot (R->G->B high)',dispText));
     hold on
     drawing = {'-r' '-g' '-b'
         '--r' '--g' '--b'};
@@ -152,7 +154,7 @@ for i = 1:2
             catch
             end
             try
-                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped}); % noise, 1 cue, lowest
+                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
                 plotting(cues,ped) = out.threshold;
             catch
                 plotting(cues,ped) = -1;
@@ -160,23 +162,21 @@ for i = 1:2
         end
     end
     hold off
+    % Discrimination function plots
     figure
     hold on
-    title(sprintf('%s, R->G->B High',typeP));
+    title(sprintf('%s, R->G->B High',dispText));
     plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:),'-r');
     plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:),'--r');
     axis([stimulus.pedestals.(typeP)(1) stimulus.pedestals.(typeP)(5) 0 1]);
     hold off
 end
 
-
-%%%%%%%%%%%%%%%%%%%%%%%
-%    dispStaircase    %
-%%%%%%%%%%%%%%%%%%%%%%
+% Peripheral staircase and threshold
 
 if stimulus.dual
-    doStaircase('threshold',stimulus.p.dualstaircase{1},'dispFig',1);
-    doStaircase('threshold',stimulus.p.dualstaircase{2},'dispFig',1);
+    doStaircase('threshold',stimulus.p.dualstaircase{1},'dispFig',1,'type','weibull');
+    doStaircase('threshold',stimulus.p.dualstaircase{2},'dispFig',1,'type','weibull');
     %     title('Gender Task -- estimated Threshold');
 else
     if stimulus.p.staircase(end).trialNum == 0
@@ -186,3 +186,113 @@ else
     end
     %     title('Gender Task (DUAL) -- estimated Threshold');
 end
+
+
+%% Generate Performance Plots
+
+% The idea here is to have two plots, one for Noise + Gender and one for
+% Contrast + Gender, showing the performance normalized to the single task
+% performance.
+
+% First let's choose what plot
+
+for dual = 1:2
+    if dual == 1
+        stairtype = 'staircase';
+        typeD = 'single';
+    else
+        stairtype = 'dualstaircase';
+        typeD = 'dual';
+    end
+    for type = 1:2
+        plotting = zeros(2,3);
+        if type == 1
+            % noise
+            if isfield(stimulus.pedestals,'SnR')
+                typeP = 'SnR';
+            else
+                typeP = 'noise';
+            end
+            dispText = 'Noise';
+            num = 1;
+        else
+            typeP = 'contrast';
+            dispText = 'Contrast';
+            num = 2;
+        end
+
+        % Okay now we know what we're calculating for, so let's get the
+        % performance
+
+        % Get the main task performance
+        for cues = 1:2
+            for ped = 1:3
+                try
+                    out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                    plotting(cues,ped) = out.threshold;
+                catch
+                    plotting(cues,ped) = -1;
+                end
+            end
+        end
+
+        main.(dispText).(typeD) = mean(plotting,2);
+    end
+end
+
+% Main task performance
+mainConFocalPerf = main.Contrast.single(1);
+mainConDistPerf = main.Contrast.single(2);
+mainNoiseFocalPerf = main.Noise.single(1);
+mainNoiseDistPerf = main.Noise.single(2);
+
+mainConFocalDualPerf = main.Contrast.dual(1);
+mainConDistDualPerf = main.Contrast.dual(2);
+mainNoiseFocalDualPerf = main.Noise.dual(1);
+mainNoiseDistDualPerf = main.Noise.dual(2);
+
+% Get the peripheral task performance
+%%%% check for >2 task sets
+genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(2:end),'type','weibull');
+genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2}(2:end),'type','weibull');
+genderPerf = doStaircase('threshold',stimulus.p.staircase(2:end),'type','weibull');
+gNPerf = genderNoisePerf.threshold;
+gCPerf = genderConPerf.threshold;
+gPerf = genderPerf.threshold;
+% Normalize
+gNPerf_N = gNPerf;
+gCPerf_N = gCPerf;
+gPerf = gPerf;
+% Plot
+figure
+hold on
+title('Dual Task Performance');
+% singles
+plot(0,gPerf,'*r');
+ylabel('Gender (SOA ms)');
+xlabel('Contrast/Noise Performance (delta)');
+plot(mainNoiseFocalPerf,0,'*g');
+text(mainNoiseFocalPerf,.01,sprintf('%0.2f',mainNoiseFocalPerf/(1-mainNoiseFocalPerf)));
+plot(mainNoiseDistPerf,0,'*c');
+text(mainNoiseDistPerf,.01,sprintf('%0.2f',mainNoiseDistPerf/(1-mainNoiseDistPerf)));
+plot(mainConFocalPerf,0,'*r');
+plot(mainConDistPerf,0,'*m');
+% duals
+plot(mainNoiseFocalDualPerf,gNPerf_N,'*g');
+text(mainNoiseFocalDualPerf,gNPerf_N+.01,sprintf('%0.2f',mainNoiseFocalDualPerf/(1-mainNoiseFocalDualPerf)));
+plot(mainNoiseDistDualPerf,gNPerf_N,'*c');
+text(mainNoiseDistDualPerf,gNPerf_N+.01,sprintf('%0.2f',mainNoiseDistDualPerf/(1-mainNoiseDistDualPerf)));
+plot(mainConFocalDualPerf,gCPerf_N,'*r');
+text(mainConFocalDualPerf,gCPerf_N+.01,sprintf('%0.2f',mainConFocalDualPerf/(1-mainConFocalDualPerf)));
+plot(mainConDistDualPerf,gCPerf_N,'*m');
+text(mainConDistDualPerf,gCPerf_N+.01,sprintf('%0.2f',mainConDistDualPerf/(1-mainConDistDualPerf)));
+% lines
+plot(0:mainNoiseDistPerf/10:mainNoiseDistPerf,repmat(gPerf,1,11),'--r');
+plot(0:.25:.5,repmat(.25,1,3),'--k');
+plot(repmat(mainNoiseFocalPerf,1,11),0:gPerf/10:gPerf,'--g');
+plot(repmat(mainNoiseDistPerf,1,11),0:gPerf/10:gPerf,'--c');
+plot(repmat(mainConFocalPerf,1,11),0:gPerf/10:gPerf,'--r');
+plot(repmat(mainConDistPerf,1,11),0:gPerf/10:gPerf,'--m');
+plot(repmat(.5,1,3),0:.125:.25,'--k');
+% legend
+ hold off
