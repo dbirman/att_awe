@@ -817,10 +817,10 @@ function dispStaircaseP(stimulus)
 
 try
     if stimulus.dual
-        doStaircase('threshold',stimulus.p.dualstaircase{stimulus.blocks.curBlock},'dispFig',1);
+        doStaircase('threshold',stimulus.p.dualstaircase{stimulus.blocks.curBlock},'dispFig',1,'type','weibull');
     %     title('Gender Task -- estimated Threshold');
     else
-        doStaircase('threshold',stimulus.p.staircase,'dispFig',1);
+        doStaircase('threshold',stimulus.p.staircase,'dispFig',1,'type','weibull');
     %     title('Gender Task (DUAL) -- estimated Threshold');
     end
 catch
@@ -831,7 +831,7 @@ end
 %% checkStaircaseStop
 function [s] = checkStaircaseStop(s)
 if doStaircase('stop',s)
-    est = doStaircase('threshold',s);
+    est = doStaircase('threshold',s,'type','weibull');
     if est.threshold > 1 || est.threshold < 1
         % reset using original threshold
         warning('Threshold reset failed, restarting using the last threshold: %0.2f',s(end).s.strength(1));

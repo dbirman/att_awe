@@ -70,9 +70,9 @@ for fi = 1:length(files)
             exp{1}.randVars.image3(i) = exp{1}.randVars.imageNums{i}(3);
             exp{1}.randVars.image4(i) = exp{1}.randVars.imageNums{i}(4);
             exp{1}.randVars.gender1(i) = exp{1}.randVars.genderList{i}(1);
-            exp{1}.randVars.gender2(i) = exp{1}.randVars.genderList{i}(2); 
-            exp{1}.randVars.gender3(i) = exp{1}.randVars.genderList{i}(3); 
-            exp{1}.randVars.gender4(i) = exp{1}.randVars.genderList{i}(4); 
+            exp{1}.randVars.gender2(i) = exp{1}.randVars.genderList{i}(2);
+            exp{1}.randVars.gender3(i) = exp{1}.randVars.genderList{i}(3);
+            exp{1}.randVars.gender4(i) = exp{1}.randVars.genderList{i}(4);
             exp{1}.randVars.contrast1_int1(i) = exp{1}.randVars.contrastList{i}(1,1);
             exp{1}.randVars.contrast1_int2(i) = exp{1}.randVars.contrastList{i}(1,2);
             exp{1}.randVars.contrast2_int1(i) = exp{1}.randVars.contrastList{i}(2,1);
@@ -115,5 +115,74 @@ for fi = 1:length(files)
 end
 
 
-%% Generate 
+%% Generate
 
+
+if stimulus.dual
+    stairtype = 'dualstaircase';
+else
+    stairtype = 'staircase';
+end
+
+plotting = zeros(2,3);
+for i = 1:2
+    
+    if i == 1
+        % noise
+        if isfield(stimulus.pedestals,'SnR')
+            typeP = 'SnR';
+        else
+            typeP = 'noise';
+        end
+        num = 1;
+    else
+        typeP = 'contrast';
+        num = 2;
+    end
+
+    figure % this is the 'staircase' figure
+    title(sprintf('%s, Staircase plot (R->G->B high)',typeP));
+    hold on
+    drawing = {'-r' '-g' '-b'
+        '--r' '--g' '--b'};
+    for cues = 1:2
+        for ped = 1:3
+            try
+                plot(stimulus.(stairtype){num,cues,ped}.testValues,drawing{cues,ped});
+            catch
+            end
+            try
+                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped}); % noise, 1 cue, lowest
+                plotting(cues,ped) = out.threshold;
+            catch
+                plotting(cues,ped) = -1;
+            end
+        end
+    end
+    hold off
+    figure
+    hold on
+    title(sprintf('%s, R->G->B High',typeP));
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:),'-r');
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:),'--r');
+    axis([stimulus.pedestals.(typeP)(1) stimulus.pedestals.(typeP)(5) 0 1]);
+    hold off
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%
+%    dispStaircase    %
+%%%%%%%%%%%%%%%%%%%%%%
+
+if stimulus.dual
+    doStaircase('threshold',stimulus.p.dualstaircase{1},'dispFig',1);
+    doStaircase('threshold',stimulus.p.dualstaircase{2},'dispFig',1);
+    %     title('Gender Task -- estimated Threshold');
+else
+    if stimulus.p.staircase(end).trialNum == 0
+        out = doStaircase('threshold',stimulus.p.staircase(1:end-1),'dispFig',1,'type','weibull');
+    else
+        doStaircase('threshold',stimulus.p.staircase,'dispFig',1,'type','weibull');
+    end
+    %     title('Gender Task (DUAL) -- estimated Threshold');
+end
