@@ -46,9 +46,10 @@ peripheralTask = [];
 stimFileNum = [];
 testing = [];
 training = [];
+plots = [];
 getArgs(varargin,{'widthDeg=5.5', 'heightDeg=5.5', ...
     'peripheralTask=1','stimFileNum=-1', ...
-    'testing=0','dual=0','training=0'});
+    'testing=0','dual=0','training=0','plots=1'});
 
 stimulus.testing = testing;
 stimulus.dual = dual;
@@ -323,8 +324,10 @@ mglTextDraw('Run complete... please wait.',[0 0]);
 mglFlush
 disp('(noisecon) Run ending, displaying stimuli...');
 
-dispStaircase(stimulus);
-dispStaircaseP(stimulus);
+if plots
+    dispStaircase(stimulus);
+    dispStaircaseP(stimulus);
+end
 
 % delete texture
 if isfield(stimulus,'flyTex')
