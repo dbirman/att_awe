@@ -26,13 +26,14 @@
 %             subject's folder. Defaults to the last stimfile. Warning:
 %             Only the first stimfile is saved with the image file data,
 %             subsequent stimfiles only contain run data.
-%             testing (0/1) - For testing purposes.
 %             dual (0/1) - Uses the dual task staircases instead of the
 %             single-task staircases. Never run a participant without
 %             correctly setting this flag!
 %             training (0/1) - Currently only puts a flag in stimulus about
 %             whether this was a training run or not. Useful for tracking
 %             runs without a separate data sheet.
+%             plots (0/1) - Displays staircase plots (and estimated
+%             psychophysic functions)
 %
 
 function [myscreen] = cue_noisecon(varargin)
@@ -44,14 +45,12 @@ global stimulus
 widthDeg = []; heightDeg = [];
 peripheralTask = [];
 stimFileNum = [];
-testing = [];
 training = [];
 plots = [];
 getArgs(varargin,{'widthDeg=5.5', 'heightDeg=5.5', ...
     'peripheralTask=1','stimFileNum=-1', ...
-    'testing=0','dual=0','training=0','plots=1'});
+    'dual=0','training=0','plots=1'});
 
-stimulus.testing = testing;
 stimulus.dual = dual;
 stimulus.counter = 1; % This keeps track of what "run" we are on.
 stimulus.training = training;
@@ -108,10 +107,6 @@ stimulus.pActive = peripheralTask;
 stimulus.colors.nReservedPeripheral = 13;
 stimulus.colors.maxPer = .62;
 stimulus.colors.minPer = .38;
-if stimulus.testing
-    stimulus.colors.maxPer = .9;
-    stimulus.colors.minPer = .1;
-end
 values = stimulus.colors.minPer:(stimulus.colors.maxPer- ...
     stimulus.colors.minPer)/(stimulus.colors.nReservedPeripheral-1):stimulus.colors.maxPer;
 stimulus.colors.reservedColors = [values',values',values'];
@@ -162,13 +157,6 @@ baseThresh(:,2) = [.25 .25 .25];
 stimulus.pedestals.noise = [ .119 .269 .5 .731 .881 ];
 stimulus.pedestals.SnR = stimulus.pedestals.noise ./ (1-stimulus.pedestals.noise);
 baseThresh(:,1) = [.45 .45 .45];
-%%%% TESTING %%%%
-if testing
-    stimulus.pedestals.contrast = [ .3 .3 .3 .3 .3 ];
-    baseThresh(:,2) = [.6 .6 .6];
-    stimulus.pedestals.noise = [ .5 .5 .5 .5 .5 ];
-    baseThresh(:,1) = [.4 .4 .4];
-end
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -212,11 +200,6 @@ stimulus.seg.presp2 = 6;
 stimulus.seg.resp = 7;
 task{1}{1}.segmin = [1 1 .5 1 .5 1 1.4];
 task{1}{1}.segmax = [1 1 .5 1 .5 1 1.4];
-if testing
-    
-    task{1}{1}.segmin = [1 1 1 0 1 .8 1.4];
-    task{1}{1}.segmax = [1 1 1 0 1 .8 1.4];
-end
 task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 0 0 1];
 task{1}{1}.randVars.calculated.blockType = nan;
@@ -572,14 +555,6 @@ global stimulus
 
 if myscreen.flushMode == 0
     mglClearScreen(stimulus.colors.reservedColor(7));
-%     if stimulus.testing
-%         for i = 1:4
-%             mglTextDraw(num2str(i),[stimulus.pos1(i),stimulus.pos2(i)]);
-%         end
-%         mglTextDraw(num2str(task.thistrial.targetLoc),[0,-5]);
-%     end
-%     stimulus.imagest = num2str(task.thistrial.thisseg);
-%     upText(stimulus);
     stimulus.fixColor = stimulus.colors.reservedColor(17);
     % set the fixation color
     if any(task.thistrial.thisseg == [stimulus.seg.cue stimulus.seg.presp1 stimulus.seg.presp2])

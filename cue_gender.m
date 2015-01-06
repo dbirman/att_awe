@@ -158,10 +158,6 @@ end
 function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
-if(stimulus.testing)
-    mglTextDraw(num2str(task.thistrial.thisseg),[0,-8]);
-end
-
 % at every screen refresh, check the flags:
 if stimulus.pFlag == 2
     % Do nothing
