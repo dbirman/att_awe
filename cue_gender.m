@@ -18,7 +18,8 @@ global stimulus
 stimulus.p.lastpick = zeros(1,4);
 stimulus.p.posx = [10 -10];
 stimulus.p.posy = [0 0];
-stimulus.p.numImages = length(stimulus.p.tex{1});
+stimulus.p.numImages(1) = length(stimulus.p.tex{1});
+stimulus.p.numImages(2) = length(stimulus.p.tex{2});
 if flip
     stimulus.p.responseLetters = [8 9 10];
 else
@@ -234,10 +235,11 @@ end
 
 genBase = [1 2];
 task.thistrial.position = randi(2);
-intOpts = [0 1 1 1];
+intOpts = [0 1 1 1 1];
 task.thistrial.display = intOpts(randi(length(intOpts)));
 task.thistrial.gender = genBase(randperm(2));
-task.thistrial.images = randi(stimulus.p.numImages,1,2);
+task.thistrial.images(1) = randi(stimulus.p.numImages(task.thistrial.gender(1)));
+task.thistrial.images(2) = randi(stimulus.p.numImages(task.thistrial.gender(2)));
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %

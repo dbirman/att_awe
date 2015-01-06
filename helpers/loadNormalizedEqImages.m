@@ -46,7 +46,7 @@ if width == 681
      % now add zeros on the top and bottom
     mask = [zeros(287,681);mask;zeros(287,681)];
 end
-if width == 249
+if width == 250
     mask_size = [100 100];
     mask = repmat([zeros(1,75),ones(1,100),zeros(1,75)],100,1);
     mask = [zeros(90,250);mask;zeros(60,250)];
