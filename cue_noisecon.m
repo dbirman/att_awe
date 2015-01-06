@@ -817,7 +817,7 @@ end
 function [s] = checkStaircaseStop(s)
 if doStaircase('stop',s)
     est = doStaircase('threshold',s,'type','weibull');
-    if est.threshold > 1 || est.threshold < 1
+    if est.threshold > 1 || est.threshold < 0
         % reset using original threshold
         warning('Threshold reset failed, restarting using the last threshold: %0.2f',s(end).s.strength(1));
         s(end+1) = doStaircase('init',s,'initialThreshold',s(end).s.strength(1));
