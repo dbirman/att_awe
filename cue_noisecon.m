@@ -224,7 +224,7 @@ task{1}{1}.randVars.calculated.maxContrast = nan;
 task{1}{1}.randVars.calculated.deltaPed = nan;
 task{1}{1}.randVars.calculated.imageNums = nan(1,4);
 
-if isfield(stimulus,'blocks') & isfield(stimulus.blocks,'loaded')
+if isfield(stimulus,'blocks') && isfield(stimulus.blocks,'loaded')
     % We already have our blocks
     stimulus.blocks.counter = stimulus.blocks.counter + 1;
     stimulus.blocks = rmfield(stimulus.blocks,'loaded'); % remove the load field, otherwise it gets saved across runs

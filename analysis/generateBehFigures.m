@@ -155,7 +155,8 @@ for i = 1:2
             end
             plot(testV,drawing{cues,ped});
             try
-                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
+                keyboard
                 plotting(cues,ped) = out.threshold;
             catch
                 plotting(cues,ped) = -1;
