@@ -1,9 +1,11 @@
 close all hidden
 
-%out = build_facegrid;
+% Load an image and its grid
+out = build_facegrid;
 
 f = figure
 
+% Build all the plots
 for i = 1:size(out,3)
     for j = 1:size(out,4)
         subplot(size(out,3),size(out,4),(i-1)*5+j);
@@ -13,6 +15,8 @@ for i = 1:size(out,3)
     end
 end
 
+% get rid of the axes
 set(findobj(gcf, 'type','axes'), 'Visible','off')
 
+% print
 print(f,'-dpdf','~/proj/att_awe/images/grid_image.pdf');

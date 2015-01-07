@@ -114,52 +114,113 @@ for fi = 1:length(files)
     end
 end
 
+%% Generate staircase graphs
+% this just generates the staircases for any existing runs
 
-%% Generate staircases and discrimination functions
+% Depending on the type of the loaded run, generate the staircase figures
+stairtype = 'dualstaircase';
 
-
-if stimulus.dual
-    stairtype = 'dualstaircase';
-else
-    stairtype = 'staircase';
-end
-
-for i = 1:2
+dispTexts = {'Noise','Contrast'};
+for num = 1:2
     plotting = zeros(2,3);
     
-    if i == 1
-        % noise
-        if isfield(stimulus.pedestals,'SnR')
-            typeP = 'SnR';
-        else
-            typeP = 'noise';
+    dispText = dispTexts{num};
+    
+    try
+        figure % this is the 'staircase' figure
+        title(sprintf('%s, DUAL Staircase plot (R->G->B high)',dispText));
+        hold on
+        drawing = {'-r' '-g' '-b'
+            '--r' '--g' '--b'};
+        for cues = 1:2
+            for ped = 1:3
+                testV = [];
+                % for each cue/ped combo, this pulls out and adds to the test
+                % value list. This will be used to display the 'staircases'.
+                for i = 1:length(stimulus.(stairtype){num,cues,ped})
+                    testV = [testV stimulus.(stairtype){num,cues,ped}(i).testValues];
+                end
+                plot(testV,drawing{cues,ped});
+            end
         end
-        dispText = 'Noise';
-        num = 1;
-    else
-        typeP = 'contrast';
-        dispText = 'Contrast';
-        num = 2;
+    catch
+        warning('Dual task staircases failed');
     end
+    stairtype = 'staircase';
+    try
+        figure % this is the 'staircase' figure
+        title(sprintf('%s, Staircase plot (R->G->B high)',dispText));
+        hold on
+        drawing = {'-r' '-g' '-b'
+            '--r' '--g' '--b'};
+        for cues = 1:2
+            for ped = 1:3
+                testV = [];
+                % for each cue/ped combo, this pulls out and adds to the test
+                % value list. This will be used to display the 'staircases'.
+                for i = 1:length(stimulus.(stairtype){num,cues,ped})
+                    testV = [testV stimulus.(stairtype){num,cues,ped}(i).testValues];
+                end
+                plot(testV,drawing{cues,ped});
+            end
+        end
+        if stimulus.p.staircase(end).trialNum == 0
+            % Ignore the last staircase, it was just reset and has no trials
+            % (and causes an error)
+            usestair = stimulus.p.staircase(1:end-1);
+        else
+            usestair = stimulus.p.staircase;
+        end
+    catch
+        warning('Single task staircases failed');
+    end
+end
+% Peripheral task
+try
+    disp('Gender performance during NOISE task');
+    doStaircase('threshold',stimulus.p.dualstaircase{1},'dispFig',1,'type','weibull');
+    disp('Gender performance during CONTRAST task');
+    doStaircase('threshold',stimulus.p.dualstaircase{2},'dispFig',1,'type','weibull');
+    disp('Gender performance during SOLO task');
+    doStaircase('threshold',usestair,'dispFig',1,'type','weibull');
+catch
+    warning('Peripheral task staircases failed');
+end
 
-    figure % this is the 'staircase' figure
-    title(sprintf('%s, Staircase plot (R->G->B high)',dispText));
-    hold on
-    drawing = {'-r' '-g' '-b'
-        '--r' '--g' '--b'};
+%% Generate discrimination functions
+
+% The idea here is just to compare the single and dual task performance on
+% the same graphs.
+
+disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy');
+check = 0;
+
+dispTexts = {'Noise','Contrast'};
+colorOpts = [1 0 0
+             0 1 0];
+typePs = {'noise','contrast'};
+plotting = zeros(2,3,2,2);
+for num = 1:2
+    dispText = dispTexts{num};
+    color = colorOpts(num,:);
+    typeP = typePs{num};
+    
     for cues = 1:2
         for ped = 1:3
-            testV = [];
-            for i = 1:length(stimulus.(stairtype){num,cues,ped})
-                testV = [testV stimulus.(stairtype){num,cues,ped}(i).testValues];
-            end
-            plot(testV,drawing{cues,ped});
             try
-                out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
-                keyboard
-                plotting(cues,ped) = out.threshold;
+                if check
+                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
+                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
+                    keyboard
+                else
+                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                end
+                plotting(cues,ped,1,num) = out1.threshold;
+                plotting(cues,ped,2,num) = out2.threshold;
             catch
-                plotting(cues,ped) = -1;
+                plotting(cues,ped,1,num) = -1;
+                plotting(cues,ped,2,num) = -1;
             end
         end
     end
@@ -167,32 +228,22 @@ for i = 1:2
     % Discrimination function plots
     figure
     hold on
-    title(sprintf('%s, R->G->B High',dispText));
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:),'-r');
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:),'--r');
+    title(sprintf('%s',dispText));
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:,1,num),'-','Color',color);
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:,1,num),'--','Color',color);
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:,2,num),'-','Color',.5*color);
+    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:,2,num),'--','Color',.5*color);
     axis([stimulus.pedestals.(typeP)(1) stimulus.pedestals.(typeP)(5) 0 1]);
+    legend('Focal, Single Task','Distributed, Single Task','Focal, Dual Task','Distributed, Dual Task');
+    print(gcf,'-dpdf',sprintf('~/proj/att_awe/analysis/figures/%sDiscriminationFunction',dispText));
     hold off
 end
 
-% Peripheral staircase and threshold
-
-if stimulus.dual
-    doStaircase('threshold',stimulus.p.dualstaircase{1},'dispFig',1,'type','weibull');
-    doStaircase('threshold',stimulus.p.dualstaircase{2},'dispFig',1,'type','weibull');
-    %     title('Gender Task -- estimated Threshold');
-else
-    if stimulus.p.staircase(end).trialNum == 0
-        out = doStaircase('threshold',stimulus.p.staircase(1:end-1),'dispFig',1,'type','weibull');
-    else
-        doStaircase('threshold',stimulus.p.staircase,'dispFig',1,'type','weibull');
-    end
-    %     title('Gender Task (DUAL) -- estimated Threshold');
-end
-
-
 %% Generate Performance Plots
 
-% The idea here is to have a plot that shows 
+% The idea here is to have a plot that shows the dual task performance in
+% comparison with the single task performance for both gender and
+% contrast/noise at the same time.
 
 % First let's choose what plot
 

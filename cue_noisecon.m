@@ -49,7 +49,7 @@ training = [];
 plots = [];
 getArgs(varargin,{'widthDeg=5.5', 'heightDeg=5.5', ...
     'peripheralTask=1','stimFileNum=-1', ...
-    'dual=0','training=0','plots=1'});
+    'dual=0','training=1','plots=1'});
 
 stimulus.dual = dual;
 stimulus.counter = 1; % This keeps track of what "run" we are on.
