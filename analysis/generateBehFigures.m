@@ -199,31 +199,31 @@ dispTexts = {'Noise','Contrast'};
 colorOpts = [1 0 0
              0 1 0];
 typePs = {'noise','contrast'};
-% plotting = zeros(2,3,2,2);
+plotting = zeros(2,3,2,2);
 for num = 1:2
     dispText = dispTexts{num};
     color = colorOpts(num,:);
     typeP = typePs{num};
     
-%     for cues = 1:2
-%         for ped = 1:3
-%             try
-%                 if check
-%                     out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
-%                     out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
-%                     keyboard
-%                 else
-%                     out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
-%                     out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
-%                 end
-%                 plotting(cues,ped,1,num) = out1.threshold;
-%                 plotting(cues,ped,2,num) = out2.threshold;
-%             catch
-%                 plotting(cues,ped,1,num) = -1;
-%                 plotting(cues,ped,2,num) = -1;
-%             end
-%         end
-%     end
+    for cues = 1:2
+        for ped = 1:3
+            try
+                if check
+                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
+                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
+                    keyboard
+                else
+                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                end
+                plotting(cues,ped,1,num) = out1.threshold;
+                plotting(cues,ped,2,num) = out2.threshold;
+            catch
+                plotting(cues,ped,1,num) = -1;
+                plotting(cues,ped,2,num) = -1;
+            end
+        end
+    end
     hold off
     % Discrimination function plots
     figure
@@ -260,38 +260,12 @@ for dual = 1:2
         typeD = 'dual';
     end
     for type = 1:2
-        plotting = zeros(2,3);
         if type == 1
-            % noise
-            if isfield(stimulus.pedestals,'SnR')
-                typeP = 'SnR';
-            else
-                typeP = 'noise';
-            end
             dispText = 'Noise';
-            num = 1;
         else
-            typeP = 'contrast';
             dispText = 'Contrast';
-            num = 2;
         end
-
-        % Okay now we know what we're calculating for, so let's get the
-        % performance
-
-        % Get the main task performance
-        for cues = 1:2
-            for ped = 1:3
-                try
-                    out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
-                    plotting(cues,ped) = out.threshold;
-                catch
-                    plotting(cues,ped) = -1;
-                end
-            end
-        end
-
-        main.(dispText).(typeD) = mean(plotting,2);
+        main.(dispText).(typeD) = mean(plotting(:,:,dual,type),2);
     end
 end
 
