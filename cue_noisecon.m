@@ -6,7 +6,7 @@
 %    purpose: contrast and noise discrimination (different blocks) cueing
 %             different numbers of stimuli.
 %
-%        use: call cue_noisecon or cue_noisecon2 to initialize. The first
+%        use: call cue_noisecon to initialize. The first
 %             run takes significantly longer due to loading stimuli. Each
 %             run is either contrast or noise. For training, tell
 %             participants to perform either contrast, noise, or every
@@ -34,6 +34,7 @@
 %             runs without a separate data sheet.
 %             plots (0/1) - Displays staircase plots (and estimated
 %             psychophysic functions)
+%             practice (def=0) - Displays on ten trials
 %
 
 function [myscreen] = cue_noisecon(varargin)
@@ -47,9 +48,10 @@ peripheralTask = [];
 stimFileNum = [];
 training = [];
 plots = [];
+practice = [];
 getArgs(varargin,{'widthDeg=5.5', 'heightDeg=5.5', ...
     'peripheralTask=1','stimFileNum=-1', ...
-    'dual=0','training=1','plots=1'});
+    'dual=0','training=1','plots=1','practice=0'});
 
 stimulus.dual = dual;
 stimulus.counter = 1; % This keeps track of what "run" we are on.
@@ -213,6 +215,9 @@ task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
 task{1}{1}.random = 1;
 task{1}{1}.numBlocks = 1;
+if practice
+    task{1}{1}.numTrials = 10;
+end
 
 task{1}{1}.randVars.calculated.interval = nan;
 task{1}{1}.randVars.calculated.targetLoc = nan;
