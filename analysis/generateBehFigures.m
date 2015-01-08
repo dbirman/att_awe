@@ -115,7 +115,6 @@ for fi = 1:length(files)
 end
 
 %% Generate staircase graphs
-% this just generates the staircases for any existing runs
 
 % Depending on the type of the loaded run, generate the staircase figures
 stairtype = 'dualstaircase';

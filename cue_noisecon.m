@@ -281,8 +281,14 @@ else
                 end
             end
         end
-        stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase{1});
-        stimulus.p.dualstaircase = checkStaircaseStop(stimulus.p.dualstaircase{2});
+        if ~iscell(stimulus.p.dualstaircase)
+            % LEGACY CODE: REMOVE AFTER DAN COMPLETES TRAINING
+            % TODO TODO TODO TODO
+            stimulus.p.dualstaircase{1} = checkStaircaseStop(stimulus.p.dualstaircase(1));
+            stimulus.p.dualstaircase{2} = checkStaircaseStop(stimulus.p.dualstaircase(2));
+        end
+        stimulus.p.dualstaircase{1} = checkStaircaseStop(stimulus.p.dualstaircase{1});
+        stimulus.p.dualstaircase{2} = checkStaircaseStop(stimulus.p.dualstaircase{2});
     else
         for blocks = 1:2
             for cue = 1:2
