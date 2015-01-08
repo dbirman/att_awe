@@ -96,7 +96,7 @@ else
   disp(sprintf('(initstim) Stimulus already initialized'));
 end
 
-%% Build Peripheral TExtures
+%% Build Peripheral Textures
 disp(sprintf('(initstim) Building peripheral textures... ___'));
 for cat = 1:length(stimulus.p.raw)
     for imgN = 1:stimulus.p.raw{cat}.n                
