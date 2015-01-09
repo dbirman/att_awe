@@ -147,7 +147,7 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .1 .15 .25 .4 .6 ];
-baseThresh(2) = .55;
+baseThresh(2) = .45;
 % These noise levels correspond to an SnR of 
 stimulus.pedestals.noise = [ 1/(1+exp(2.5)) 1/(1+exp(1.75)) 1/(1+exp(1)) 1/(1+exp(.25)) 1/(1+exp(-.5))];
 stimulus.pedestals.SnR = stimulus.pedestals.noise ./ (1-stimulus.pedestals.noise);
@@ -202,7 +202,7 @@ task{1}{1}.randVars.calculated.blockType = nan;
 % below.
 task{1}{1}.parameter.pedestal = 2:4; %% IMPORTANT %%
 task{1}{1}.parameter.pedestalRandom = 2:4; %% IMPORTANT%%
-task{1}{1}.parameter.dummy = 1:3; % This just makes sure the number of trials is large enough
+task{1}{1}.parameter.dummy = 1:4; % This just makes sure the number of trials is large enough
 task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
 %%
 stimulus.nPedestalOpts = length(task{1}{1}.parameter.pedestal);
