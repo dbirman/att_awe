@@ -13,7 +13,7 @@
 %             FIFTH run, gender categorization. Once performance stabilizes
 %             (see the output from dispStaircase and dSP), tell
 %             participants to perform the dual task. Make sure to set
-%             dual=? and training=? during the correct runs, and let the
+%             dual=? during the correct runs, and let the
 %             code handle the other flags.
 %
 %             If you want to run just the main task (e.g. in the scanner)
@@ -29,9 +29,6 @@
 %             dual (0/1) - Uses the dual task staircases instead of the
 %             single-task staircases. Never run a participant without
 %             correctly setting this flag!
-%             training (0/1) - Currently only puts a flag in stimulus about
-%             whether this was a training run or not. Useful for tracking
-%             runs without a separate data sheet.
 %             plots (0/1) - Displays staircase plots (and estimated
 %             psychophysic functions)
 %             practice (def=0) - Displays on ten trials
@@ -46,16 +43,14 @@ global stimulus
 widthDeg = []; heightDeg = [];
 peripheralTask = [];
 stimFileNum = [];
-training = [];
 plots = [];
 practice = [];
 getArgs(varargin,{'widthDeg=5.5', 'heightDeg=5.5', ...
     'peripheralTask=1','stimFileNum=-1', ...
-    'dual=0','training=1','plots=1','practice=0'});
+    'dual=0','plots=1','practice=0'});
 
 stimulus.dual = dual;
 stimulus.counter = 1; % This keeps track of what "run" we are on.
-stimulus.training = training;
 %% Setup Screen
 
 screen.screenNumber = 2;
@@ -93,8 +88,6 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
         disp(sprintf('(noisecon) Data file: %s loaded, this is run #%i',fname,stimulus.counter));
     end
 end
-
-stimulus.trainingList(stimulus.counter) = stimulus.training;
 
 %% Initialize Stimulus
 
@@ -281,12 +274,12 @@ else
                 end
             end
         end
-        if ~iscell(stimulus.p.dualstaircase)
-            % LEGACY CODE: REMOVE AFTER DAN COMPLETES TRAINING
-            % TODO TODO TODO TODO
-            stimulus.p.dualstaircase{1} = checkStaircaseStop(stimulus.p.dualstaircase(1));
-            stimulus.p.dualstaircase{2} = checkStaircaseStop(stimulus.p.dualstaircase(2));
-        end
+%         if ~iscell(stimulus.p.dualstaircase)
+%             % LEGACY CODE: REMOVE AFTER DAN COMPLETES TRAINING
+%             % TODO TODO TODO TODO
+%             stimulus.p.dualstaircase{1} = checkStaircaseStop(stimulus.p.dualstaircase(1));
+%             stimulus.p.dualstaircase{2} = checkStaircaseStop(stimulus.p.dualstaircase(2));
+%         end
         stimulus.p.dualstaircase{1} = checkStaircaseStop(stimulus.p.dualstaircase{1});
         stimulus.p.dualstaircase{2} = checkStaircaseStop(stimulus.p.dualstaircase{2});
     else
