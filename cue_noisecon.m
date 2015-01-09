@@ -146,12 +146,12 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
-stimulus.pedestals.contrast = [ .15 .20 .30 .45 .65 ];
-baseThresh(:,2) = [.25 .25 .25];
+stimulus.pedestals.contrast = [ .1 .15 .25 .4 .6 ];
+baseThresh(2) = .55;
 % These noise levels correspond to an SnR of 
-stimulus.pedestals.noise = [ .119 .269 .5 .731 .881 ];
+stimulus.pedestals.noise = [ 1/(1+exp(2.5)) 1/(1+exp(1.75)) 1/(1+exp(1)) 1/(1+exp(.25)) 1/(1+exp(-.5))];
 stimulus.pedestals.SnR = stimulus.pedestals.noise ./ (1-stimulus.pedestals.noise);
-baseThresh(:,1) = [.45 .45 .45];
+baseThresh(1) = .55;
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -254,12 +254,9 @@ if stimulus.initStair
 
     for cond = 1:2
         for cues = 1:2
-            for ped = 1:3
-                stimulus.initThresh(cond,cues,ped) = baseThresh(ped,cond);
-            end
+            stimulus.initThresh(cond,cues) = baseThresh(cond);
         end
     end
-    stimulus.stepSizes = stimulus.initThresh / 3;
     disp(sprintf('(noisecon) Initializing staircases'));
     stimulus = initStaircase(stimulus);
 else
@@ -720,14 +717,16 @@ function stimulus = initStaircase(stimulus)
 stimulus.staircase = cell(2,2,stimulus.nPedestalOpts);
 for condition = 1:2 % noise / contrast
     for cues = 1:2
-        for p = 1:stimulus.nPedestalOpts % pedestal level 1->3 (or 2->4 really)
-            stimulus.staircase{condition,cues,p}(1) = doStaircase('init','upDown', ...
-                'initialThreshold',stimulus.initThresh(condition,cues,p), ...
-                'initialStepsize',stimulus.stepSizes(condition,cues,p), ...
-                'minThreshold=0.001','maxThreshold=.5','stepRule','levitt', ...
-                'nTrials=50');
-            stimulus.dualstaircase{condition,cues,p}(1) = stimulus.staircase{condition,cues,p};
-        end
+        stimulus.staircase{condition,cues,1} = doStaircase('init','upDown', ...
+            'initialThreshold',stimulus.initThresh(condition,cues), ...
+            'initialStepsize',stimulus.initThresh(condition,cues)/3, ...
+            'minThreshold=0.001','maxThreshold=.5','stepRule','levitt', ...
+            'nTrials=50');
+        stimulus.staircase{condition,cues,2} = stimulus.staircase{condition,cues,1};
+        stimulus.staircase{condition,cues,3} = stimulus.staircase{condition,cues,1};
+        stimulus.dualstaircase{condition,cues,1} = stimulus.staircase{condition,cues,1};
+        stimulus.dualstaircase{condition,cues,2} = stimulus.staircase{condition,cues,1};
+        stimulus.dualstaircase{condition,cues,3} = stimulus.staircase{condition,cues,1};
     end
 end
 

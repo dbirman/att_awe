@@ -25,7 +25,7 @@ if flip
 else
     stimulus.p.responseLetters = [9 8 10];
 end
-stimulus.p.init_SOA = .3;
+stimulus.p.init_SOA = .25;
 stimulus.p.scram.rate = 12.5;
 stimulus.p.scram.last = 0;
 stimulus.p.scram.left = 0;
@@ -35,7 +35,7 @@ stimulus.p.scram.right = 0;
 
 % Segments are: NOTHING, MASK STREAM, PRESENTATION, PRESENTATION MASK
 task{1}.segmin = [inf .010 inf 1]; 
-task{1}.segmax = [inf .2 inf 1]; 
+task{1}.segmax = [inf .225 inf 1]; 
 % We only get responses after presentation
 task{1}.getResponse = [0 0 1 1];
 task{1}.randVars.calculated.position = nan;
@@ -53,10 +53,9 @@ task{1}.waitForBacktick = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if stimulus.initStair
     threshold = stimulus.p.init_SOA;
-    stepsize = threshold / 3;
     useLevittRule = 1;
-    disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,stepsize,useLevittRule));
-    stimulus = initStaircase(threshold,stimulus,stepsize);
+    disp(sprintf('(noisecon) Initializing staircase with threshold: %f stepsize: %f useLevittRule: %i',threshold,useLevittRule));
+    stimulus = initStaircase(threshold,stimulus);
 end
 
 
@@ -235,10 +234,10 @@ task.thistrial.images(2) = randi(stimulus.p.numImages(task.thistrial.gender(2)))
 %%%%%%%%%%%%%%%%%%%%%%%%
 %    initStaircase     %
 %%%%%%%%%%%%%%%%%%%%%%%%
-function stimulus = initStaircase(threshold,stimulus,stepsize)
+function stimulus = initStaircase(threshold,stimulus)
 
-stimulus.p.staircase(1) = doStaircase('init','upDown','initialThreshold', ...
-    threshold,'initialStepsize',stepsize,'minThreshold=0.01','maxThreshold=.25', ...
+stimulus.p.staircase = doStaircase('init','upDown','initialThreshold', ...
+    threshold,'initialStepsize',threshold/3,'minThreshold=0.01','maxThreshold=.25', ...
     'stepRule','levitt','nTrials=60');
-stimulus.p.dualstaircase{1}(1) = stimulus.p.staircase;
-stimulus.p.dualstaircase{2}(1) = stimulus.p.staircase;
+stimulus.p.dualstaircase{1} = stimulus.p.staircase;
+stimulus.p.dualstaircase{2} = stimulus.p.staircase;
