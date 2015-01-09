@@ -147,7 +147,7 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 % set initial thresholds
 stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .1 .15 .25 .4 .6 ];
-baseThresh(2) = .45;
+baseThresh(2) = .55;
 % These noise levels correspond to an SnR of 
 stimulus.pedestals.noise = [ 1/(1+exp(2.5)) 1/(1+exp(1.75)) 1/(1+exp(1)) 1/(1+exp(.25)) 1/(1+exp(-.5))];
 stimulus.pedestals.SnR = stimulus.pedestals.noise ./ (1-stimulus.pedestals.noise);
