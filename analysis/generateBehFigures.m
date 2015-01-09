@@ -191,7 +191,7 @@ end
 % The idea here is just to compare the single and dual task performance on
 % the same graphs.
 
-disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy');
+disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy (use check=1 flag)');
 check = 0;
 
 dispTexts = {'Noise','Contrast'};
@@ -223,7 +223,6 @@ for num = 1:2
             end
         end
     end
-    hold off
     % Discrimination function plots
     figure
     hold on
@@ -235,7 +234,7 @@ for num = 1:2
     if num == 1
         axis([stimulus.pedestals.(typeP)(2)-.1 stimulus.pedestals.(typeP)(4)+.1 0 .8]);
     else
-        axis([stimulus.pedestals.(typeP)(2)-.05 stimulus.pedestals.(typeP)(4)+.05 0 .4]);
+        axis([stimulus.pedestals.(typeP)(2)-.05 stimulus.pedestals.(typeP)(4)+.05 0 .6]);
     end
     legend('Focal, Single Task','Distributed, Single Task','Focal, Dual Task','Distributed, Dual Task');
     print(gcf,'-dpdf',sprintf('~/proj/att_awe/analysis/figures/%sDiscriminationFunction',dispText));
@@ -282,27 +281,27 @@ mainNoiseDistDualPerf = main.Noise.dual(2);
 % Get the peripheral task performance
 %%%% check for >2 task sets
 if length(stimulus.p.dualstaircase{1}) > 1
-%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end),'type','weibull');
-    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end));
+    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end),'type','weibull');
+%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end));
 else
-%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1},'type','weibull');
-    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1});
+    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1},'type','weibull');
+%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1});
 end
 if length(stimulus.p.dualstaircase{2}) > 1
     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2}(3:end),'type','weibull');
 %     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2}(3:end));
 else
-%     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2},'type','weibull');
-    genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2});
+    genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2},'type','weibull');
+%     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2});
 end
 % genderPerf = doStaircase('threshold',stimulus.p.staircase(2:end),'type','weibull');
-genderPerf = doStaircase('threshold',stimulus.p.staircase(1:end-1));
+genderPerf = doStaircase('threshold',stimulus.p.staircase(1:end-1),'type','weibull');
 % gNPerf = genderNoisePerf.threshold;
 % gCPerf = genderConPerf.threshold;
 % gPerf = genderPerf.threshold;
-gNPerf = genderNoisePerf.meanOfLast7Reversals;
-gCPerf = genderConPerf.meanOfLast7Reversals;
-gPerf = genderPerf.meanOfLast7Reversals(end);
+gNPerf = genderNoisePerf.threshold;
+gCPerf = genderConPerf.threshold;
+gPerf = genderPerf.threshold;
 % % % % % % % % % Normalize
 % % % % % % % % gNPerf_N = gNPerf;
 % % % % % % % % gCPerf_N = gCPerf;
