@@ -817,5 +817,8 @@ if doStaircase('stop',s)
     % argument do doStaircase('init',s, ...), it ignores everything and
     % resets using the calculated threshold. Because you can't override it
     [args, vals, ~] = getArgs(s(1).initArgs);
+    if length(args) > 6
+        error('Not designed for initArgs > 6, check your code!');
+    end
     s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6});
 end
