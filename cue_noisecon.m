@@ -730,7 +730,7 @@ for condition = 1:2 % noise / contrast
             stimulus.staircase{condition,cues,p}(1) = doStaircase('init','upDown', ...
                 'initialThreshold',stimulus.initThresh(condition,cues,p), ...
                 'initialStepsize',stimulus.stepSizes(condition,cues,p), ...
-                'minThreshold=0.001','maxThreshold=1','stepRule','levitt', ...
+                'minThreshold=0.001','maxThreshold=.5','stepRule','levitt', ...
                 'nTrials=50');
             stimulus.dualstaircase{condition,cues,p}(1) = stimulus.staircase{condition,cues,p};
         end
@@ -816,17 +816,12 @@ catch
     disp('(gender) Figures were not generated successfully.');
 end
 
-
 %% checkStaircaseStop
 function [s] = checkStaircaseStop(s)
 if doStaircase('stop',s)
-    est = doStaircase('threshold',s,'type','weibull');
-    if est.threshold > 1 || est.threshold < 0
-        % reset using original threshold
-        warning('Threshold reset failed, restarting using the last threshold: %0.2f',s(end).s.strength(1));
-        s(end+1) = doStaircase('init',s,'initialThreshold',s(end).s.strength(1));
-    else
-        % reset using estimated threshold
-        s(end+1) = doStaircase('init',s,'initialThreshold',est.threshold);
-    end
+    % this is a bit of a pain... you can't pass an initialThreshold
+    % argument do doStaircase('init',s, ...), it ignores everything and
+    % resets using the calculated threshold. Because you can't override it
+    [args, vals, ~] = getArgs(s(1).initArgs);
+    s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6});
 end
