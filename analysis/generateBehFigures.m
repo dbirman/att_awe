@@ -208,12 +208,12 @@ for num = 1:2
         for ped = 1:3
             try
                 if check
-                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
+                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped}(end-3:end),'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
                     out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
                     keyboard
                 else
-                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
-                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped}(end-3:end),'type','weibull'); % noise, 1 cue, lowest
+                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped}(end-3:end),'type','weibull'); % noise, 1 cue, lowest
                 end
                 plotting(cues,ped,1,num) = out1.threshold;
                 plotting(cues,ped,2,num) = out2.threshold;
@@ -237,7 +237,10 @@ for num = 1:2
         axis([stimulus.pedestals.(typeP)(2)-.05 stimulus.pedestals.(typeP)(4)+.05 0 .6]);
     end
     legend('Focal, Single Task','Distributed, Single Task','Focal, Dual Task','Distributed, Dual Task');
+    try
     print(gcf,'-dpdf',sprintf('~/proj/att_awe/analysis/figures/%sDiscriminationFunction',dispText));
+    catch
+    end
     hold off
 end
 
