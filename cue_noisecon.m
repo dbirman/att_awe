@@ -61,7 +61,7 @@ stimulus.initStair = 1;
 
 if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_noisecon/%s',mglGetSID))
     % Directory exists, check for a stimefile
-    files = dir(sprintf('~/data/cue_noisecon/%s/*mat',mglGetSID));
+    files = dir(sprintf('~/data/cue_noisecon/%s/1*mat',mglGetSID));
 
     if length(files) >= 1
         if stimFileNum == -1
@@ -356,6 +356,8 @@ end
 function [task, myscreen] = startTrialCallback(task,myscreen)
 
 global stimulus
+
+stimulus.curTrial = task.trialnum;
 stimulus.values = zeros(4,2);
 
 disp(sprintf('(cue_noisecon) Starting trial %i',task.blockTrialnum));

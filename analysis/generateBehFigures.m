@@ -1,10 +1,6 @@
 %% To start off, let's get files
 
-if isempty(mglGetSID)
-    error('Please set subject ID first.');
-end
-
-datFolder = sprintf('~/data/cue_noisecon/%s',mglGetSID);
+datFolder = getSubjDataFolder;
 
 year = date;
 year = year(end-1:end);
@@ -13,104 +9,74 @@ files = dir(sprintf('%s/%s*mat',datFolder,year));
 
 %% Loop over files, fixing them for analysis
 
-exp_holder = {};
 for fi = 1:length(files)
     curFile = sprintf('%s/%s',datFolder,files(fi).name);
     fixFile = sprintf('%s/%s',datFolder,['f' files(fi).name]);
     if isfile(fixFile)
-        disp(sprintf('(noisecon_analysis) Found fixed file, loading... %s',fixFile));
-        load(fixFile);
+        disp(sprintf('(noisecon_analysis) Found fixed file for %s, ignoring...',curFile));
     else
-        % No file, we need to fix the current one.
-        disp(sprintf('(noisecon_analysis) Loading file %s',curFile));
-        load(curFile);
-        disp(sprintf('(noisecon_analysis) Fixing file %s',curFile));
-        exp = getTaskParameters(myscreen,task);
-        %% Peripheral Re-organization
-        exp{2}.randVars.gender1 = zeros(size(exp{2}.randVars.position));
-        exp{2}.randVars.gender2 = zeros(size(exp{2}.randVars.position));
-        exp{2}.randVars.image1 = zeros(size(exp{2}.randVars.position));
-        exp{2}.randVars.image2 = zeros(size(exp{2}.randVars.position));
-        for i = 1:length(exp{2}.randVars.position)
-            exp{2}.randVars.gender1(i) = exp{2}.randVars.gender{i}(1);
-            exp{2}.randVars.gender2(i) = exp{2}.randVars.gender{i}(2);
-            exp{2}.randVars.image1(i) = exp{2}.randVars.images{i}(2);
-            exp{2}.randVars.image2(i) = exp{2}.randVars.images{i}(2);
+        success = genExp(curFile,fixFile);
+        if success
+            disp(sprintf('(noisecon_analysis) Output in: %s',fixFile));
+        else
+            warning(sprintf('(noisecon_analysis) File %s was not fixed!!!!',curFile));
         end
-        exp{2}.randVars = rmfield(exp{2}.randVars,'gender');
-        exp{2}.randVars = rmfield(exp{2}.randVars,'images');
-        %% Main Re-organization
-        exp{1}.randVars.image1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.image2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.image3 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.image4 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.gender1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.gender2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.gender3 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.gender4 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast1_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast1_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast2_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast2_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast3_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast3_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast4_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.contrast4_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise1_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise1_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise2_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise2_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise3_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise3_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise4_int1 = zeros(size(exp{1}.randVars.deltaPed));
-        exp{1}.randVars.noise4_int2 = zeros(size(exp{1}.randVars.deltaPed));
-        for i = 1:length(exp{1}.randVars.deltaPed)
-            exp{1}.randVars.image1(i) = exp{1}.randVars.imageNums{i}(1);
-            exp{1}.randVars.image2(i) = exp{1}.randVars.imageNums{i}(2);
-            exp{1}.randVars.image3(i) = exp{1}.randVars.imageNums{i}(3);
-            exp{1}.randVars.image4(i) = exp{1}.randVars.imageNums{i}(4);
-            exp{1}.randVars.gender1(i) = exp{1}.randVars.genderList{i}(1);
-            exp{1}.randVars.gender2(i) = exp{1}.randVars.genderList{i}(2);
-            exp{1}.randVars.gender3(i) = exp{1}.randVars.genderList{i}(3);
-            exp{1}.randVars.gender4(i) = exp{1}.randVars.genderList{i}(4);
-            exp{1}.randVars.contrast1_int1(i) = exp{1}.randVars.contrastList{i}(1,1);
-            exp{1}.randVars.contrast1_int2(i) = exp{1}.randVars.contrastList{i}(1,2);
-            exp{1}.randVars.contrast2_int1(i) = exp{1}.randVars.contrastList{i}(2,1);
-            exp{1}.randVars.contrast2_int2(i) = exp{1}.randVars.contrastList{i}(2,2);
-            exp{1}.randVars.contrast3_int1(i) = exp{1}.randVars.contrastList{i}(3,1);
-            exp{1}.randVars.contrast3_int2(i) = exp{1}.randVars.contrastList{i}(3,2);
-            exp{1}.randVars.contrast4_int1(i) = exp{1}.randVars.contrastList{i}(4,1);
-            exp{1}.randVars.contrast4_int2(i) = exp{1}.randVars.contrastList{i}(4,2);
-            exp{1}.randVars.noise1_int1(i) = exp{1}.randVars.noiseList{i}(1,1);
-            exp{1}.randVars.noise1_int2(i) = exp{1}.randVars.noiseList{i}(1,2);
-            exp{1}.randVars.noise2_int1(i) = exp{1}.randVars.noiseList{i}(2,1);
-            exp{1}.randVars.noise2_int2(i) = exp{1}.randVars.noiseList{i}(2,2);
-            exp{1}.randVars.noise3_int1(i) = exp{1}.randVars.noiseList{i}(3,1);
-            exp{1}.randVars.noise3_int2(i) = exp{1}.randVars.noiseList{i}(3,2);
-            exp{1}.randVars.noise4_int1(i) = exp{1}.randVars.noiseList{i}(4,1);
-            exp{1}.randVars.noise4_int2(i) = exp{1}.randVars.noiseList{i}(4,2);
+    end
+end
+
+%% Loop over files and load them into expHolder
+
+expHolder = {};
+for fi = 1:length(files)
+    fixFile = sprintf('%s/%s',datFolder,['f' files(fi).name]);
+    load(fixFile);
+    expHolder{end+1} = exp;
+end
+
+%% ANALYSIS TIME
+
+% LIST OF ANALYSES THAT I EXPECT TO BE IMPORTANT:
+%   -   Do errors during a dual trial cause the trial to fail
+%       a) Are errors during the first half vs second half more important?
+%   -   Is reaction time different?
+%       a) Male vs. Female vs. None peripheral
+
+%% Check for reaction time differences
+
+%               type = M1 F2 O3
+% using gender(single/dual,trial,type,RT)
+
+for i = 1:length(expHolder)
+    cExp = expHolder{i};
+    main = exp{1};
+    per = exp{2};
+    rVars = exp{3}.runVars;
+    
+    % Peripheral Task Differences
+    if rVars.dual(i) == 1
+        % This is a dual run that is loaded
+        for t = 1:length(per.trials)
+            if per.randVars.respond==0
+                type = 3;
+            else
+                type = per.
+            gender(2,t,
         end
-        exp{1}.randVars = rmfield(exp{1}.randVars,'imageNums');
-        exp{1}.randVars = rmfield(exp{1}.randVars,'genderList');
-        exp{1}.randVars = rmfield(exp{1}.randVars,'contrastList');
-        exp{1}.randVars = rmfield(exp{1}.randVars,'noiseList');
-        %% Stimulus Fix:
-        % Staircase is, (NOISE1/CON2),CUE1/CUE4,PED1:3
-        exp{1}.stairNoise = squeeze(stimulus.staircase(1,:,:));
-        exp{1}.stairNoiseDual = squeeze(stimulus.dualstaircase(1,:,:));
-        exp{1}.stairCon = squeeze(stimulus.staircase(2,:,:));
-        exp{1}.stairConDual = squeeze(stimulus.dualstaircase(2,:,:));
-        exp{1}.p.stair = squeeze(stimulus.p.staircase);
-        exp{1}.p.stairDual = squeeze(stimulus.p.dualstaircase);
-        %% run Variables
-        exp{3}.runVars.blocks = stimulus.blockList;
-        exp{3}.runVars.dual = stimulus.dualList;
-        exp{3}.runVars.pedestals = stimulus.pedestals;
-        exp{3}.runVars.trainingRun = stimulus.training;
-        %% Save
-        disp(sprintf('(noisecon_analysis) Saving fix file %s',fixFile));
-        exp_holder{stimulus.counter} = exp;
-        save(fixFile,'exp');
+    else
+        % This is a non-dual run
+    end
+end
+
+%% Check for errors during dual trials
+
+for i = 1:length(expHolder)
+    cExp = expHolder{i};
+    main = exp{1};
+    per = exp{2};
+    rVars = exp{3}.runVars;
+    if rVars.dual(i) == 1
+        % This is a dual run that is loaded
+        
     end
 end
 
@@ -190,68 +156,7 @@ end
 
 % The idea here is just to compare the single and dual task performance on
 % the same graphs.
-
-disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy (use check=1 flag)');
-check = 0;
-
-dispTexts = {'Noise','Contrast'};
-colorOpts = [1 0 0
-             0 1 0];
-typePs = {'noise','contrast'};
-plotting = zeros(2,3,2,2);
-for num = 1:2
-    dispText = dispTexts{num};
-    color = colorOpts(num,:);
-    typeP = typePs{num};
-    
-    for cues = 1:2
-        for ped = 1:3
-            try
-                if check
-                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
-                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
-                    keyboard
-                else
-                    if stimulus.staircase{num,cues,ped}(end).trialNum > 0
-                        out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped}(end),'type','weibull'); % noise, 1 cue, lowest
-                    else
-                        out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped}(end-1),'type','weibull'); % noise, 1 cue, lowest
-                    end
-                    if  stimulus.dualstaircase{num,cues,ped}(end).trialNum > 0
-                        out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped}(end),'type','weibull'); % noise, 1 cue, lowest
-                    else
-                        out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped}(end-1),'type','weibull'); % noise, 1 cue, lowest
-                    end
-                end
-                plotting(cues,ped,1,num) = out1.threshold;
-                plotting(cues,ped,2,num) = out2.threshold;
-            catch
-                plotting(cues,ped,1,num) = -1;
-                plotting(cues,ped,2,num) = -1;
-            end
-        end
-    end
-    % Discrimination function plots
-    figure
-    hold on
-    title(sprintf('%s',dispText));
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:,1,num),'-','Color',color);
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:,1,num),'--','Color',color);
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:,2,num),'-','Color',.5*color);
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:,2,num),'--','Color',.5*color);
-    if num == 1
-        axis([stimulus.pedestals.(typeP)(2)-.1 stimulus.pedestals.(typeP)(4)+.1 0 .8]);
-    else
-        axis([stimulus.pedestals.(typeP)(2)-.05 stimulus.pedestals.(typeP)(4)+.05 0 .6]);
-    end
-    legend('Focal, Single Task','Distributed, Single Task','Focal, Dual Task','Distributed, Dual Task');
-    try
-        print(gcf,'-dpdf',sprintf('~/proj/att_awe/analysis/figures/%sDiscriminationFunction',dispText));
-    catch
-        warning('Print failed...');
-    end
-    hold off
-end
+gen_discFuncs(stimulus);
 
 %% Generate Performance Plots
 
@@ -259,121 +164,4 @@ end
 % comparison with the single task performance for both gender and
 % contrast/noise at the same time.
 
-% First let's choose what plot
-
-for dual = 1:2
-    if dual == 1
-        stairtype = 'staircase';
-        typeD = 'single';
-    else
-        stairtype = 'dualstaircase';
-        typeD = 'dual';
-    end
-    for type = 1:2
-        if type == 1
-            dispText = 'Noise';
-        else
-            dispText = 'Contrast';
-        end
-        main.(dispText).(typeD) = mean(plotting(:,:,dual,type),2);
-    end
-end
-
-% Main task performance
-mainConFocalPerf = main.Contrast.single(1);
-mainConDistPerf = main.Contrast.single(2);
-mainNoiseFocalPerf = main.Noise.single(1);
-mainNoiseDistPerf = main.Noise.single(2);
-
-mainConFocalDualPerf = main.Contrast.dual(1);
-mainConDistDualPerf = main.Contrast.dual(2);
-mainNoiseFocalDualPerf = main.Noise.dual(1);
-mainNoiseDistDualPerf = main.Noise.dual(2);
-
-% Get the peripheral task performance
-%%%% check for >2 task sets
-if length(stimulus.p.dualstaircase{1}) > 1
-    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end),'type','weibull');
-%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end));
-else
-    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1},'type','weibull');
-%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1});
-end
-if length(stimulus.p.dualstaircase{2}) > 1
-    genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2}(3:end),'type','weibull');
-%     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2}(3:end));
-else
-    genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2},'type','weibull');
-%     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2});
-end
-% genderPerf = doStaircase('threshold',stimulus.p.staircase(2:end),'type','weibull');
-genderPerf = doStaircase('threshold',stimulus.p.staircase(1:end-1),'type','weibull');
-% gNPerf = genderNoisePerf.threshold;
-% gCPerf = genderConPerf.threshold;
-% gPerf = genderPerf.threshold;
-gNPerf = genderNoisePerf.threshold;
-gCPerf = genderConPerf.threshold;
-gPerf = genderPerf.threshold;
-% % % % % % % % % Normalize
-% % % % % % % % gNPerf_N = gNPerf;
-% % % % % % % % gCPerf_N = gCPerf;
-% % % % % % % % gPerf = gPerf;
-% Plot
-figure
-hold on
-title('Dual Task Performance');
-% singles
-plot(0,gPerf,'*r');
-ylabel('Gender (SOA ms)');
-xlabel('Contrast/Noise Performance (delta)');
-plot(mainNoiseFocalPerf,0,'*g');
-text(mainNoiseFocalPerf,.01,sprintf('%0.2f',mainNoiseFocalPerf/(1-mainNoiseFocalPerf)));
-plot(mainNoiseDistPerf,0,'*c');
-text(mainNoiseDistPerf,.01,sprintf('%0.2f',mainNoiseDistPerf/(1-mainNoiseDistPerf)));
-plot(mainConFocalPerf,0,'*r');
-plot(mainConDistPerf,0,'*m');
-% duals
-plot(mainNoiseFocalDualPerf,gNPerf,'*g');
-text(mainNoiseFocalDualPerf,gNPerf+.01,sprintf('%0.2f',mainNoiseFocalDualPerf/(1-mainNoiseFocalDualPerf)));
-plot(mainNoiseDistDualPerf,gNPerf,'*c');
-text(mainNoiseDistDualPerf,gNPerf+.01,sprintf('%0.2f',mainNoiseDistDualPerf/(1-mainNoiseDistDualPerf)));
-plot(mainConFocalDualPerf,gCPerf,'*r');
-plot(mainConDistDualPerf,gCPerf,'*m');
-% lines
-plot(0:mainNoiseDistPerf/10:mainNoiseDistPerf,repmat(gPerf,1,11),'--r');
-plot(0:.25:.5,repmat(.25,1,3),'--k');
-plot(repmat(mainNoiseFocalPerf,1,11),0:gPerf/10:gPerf,'--g');
-plot(repmat(mainNoiseDistPerf,1,11),0:gPerf/10:gPerf,'--c');
-plot(repmat(mainConFocalPerf,1,11),0:gPerf/10:gPerf,'--r');
-plot(repmat(mainConDistPerf,1,11),0:gPerf/10:gPerf,'--m');
-plot(repmat(.5,1,3),0:.125:.25,'--k');
-% legend
-% legend('Gender','Focal Noise','Dist Noise','Focal Contrast','Dist Contrast');
-% distance lines
-xp = [mainConFocalPerf mainConFocalDualPerf];
-yp = [gPerf gCPerf];
-distCF = sqrt((xp(2)-xp(1))^2 + (yp(2)-yp(1))^2);
-plot(xp,yp,'-k');
-text(mean(xp),mean(yp),sprintf('Dist: %1.2f',distCF));
-
-xp = [mainNoiseFocalPerf mainNoiseFocalDualPerf];
-yp = [gPerf gNPerf];
-distNF = sqrt((xp(2)-xp(1))^2 + (yp(2)-yp(1))^2);
-plot(xp,yp,'-k');
-text(mean(xp),mean(yp),sprintf('Dist: %1.2f',distNF));
-
-xp = [mainConDistPerf mainConDistDualPerf];
-yp = [gPerf gCPerf];
-distCD = sqrt((xp(2)-xp(1))^2 + (yp(2)-yp(1))^2);
-plot(xp,yp,'-k');
-text(mean(xp),mean(yp),sprintf('Dist: %1.2f',distCD));
-
-xp = [mainNoiseDistPerf mainNoiseDistDualPerf];
-yp = [gPerf gNPerf];
-distND = sqrt((xp(2)-xp(1))^2 + (yp(2)-yp(1))^2);
-plot(xp,yp,'-k');
-text(mean(xp),mean(yp),sprintf('Dist: %1.2f',distND));
-
-disp(sprintf('Euclidian Distance for Contrast: %1.2f, for Noise: %1.2f',sqrt(distCF^2+distCD^2),sqrt(distNF^2+distND^2)));
-disp('This distance measurement is innacurate :), noise should be on a log scale and euclidian distance isn''t really correct here');
- hold off
+gen_perf(stimulus);

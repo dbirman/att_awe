@@ -43,6 +43,7 @@ task{1}.randVars.calculated.intervals = nan;
 task{1}.randVars.calculated.gender = nan(1,2);
 task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
+task{1}.randVars.calculated.mainTrialNum = nan;
 task{1}.randVars.calculated.SOA = nan;
 task{1}.randVars.calculated.sOnset = nan;
 task{1}.waitForBacktick = 1;
@@ -211,6 +212,8 @@ mglBltTexture(image,[stimulus.p.posx(pos) stimulus.p.posy(pos) stimulus.p.widthD
 function [task, myscreen] = trialCallback(task, myscreen)
 global stimulus
 
+task.thistrial.mainTrialNum = stimulus.curTrial;
+    
 stimulus.p.scram.left = 0;
 stimulus.p.scram.right = 0;
 
