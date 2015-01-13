@@ -1,4 +1,4 @@
-function gen_perf( stimulus )
+function gen_perf( stimulus , plotting)
 
 for dual = 1:2
     if dual == 1

@@ -1,4 +1,4 @@
-function gen_discFuncs(stimulus)
+function plotting = gen_discFuncs(stimulus)
 
 disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy (use check=1 flag)');
 check = 0;

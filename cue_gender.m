@@ -39,7 +39,6 @@ task{1}.segmax = [inf .225 inf 1];
 % We only get responses after presentation
 task{1}.getResponse = [0 0 1 1];
 task{1}.randVars.calculated.position = nan;
-task{1}.randVars.calculated.intervals = nan; 
 task{1}.randVars.calculated.gender = nan(1,2);
 task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
