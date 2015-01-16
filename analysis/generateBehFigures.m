@@ -80,8 +80,8 @@ end
 % plot(imagePerf.Mu);
 
 %% Find images that have zero performance && Save
-zero_perf.M = find(logical(imagePerf.Mu==0).*logical(imagePerf.MN>1));
-zero_perf.F = find(logical(imagePerf.Fu==0).*logical(imagePerf.FN>1));
+zero_perf.M = find(logical(imagePerf.Mu<.1).*logical(imagePerf.MN>2));
+zero_perf.F = find(logical(imagePerf.Fu<.1).*logical(imagePerf.FN>2));
 
 imgFolderM = '~/proj/att_awe/images/brazil_faces/m/';
 imgFolderF = '~/proj/att_awe/images/brazil_faces/f/';

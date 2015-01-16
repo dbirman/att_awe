@@ -89,8 +89,8 @@ try
     exp{1}.stairNoiseDual = squeeze(stimulus.dualstaircase(1,:,:));
     exp{1}.stairCon = squeeze(stimulus.staircase(2,:,:));
     exp{1}.stairConDual = squeeze(stimulus.dualstaircase(2,:,:));
-    exp{1}.p.stair = squeeze(stimulus.p.staircase);
-    exp{1}.p.stairDual = squeeze(stimulus.p.dualstaircase);
+    exp{2}.stair = squeeze(stimulus.p.staircase);
+    exp{2}.stairDual = squeeze(stimulus.p.dualstaircase);
     %% Peripheral Re-organization
     %           f m non
     per_stim = [9 8 10];
@@ -119,6 +119,8 @@ try
     exp{3}.runVars.blocks = stimulus.blockList;
     exp{3}.runVars.dual = stimulus.dualList(end);
     exp{3}.runVars.pedestals = stimulus.pedestals;
+    exp{3}.runVars.runNum = stimulus.counter;
+    exp{3}.stimulus = stimulus;
     %% Save
     save(outFile,'exp');
     success = 1;

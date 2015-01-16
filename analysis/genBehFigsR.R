@@ -1,1 +1,2 @@
-data = readMat('~/data/cue_noisecon/test/141210_stim04.mat')
+data = readMat('~/data/cue_noisecon/s300/f150113_stim03.mat',verbose=T)
+

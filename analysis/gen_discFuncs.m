@@ -6,8 +6,10 @@ check = 0;
 dispTexts = {'Noise','Contrast'};
 colorOpts = [1 0 0
              0 1 0];
-typePs = {'noise','contrast'};
+typePs = {'lognoise','contrast'};
+stimulus.pedestals.lognoise = log(stimulus.pedestals.noise./(1-stimulus.pedestals.noise));
 plotting = zeros(2,3,2,2);
+plottingsd = zeros(2,3,2,2);
 for num = 1:2
     dispText = dispTexts{num};
     color = colorOpts(num,:);
@@ -17,12 +19,19 @@ for num = 1:2
         for ped = 1:3
             try
                 if check
-                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
-                    keyboard
+%                     out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
+%                     keyboard
                 else
-                    out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                    for i = 1:length(stimulus.staircase{num,cues,ped})
+                        out{i} = doStaircase('threshold',stimulus.staircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
+                    end 
                 end
-                plotting(cues,ped,1,num) = out1.threshold;
+                thresh = [];
+                for i = 1:length(out)
+                    thresh(i) = out{i}.threshold;
+                end
+                plotting(cues,ped,1,num) = mean(thresh);
+                plottingsd(cues,ped,1,num) = std(thresh)/sqrt(length(thresh));
             catch
                 plotting(cues,ped,1,num) = -1;
             end
@@ -31,9 +40,15 @@ for num = 1:2
                     out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
                     keyboard
                 else
-                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                    for i = 1:length(stimulus.dualstaircase{num,cues,ped})
+                        out2{i} = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
+                    end
                 end
-                plotting(cues,ped,2,num) = out2.threshold;
+                for i = 1:length(out)
+                    thresh(i) = out2{i}.threshold;
+                end
+                plotting(cues,ped,2,num) = mean(thresh);
+                plottingsd(cues,ped,2,num) = std(thresh)/sqrt(length(thresh));
             catch
                 plotting(cues,ped,2,num) = -1;
             end
@@ -43,10 +58,14 @@ for num = 1:2
     figure
     hold on
     title(sprintf('%s',dispText));
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:,1,num),'-','Color',color);
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:,1,num),'--','Color',color);
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:,2,num),'-','Color',.5*color);
-    plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:,2,num),'--','Color',.5*color);
+    if num == 1
+        plotting = log(plotting);
+    end
+    errorbar(stimulus.pedestals.(typeP)(2:4),plotting(1,:,1,num),plottingsd(1,:,1,num),'-','Color',color); % FOCAL, PEDS 1:3, SINGLE
+    errorbar(stimulus.pedestals.(typeP)(2:4),plotting(2,:,1,num),plottingsd(2,:,1,num),'--','Color',color); % DIST, SINGLE
+    errorbar(stimulus.pedestals.(typeP)(2:4),plotting(1,:,2,num),plottingsd(1,:,2,num),'-','Color',.5*color); % FOCAL, DUAL
+    errorbar(stimulus.pedestals.(typeP)(2:4),plotting(2,:,2,num),plottingsd(2,:,2,num),'--','Color',.5*color); % DIST, DUAL
+    end
     if num == 1
         axis([stimulus.pedestals.(typeP)(2)-.1 stimulus.pedestals.(typeP)(4)+.1 0 .8]);
     else
