@@ -1,2 +1,4 @@
-data = readMat('~/data/cue_noisecon/s300/f150113_stim03.mat',verbose=T)
+main = read.csv('../analysis/s300/csv/main08.csv')
+per = read.csv('../analysis/s300/csv/per08.csv')
 
+####### RT Analysis

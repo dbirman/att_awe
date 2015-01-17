@@ -23,18 +23,21 @@ if ~isdir(saveLoc)
     mkdir(saveLoc);
 end
 mainFile = fullfile(saveLoc,sprintf('main%02.f.csv',runNum));
-perFile = fullfile(saveLoc,sprintf('per%2.f.csv',runNum));
-runFile = fullfile(saveLoc,sprintf('run%2.f.csv',runNum));
+perFile = fullfile(saveLoc,sprintf('per%02.f.csv',runNum));
+runFile = fullfile(saveLoc,sprintf('run%02.f.csv',runNum));
 
 %% Write Main
 
 % First re-organize into a matrix, tracking the headers
-mainHeader = {'trial'};
+mainHeader = {'trial','RT','correct','response' ...
+    'interval','tPos','tGen','tCon1','tCon2','tNoi1','tNoi2','dPed','img'};
+    % peripheral items
+
 % For each item in the header (re-named) what is the corresponding data?
-corrData = {'blockTrialNum'};
+corrData = {'blockTrialNum','reactionTime','correct','response'};
 % These come AFTER all the corrData items. They are pulled from
 % 'main.randVars'
-randData = {};
+randData = {'interval','targetLoc','gender','tCon1','tCon2','tNoise1','tNoise2','deltaPed','tImage'};
 
 if length(randData)+length(corrData) ~= length(mainHeader)
     error('Lengths are incorrect! Check your variables');
@@ -48,39 +51,44 @@ for i = 1:length(corrData)
 end
 
 for j = 1:length(randData)
-    mainData(:,end+1) = main.(randData{j});
+    mainData(:,end+1) = main.randVars.(randData{j});
 end
 
 % Now write to mainFile
 csvwriteh(mainFile,mainData,mainHeader);
 
-%% Write PEripheral
+%% Write Peripheral
 
 % First re-organize into a matrix, tracking the headers
-perHeader = {};
+perHeader = {'correct','RT','response'...
+    'mainTrial','position','respond','SOA','sOnset','tGen','tImg'};
 % For each item in the header (re-named) what is the corresponding data?
-corrData = {'blockTrialNum'};
+corrData = {'correct','reactionTime','response'};
 % These come AFTER all the corrData items. They are pulled from
 % 'main.randVars'
-randData = {'mainTrialNum'};
+randData = {'mainTrialNum','position','respond','SOA','sOnset','tGen','tImage'};
 
 if length(randData)+length(corrData) ~= length(perHeader)
     error('Lengths are incorrect! Check your variables');
 end
 
-mainData = [];
+perData = [];
 
 % mainData(:,1) % COLUMN 1
 for i = 1:length(corrData)
-    mainData(:,end+1) = per.(corrData{i});
+    perData(:,end+1) = per.(corrData{i});
 end
 
 for j = 1:length(randData)
-    mainData(:,end+1) = per.(randData{j});
+    perData(:,end+1) = per.randVars.(randData{j});
 end
 
-% Now write to mainFile
-csvwriteh(mainFile,mainData,perHeader);
-%% Write Run
+% Now write to perFile
+csvwriteh(perFile,perData,perHeader);
+
+%% Write Staircases
+
+% Don't need this at the moment... Although maybe I want to move the
+% staircases into R at some point?
 
 end

@@ -197,7 +197,6 @@ task{1}{1}.segmin = [1 1 .5 1 .5 1 1.4];
 task{1}{1}.segmax = [1 1 .5 1 .5 1 1.4];
 task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 0 0 1];
-task{1}{1}.randVars.calculated.blockType = nan;
 % We will use the 2-4 pedestal of 1-5 options, to always have one above or
 % below.
 task{1}{1}.parameter.pedestal = 2:4; %% IMPORTANT %%
@@ -722,8 +721,8 @@ for condition = 1:2 % noise / contrast
         stimulus.staircase{condition,cues,1} = doStaircase('init','upDown', ...
             'initialThreshold',stimulus.initThresh(condition,cues), ...
             'initialStepsize',stimulus.initThresh(condition,cues)/3, ...
-            'minThreshold=0.001','maxThreshold=.55','stepRule','levitt', ...
-            'nTrials=50');
+            'minThreshold=0.001','maxThreshold=.55','stepRule','pest', ...
+            'nTrials=50','maxStepsize=.25','minStepsize=.001');
         stimulus.staircase{condition,cues,2} = stimulus.staircase{condition,cues,1};
         stimulus.staircase{condition,cues,3} = stimulus.staircase{condition,cues,1};
         stimulus.dualstaircase{condition,cues,1} = stimulus.staircase{condition,cues,1};
@@ -819,7 +818,7 @@ if doStaircase('stop',s)
     % resets using the calculated threshold. Because you can't override it
     [args, vals, ~] = getArgs(s(1).initArgs);
     if length(args) > 6
-        error('Not designed for initArgs > 6, check your code!');
+        error('Not designed for initArgs > 8, check your code!');
     end
-    s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6});
+    s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6},args{7},vals{7},args{7},vals{7});
 end

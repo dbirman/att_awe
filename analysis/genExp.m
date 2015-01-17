@@ -16,6 +16,7 @@ try
         clear pereye;
     end
     %% Main Re-organization
+    exp{1}.correct = exp{1}.response==exp{1}.randVars.interval;
     exp{1}.randVars.image1 = zeros(size(exp{1}.randVars.deltaPed));
     exp{1}.randVars.image2 = zeros(size(exp{1}.randVars.deltaPed));
     exp{1}.randVars.image3 = zeros(size(exp{1}.randVars.deltaPed));
@@ -51,7 +52,7 @@ try
         exp{1}.randVars.tNoise1 = exp{1}.randVars.noiseList{i}(pos,1);
         exp{1}.randVars.tNoise2 = exp{1}.randVars.noiseList{i}(pos,2);
         exp{1}.randVars.tCon1 = exp{1}.randVars.contrastList{i}(pos,1);
-        exp{1}.randVars.tCon2 = exp{1}.randVars.contrastList{i}(pos,1);
+        exp{1}.randVars.tCon2 = exp{1}.randVars.contrastList{i}(pos,2);
         exp{1}.randVars.tGen = exp{1}.randVars.genderList{i}(pos);
         exp{1}.randVars.tImage = exp{1}.randVars.imageNums{i}(pos);
         exp{1}.randVars.image1(i) = exp{1}.randVars.imageNums{i}(1);
