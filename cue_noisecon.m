@@ -817,36 +817,40 @@ if doStaircase('stop',s)
     % argument do doStaircase('init',s, ...), it ignores everything and
     % resets using the calculated threshold. Because you can't override it
     [args, vals, ~] = getArgs(s(1).initArgs);
+    threshPos = -1;
+    stepPos = -1;
+    for i = 1:length(args)
+        switch args{i}
+            case 'initialThreshold'
+                threshPos = i;
+            case 'initialStepsize'
+                stepPos = i;
+        end
+    end
     out = doStaircase('threshold',s);
     in = input(sprintf('Resetting Staircase... Estimate is: %1.2f. Reset ([Y]/[C]ustom/[O]riginal): ',out.threshold),'s');
     switch in
         case 'Y'
-            s(end+1) = doStaircase('init',s);
+            vals{threshPos} = out.threshold;
+            vals{stepPos} = out.threshold / 3;
         case 'C'
             disp('Original values:');
-            argPos = -1;
-            for i = 1:length(args)
-                if isequal(args{i},'initialThreshold');
-                    argPos = i;
-                end
-                disp(sprintf('%s: %s',args{i},num2str(vals{i})));
-            end
-            val = str2num(input('New staircase value: ','s'));
-            vals{argPos} = val;
-            if length(args)==6
-                s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6});
-            else
-                s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6},args{7},vals{7},args{8},vals{8});
-            end
+            disp(sprintf('%s: %0.2f',args{threshPos},num2str(vals{threshPos})));
+            val = str2num(input('New threshold value: ','s'));
+            vals{threshPos} = val;
+            vals{stepPos} = val / 3;
         case 'O'
-            if length(args) > 8
-                error('Not designed for initArgs > 8, check your code!');
-            end
-            %%% LEGACY CODE %%% TODO REMOVE
-            if length(args)==6
-                s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6});
-            else
-                s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6},args{7},vals{7},args{8},vals{8});
-            end
     end
+    s = resetStairHelper(s,args,vals);
+end
+
+function s = resetStairHelper(s,args,vals)
+if length(args) > 8
+    error('Not designed for initArgs > 8, check your code!');
+end
+%%% LEGACY CODE %%% TODO REMOVE
+if length(args)==6
+    s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6});
+else
+    s(end+1) = doStaircase('init','updown',args{1},vals{1},args{2},vals{2},args{3},vals{3},args{4},vals{4},args{5},vals{5},args{6},vals{6},args{7},vals{7},args{8},vals{8});
 end
