@@ -149,7 +149,8 @@ stimulus.nExemplar = 5; % Number of each noise level to generate
 stimulus.pedestals.contrast = [ .1 .15 .25 .4 .6 ];
 baseThresh(2) = .55;
 % These noise levels correspond to an SnR of 
-stimulus.pedestals.noise = [ 1/(1+exp(2.5)) 1/(1+exp(1.75)) 1/(1+exp(1)) 1/(1+exp(.25)) 1/(1+exp(-.5))];
+noisevals = [1.75 1.25 .75 .25 -.25];
+stimulus.pedestals.noise = 1./(1+exp(noisevals));
 stimulus.pedestals.SnR = stimulus.pedestals.noise ./ (1-stimulus.pedestals.noise);
 baseThresh(1) = .55;
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
