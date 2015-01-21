@@ -1,4 +1,4 @@
-function out = build_facegrid()
+function out = build_facegrid(contrast,noise)
 
 % This function displays the contrast/noise grid for a random face from the
 % specified dataset, using the exact same procedure that cue_noisecon
@@ -26,8 +26,6 @@ img = reshape(img(mask==1),mask_size(1),mask_size(2));
 %% Setup the contrast and noise increments
 
 % these are from cue_noisecon on 1/6/14
-contrast = [ .075 .2 .35 .6 1 ];
-noise = [ .119 .269 .5 .731 .881 ];
 noise = 1-noise;
 
 %% Build the contrast/noise grid images
