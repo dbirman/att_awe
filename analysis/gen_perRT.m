@@ -1,5 +1,7 @@
 function gender = gen_perRT( expHolder )
 
+gender = [];
+
 for i = 1:length(expHolder)
     cExp = expHolder{i};
 %     main = cExp{1};

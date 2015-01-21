@@ -1,4 +1,4 @@
-function gen_perf( stimulus , plotting)
+function gen_perf( stimulus , plotting, peripheral)
 
 for dual = 1:2
     if dual == 1
@@ -24,39 +24,35 @@ mainConDistPerf = main.Contrast.single(2);
 mainNoiseFocalPerf = main.Noise.single(1);
 mainNoiseDistPerf = main.Noise.single(2);
 
+mainConFocalPerf = mainConFocalPerf / mainConFocalPerf;
+mainConDistPerf = mainConDistPerf / mainConDistPerf;
+mainNoiseFocalPerf = mainNoiseFocalPerf / mainNoiseFocalPerf;
+mainNoiseDistPerf = mainNoiseDistPerf / mainNoiseDistPerf;
+
 mainConFocalDualPerf = main.Contrast.dual(1);
 mainConDistDualPerf = main.Contrast.dual(2);
 mainNoiseFocalDualPerf = main.Noise.dual(1);
 mainNoiseDistDualPerf = main.Noise.dual(2);
 
-% Get the peripheral task performance
-%%%% check for >2 task sets
-if length(stimulus.p.dualstaircase{1}) > 1
-    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end),'type','weibull');
-%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1}(3:end));
-else
-    genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1},'type','weibull');
-%     genderNoisePerf = doStaircase('threshold',stimulus.p.dualstaircase{1});
+mainConFocalDualPerf = mainConFocalDualPerf / mainConFocalPerf;
+mainConDistDualPerf = mainConDistDualPerf / mainConDistPerf;
+mainNoiseFocalDualPerf = mainNoiseFocalDualPerf / mainNoiseFocalPerf;
+mainNoiseDistDualPerf = mainNoiseDistDualPerf / mainNoiseDistPerf;
+
+for i = 1:3
+    cur = peripheral{i};
+    cur = cur(logical([cur<.25].*[cur>0]));
+    peripheral{i} = cur;
 end
-if length(stimulus.p.dualstaircase{2}) > 1
-    genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2}(3:end),'type','weibull');
-%     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2}(3:end));
-else
-    genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2},'type','weibull');
-%     genderConPerf = doStaircase('threshold',stimulus.p.dualstaircase{2});
-end
-% genderPerf = doStaircase('threshold',stimulus.p.staircase(2:end),'type','weibull');
-genderPerf = doStaircase('threshold',stimulus.p.staircase(1:end-1),'type','weibull');
-% gNPerf = genderNoisePerf.threshold;
-% gCPerf = genderConPerf.threshold;
-% gPerf = genderPerf.threshold;
-gNPerf = genderNoisePerf.threshold;
-gCPerf = genderConPerf.threshold;
-gPerf = genderPerf.threshold;
-% % % % % % % % % Normalize
-% % % % % % % % gNPerf_N = gNPerf;
-% % % % % % % % gCPerf_N = gCPerf;
-% % % % % % % % gPerf = gPerf;
+
+gPerf = mean(peripheral{1});
+gNPerf = mean(peripheral{2});
+gCPerf = mean(peripheral{3});
+
+gPerf = gPerf / gPerf;
+gNPerf = gNPerf / gPerf;
+gCPerf = gCPerf / gCPerf;
+
 % Plot
 figure
 hold on

@@ -99,48 +99,6 @@ zero_perf.trials = tCounter;
 
 save(strcat(analysis.anFolder,'/zero_perf.mat'),'zero_perf');
 
-%% Check for reaction time differences
-
-%               type = M1 F2 O3
-% using gender(single/dual,trial,order,correct,type) = RT
-gender = gen_perRT(expHolder);
-
-%% Display RT
-
-disp('First Stim');
-disp(sprintf('RT Gender: Single Task, Male %0.3f Female %0.3f None %0.3f',nanmean(nanmean(gender(1,:,1,:,1))), ...
-    nanmean(nanmean(gender(1,:,1,:,2))), nanmean(nanmean(gender(1,:,1,:,3)))));
-disp(sprintf('RT Gender: Dual Task, Male %0.3f Female %0.3f None %0.3f',nanmean(nanmean(gender(2,:,1,:,1))), ...
-    nanmean(nanmean(gender(2,:,1,:,2))), nanmean(nanmean(gender(2,:,1,:,3)))));
-disp('Second Stim');
-disp(sprintf('RT Gender: Single Task, Male %0.3f Female %0.3f None %0.3f',nanmean(nanmean(gender(1,:,2,:,1))), ...
-    nanmean(nanmean(gender(1,:,2,:,2))), nanmean(nanmean(gender(1,:,2,:,3)))));
-disp(sprintf('RT Gender: Dual Task, Male %0.3f Female %0.3f None %0.3f',nanmean(nanmean(gender(2,:,2,:,1))), ...
-    nanmean(nanmean(gender(2,:,2,:,2))), nanmean(nanmean(gender(2,:,2,:,3)))));
-
-%% Check for errors during dual trials
-
-for i = 5:length(expHolder)%1:length(expHolder)
-    cExp = expHolder{i};
-    main = cExp{1};
-    per = cExp{2};
-    rVars = cExp{3}.runVars;
-    if rVars.dual == 1
-        % This is a dual run that is loaded
-        correct = main.randVars.interval==main.response;
-        pcorrect = zeros(size(correct));
-        for j = 1:length(correct)
-            % find the corresponding trials in the peripheral task, check
-            % whether these were correct
-            pcorrect(j) = nansum(per.correct(per.randVars.mainTrialNum==j));
-            RT{pcorrect(j)+1}(end+1) = main.reactionTime(j);
-        end
-        perf(1) = sum(correct(pcorrect==0))/sum(pcorrect==0);
-        perf(2) = sum(correct(pcorrect==1))/sum(pcorrect==1);
-        perf(3) = sum(correct(pcorrect==2))/sum(pcorrect==2);
-    end
-end
-
 %% Print main RT influenced by dual
 
 disp(sprintf('When no errors occurred, main task RT = %0.3f+-%0.3f, Perf = %0.2f%%',nanmean(RT{3}),1.96*nanstd(RT{3}),perf(3)));
@@ -229,10 +187,24 @@ load(fullfile(analysis.datFolder,files(end).name));
 % the same graphs.
 plotting = gen_discFuncs(stimulus);
 
+%% normalize plotting
+
+[normplotting plottingsd] = normPlotting(plotting);
+
+%% plot disc
+% gen_discPlots(plotting,stimulus,0);
+gen_discPlots(normplotting,plottingsd,stimulus);
+
+%% Generate peripheral performance
+
+peripheral = gen_perPerf(stimulus);
+gen_perPlots(peripheral,0);
+gen_perPlots(peripheral,1);
+
 %% Generate Performance Plots
 
 % The idea here is to have a plot that shows the dual task performance in
 % comparison with the single task performance for both gender and
 % contrast/noise at the same time.
 
-gen_perf(stimulus,plotting);
+gen_perf(stimulus,normplotting,peripheral);
