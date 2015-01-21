@@ -15,6 +15,7 @@ try
         exp.p.eye = pereye.eye;
         clear pereye;
     end
+    
     %% Main Re-organization
     exp{1}.correct = exp{1}.response==exp{1}.randVars.interval;
     exp{1}.randVars.image1 = zeros(size(exp{1}.randVars.deltaPed));
