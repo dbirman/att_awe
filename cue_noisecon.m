@@ -177,12 +177,6 @@ dispLoadFig = 0; keepAspectRatio = 0;
 
 stimulus = InitStim(stimulus,categories,dispLoadFig,keepAspectRatio);
 
-%% EYE CALIB
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% run the eye calibration
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-myscreen = eyeCalibDisp(myscreen);
-
 %% Setup Task
 
 % This is the contrast/noise discrimination task
@@ -284,6 +278,12 @@ else
         stimulus.p.staircase = checkStaircaseStop(stimulus.p.staircase);
     end
 end
+
+%% EYE CALIB
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% run the eye calibration
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+myscreen = eyeCalibDisp(myscreen);
 
 %% Main Task Loop
 
