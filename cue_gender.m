@@ -78,15 +78,16 @@ if task.thistrial.thisseg == 2
     stimulus.p.n2 = task.thistrial.images(2);
     
     stimulus.p.scramble = 1;
+    
 elseif task.thistrial.thisseg == 3
+    stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
+    task.thistrial.sOnset = stimulus.p.SOA_onset{task.trialnum};
     if task.thistrial.display == 1
         % We should do this interval
         task.thistrial.respond = 1;
-        stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
         stimulus.p.scramble = 0;
     else
         stimulus.p.scramble = 1;
-        stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
         task = jumpSegment(task);
     end
 else
