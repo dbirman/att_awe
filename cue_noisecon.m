@@ -230,6 +230,7 @@ else
 end
 stimulus.blocks.curBlock = stimulus.blocks.fullBlocks(mod(stimulus.blocks.counter,2)+1);
 stimulus.blocks.blockList(stimulus.blocks.counter+1) = stimulus.blocks.curBlock;
+stimulus.dualList(stimulus.counter) = stimulus.dual;
 
 %% Full Setup
 % Initialize task (note phase == 1)
@@ -664,9 +665,6 @@ function [task, myscreen] = startBlockCallback(task, myscreen)
 global stimulus
 
 mglClearScreen(stimulus.colors.reservedColor(7));
-
-stimulus.blockList(stimulus.counter) = stimulus.blocks.curBlock;
-stimulus.dualList(stimulus.counter) = stimulus.dual;
 
 myscreen.flushMode = 1;
 mglTextDraw(stimulus.blocks.blockTypes{stimulus.blocks.curBlock},[0,0]);
