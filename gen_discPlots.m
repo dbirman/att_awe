@@ -31,11 +31,13 @@ for num = 1:2
     errorbar(stimulus.pedestals.(typeP)(2:4),plotting(2,:,2,num),plottingsd(2,:,2,num),'--','Color',.5*color); % DIST, DUAL
     
     if num == 1
-        axis([stimulus.pedestals.(typeP)(2)-.05 stimulus.pedestals.(typeP)(4)+.05 0 4.5]);
+        a = axis;
+        axis([stimulus.pedestals.(typeP)(2)-.05 stimulus.pedestals.(typeP)(4)+.05 0 a(4)]);
         xlabel('Noise Pedestals (SnR units)');
         ylabel('Delta Noise at Threshold (arbitrary units)');
     else
-        axis([stimulus.pedestals.(typeP)(2)-.025 stimulus.pedestals.(typeP)(4)+.025 0 11]);
+        a = axis;
+        axis([stimulus.pedestals.(typeP)(2)-.025 stimulus.pedestals.(typeP)(4)+.025 0 a(4)]);
         xlabel('Contrast Pedestals (%)');
         ylabel('Delta Contrast at Threshold (%)');
 %         set(gca,'xscale','log');

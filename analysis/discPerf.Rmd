@@ -1,0 +1,68 @@
+---
+title: "discriminationPerformance"
+author: Dan Birman
+date: "January 22, 2015"
+output: html_document
+---
+
+Loading some important stuff
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(lme4)
+```
+
+Loading the data files
+
+```{r}
+main = read.csv('../analysis/s300/csv/mainThresholds.csv')
+per = read.csv('../analysis/s300/csv/perThresholds.csv')
+```
+
+Cleaning up the data files
+
+```{r cleanup}
+main = main %>% mutate(taskf = factor(task,levels=c(1,2),labels=c('Noise','Contrast')))
+main = main %>% mutate(cuesf = factor(cues,levels=c(1,2),labels=c('One','Four')))
+main = main %>% filter(threshold>0,threshold<.55)
+main = main %>% mutate(dualf = factor(dual,levels=c(1,2),labels=c('Single','Dual')))
+mainmean = main %>% group_by(taskf,pedestal,cuesf,dualf) %>% summarise(mu=mean(threshold),sd=sd(threshold))
+
+per = per %>% mutate(taskf = factor(task,levels=c(1,2,3),labels=c('Single','Dual:Noise','Dual:Contrast')))
+per = per %>% filter(threshold>0,threshold<.25)
+permean = per %>% group_by(taskf) %>% summarise(mu=mean(threshold),sd=sd(threshold))
+```
+
+Let's start by looking at the discrimination functions in the main data
+
+```{r}
+ggplot(data=main,aes(pedestal,threshold,color=cuesf,linetype=dualf)) +
+  geom_point() +
+  geom_line(data=mainmean,aes(pedestal,mu,color=cuesf,linetype=dualf)) +
+  geom_errorbar(data=mainmean,aes(pedestal,mu,ymin=mu-sd,ymax=mu+sd,color=cuesf,linetype=dualf),width=.1) +
+  facet_grid(.~taskf) +
+  theme_bw()
+```
+
+Now let's look at the discrimination functions in the peripheral data
+
+```{r plot peripheral barplot}
+ggplot() +
+  geom_point(data=per,aes(taskf,y=threshold,color=taskf),size=5) +
+  geom_errorbar(data=permean,aes(taskf,mu,ymin=mu-sd,ymax=mu+sd),size=.5,width=.3) +
+  geom_point(data=permean,aes(taskf,mu),size=6) +
+  theme_bw()
+
+contrasts(per$taskf) = cbind(c(2,-1,-1),c(0,1,-1))
+per %>% lm(data=.,threshold ~ taskf) %>% summary()
+```
+
+Now let's normalize all of our data by the mean values.
+
+```{r}
+perNorm = merge(per,permean) %>% mutate(tnorm = (threshold - mu) / sd)
+mainNorm = merge(main,mainmean) %>% mutate(tnorm = (threshold - mu) / sd)
+```
+

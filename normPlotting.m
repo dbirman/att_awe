@@ -1,4 +1,4 @@
-function [plotting plottingsd] = normPlotting(plotting)
+function [plotting plottingsd] = normPlotting(plotting,norm)
 
 plotcell = plotting;
 plotting = zeros(2,3,2,2);
@@ -19,7 +19,7 @@ for i = 1:2
             for l = 1:2
                 dat = plotcell{i,j,k,l};
                 dat = dat(logical([dat<.55].*[dat>0]));
-                if norms
+                if norm
                     dat = dat / norms(j,l);
                 end
                 plotting(i,j,k,l) = mean(dat);

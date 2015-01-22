@@ -1,7 +1,6 @@
-function plotting = gen_discFuncs(stimulus)
+function plotting = gen_discFuncs(stimulus,check)
 
 disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy (use check=1 flag)');
-check = 0;
 
 plotting = cell(2,3,2,2);
 for num = 1:2
@@ -14,7 +13,9 @@ for num = 1:2
 %                     keyboard
                 else
                     for i = 1:length(stimulus.staircase{num,cues,ped})
-                        out{i} = doStaircase('threshold',stimulus.staircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
+                        if stimulus.staircase{num,cues,ped}(i).trialNum > 0
+                            out{i} = doStaircase('threshold',stimulus.staircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
+                        end
                     end 
                 end
                 thresh = [];
@@ -31,7 +32,9 @@ for num = 1:2
                     keyboard
                 else
                     for i = 1:length(stimulus.dualstaircase{num,cues,ped})
-                        out2{i} = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
+                        if stimulus.dualstaircase{num,cues,ped}(i).trialNum > 0
+                            out2{i} = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
+                        end
                     end
                 end
                 for i = 1:length(out2)
