@@ -44,7 +44,6 @@ task{1}.randVars.calculated.images = nan(1,2);
 task{1}.randVars.calculated.respond = nan;
 task{1}.randVars.calculated.mainTrialNum = nan;
 task{1}.randVars.calculated.SOA = nan;
-task{1}.randVars.calculated.sOnset = nan;
 task{1}.waitForBacktick = 1;
 
 %%
@@ -81,7 +80,6 @@ if task.thistrial.thisseg == 2
     
 elseif task.thistrial.thisseg == 3
     stimulus.p.SOA_onset{task.trialnum} = mglGetSecs;
-    task.thistrial.sOnset = stimulus.p.SOA_onset{task.trialnum};
     if task.thistrial.display == 1
         % We should do this interval
         task.thistrial.respond = 1;
