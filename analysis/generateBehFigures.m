@@ -1,5 +1,7 @@
 %% To start off, let's get files
 
+mglSetSID('s300')
+
 global analysis
 
 [analysis.datFolder, analysis.anFolder] = getSubjDataFolder;
@@ -39,26 +41,39 @@ staircaseplots(stimulus);
 
 % The idea here is just to compare the single and dual task performance on
 % the same graphs.
-plotting = gen_discFuncs(stimulus);
+plotting = gen_discFuncs(stimulus,0);
 
-%% normalize plotting
+%% Send plotting to CSV file
 
-[normplotting, plottingsd] = normPlotting(plotting);
+plo2csv(plotting);
 
+% % % % % % % %% normalize plotting
+% % % % % % % 
+% % % % % % % [regplotting, rplottingsd] = normPlotting(plotting,0);
+% % % % % % % [normplotting, nplottingsd] = normPlotting(plotting,1);
+% % % % % % % 
 %% plot disc
 % gen_discPlots(plotting,stimulus,0);
-gen_discPlots(normplotting,plottingsd,stimulus);
+% % % % % % % gen_discPlots(regplotting,rplottingsd,stimulus);
+% % % % % % % gen_discPlots(normplotting,nplottingsd,stimulus);
 
-%% Generate peripheral performance
+% % % % % % % % %% Generate peripheral performance
+% % % % % % % % 
+% % % % % % % % peripheral = gen_perPerf(stimulus);
 
-peripheral = gen_perPerf(stimulus);
-gen_perPlots(peripheral,0);
-gen_perPlots(peripheral,1);
+%% Send peripheral to CSV file
 
-%% Generate Performance Plots
+per2csv(peripheral);
 
-% The idea here is to have a plot that shows the dual task performance in
-% comparison with the single task performance for both gender and
-% contrast/noise at the same time.
-
-gen_perf(stimulus,normplotting,peripheral);
+% % % % % % % % %% Plot peripheral
+% % % % % % % % 
+% % % % % % % % gen_perPlots(peripheral,0);
+% % % % % % % % gen_perPlots(peripheral,1);
+% % % % % % % % 
+% % % % % % % % %% Generate Performance Plots
+% % % % % % % % 
+% % % % % % % % % The idea here is to have a plot that shows the dual task performance in
+% % % % % % % % % comparison with the single task performance for both gender and
+% % % % % % % % % contrast/noise at the same time.
+% % % % % % % % 
+% % % % % % % % gen_perf(stimulus,normplotting,peripheral);

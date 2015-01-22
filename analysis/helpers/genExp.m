@@ -8,11 +8,11 @@ try
     expeye = getTaskEyeTraces(inFile,'taskNum=1','phaseNum=1','segNum=2','removeBlink=1');
     pereye = getTaskEyeTraces(inFile,'taskNum=2','phaseNum=1','segNum=2','removeBlink=1');
     if isfield(expeye,'eye')
-        e.eye = expeye.eye;
+        e{4} = expeye.eye;
         clear expeye
     end
     if isfield(pereye,'eye')
-        e.p.eye = pereye.eye;
+        e{5} = pereye.eye;
         clear pereye;
     end
     
