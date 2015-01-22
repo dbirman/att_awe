@@ -1,4 +1,4 @@
-function exp2csv ( exp )
+function exp2csv ( e )
 
 % This function writes three files, 'main(Run#).csv', 'per(Run#).csv', and
 % run(Run#).csv'. Which each contain the information held by the 'exp.mat'
@@ -10,9 +10,9 @@ function exp2csv ( exp )
 %   throughout your analysis and be very difficult to detect. If you modify
 %   this, run some case tests before comitting your modifications.
 
-main = exp{1};
-per = exp{2};
-run = exp{3};
+main = e{1};
+per = e{2};
+run = e{3};
 
 % for saving files
 runNum = run.runVars.runNum;
@@ -60,13 +60,13 @@ csvwriteh(mainFile,mainData,mainHeader);
 %% Write Peripheral
 
 % First re-organize into a matrix, tracking the headers
-perHeader = {'correct','RT','response'...
-    'mainTrial','position','respond','SOA','sOnset','tGen','tImg'};
+perHeader = {'correct','RT','response','sLength',...
+    'mainTrial','position','respond','SOA','tGen','tImg'};
 % For each item in the header (re-named) what is the corresponding data?
-corrData = {'correct','reactionTime','response'};
+corrData = {'correct','reactionTime','response','stimPresLength'};
 % These come AFTER all the corrData items. They are pulled from
 % 'main.randVars'
-randData = {'mainTrialNum','position','respond','SOA','sOnset','tGen','tImage'};
+randData = {'mainTrialNum','position','respond','SOA','tGen','tImage'};
 
 if length(randData)+length(corrData) ~= length(perHeader)
     error('Lengths are incorrect! Check your variables');
@@ -80,11 +80,22 @@ for i = 1:length(corrData)
 end
 
 for j = 1:length(randData)
-    perData(:,end+1) = per.randVars.(randData{j});
+    try
+        perData(:,end+1) = per.randVars.(randData{j});
+    catch
+        perData(:,end+1) = NaN;
+    end
 end
 
 % Now write to perFile
 csvwriteh(perFile,perData,perHeader);
+
+%% Write run
+
+runHeader = {'dual','blockType'};
+runData = [run.runVars.dual run.runVars.blocks(end)];
+
+csvwriteh(runFile,runData,runHeader);
 
 %% Write Staircases
 

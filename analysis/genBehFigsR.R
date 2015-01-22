@@ -1,4 +1,10 @@
+library(dplyr)
+library(tidyr)
 
+cleanup <- function(data) {
+  data = data %>% filter(!is.nan(response))
+  data
+}
 
 filesToLoad = 5:37
 
@@ -18,15 +24,38 @@ filesToLoad = 5:37
 for fi = filesToLoad {
   # Dealing with run # fi
   main = read.csv(sprintf('../analysis/s300/csv/main%02.f.csv',fi))
-  per = read.csv(sprintf('../analysis/s300/csv/per%02.f.csv',fi)
+  per = read.csv(sprintf('../analysis/s300/csv/per%02.f.csv',fi))
+  run = read.csv(sprintf('../analysis/s300/csv/run%02.f.csv',fi))
                  
   # Let's do some analysis!
   
   # First, let's clean this data.frame
   main = cleanup(main)
   per = cleanup(per)
-}
-
-cleanup <- function(data) {
   
+  # Switch to determine what kind of analysis we do
+  if run$dual {
+    # DUAL TASK
+    if run$blockType==1 {
+      # NOISE DUAL
+    }
+    else {
+      # CONTRAST DUAL
+    }
+  }
+  else {
+    # SINGLE TASK
+    if nrow(main)==0 {
+      # JUST PERIPHERAL
+    }
+    else {}
+      if run$blockType==1 {
+        # JUST NOISE
+      }
+      else {
+        # JUST CONTRAST
+        
+      }
+    }
+  }
 }
