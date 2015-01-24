@@ -30,8 +30,9 @@ runFile = fullfile(saveLoc,sprintf('run%02.f.csv',runNum));
 
 % First re-organize into a matrix, tracking the headers
 mainHeader = {'trial','RT','correct','response' ...
-    'interval','tPos','tGen','tCon1','tCon2','tNoi1','tNoi2','dPed','img'};
-    % peripheral items
+    'interval','tPos','tGen','tCon1','tCon2','tNoi1','tNoi2','dPed','img', ... % rand items
+    'ped','pedRand','cues'}; % parameter items
+    
 
 % For each item in the header (re-named) what is the corresponding data?
 corrData = {'blockTrialNum','reactionTime','correct','response'};
@@ -39,7 +40,9 @@ corrData = {'blockTrialNum','reactionTime','correct','response'};
 % 'main.randVars'
 randData = {'interval','targetLoc','gender','tCon1','tCon2','tNoise1','tNoise2','deltaPed','tImage'};
 
-if length(randData)+length(corrData) ~= length(mainHeader)
+pedData = {'pedestal','pedestalRandom','cues'};
+
+if length(randData)+length(corrData)+length(pedData) ~= length(mainHeader)
     error('Lengths are incorrect! Check your variables');
 end
 
@@ -52,6 +55,10 @@ end
 
 for j = 1:length(randData)
     mainData(:,end+1) = main.randVars.(randData{j});
+end
+
+for k = 1:length(pedData)
+    mainData(:,end+1) = main.parameter.(pedData{k});
 end
 
 % Now write to mainFile

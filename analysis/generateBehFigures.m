@@ -37,13 +37,13 @@ load(fullfile(analysis.datFolder,files(end).name));
 
 staircaseplots(stimulus);
 
-%% Generate discrimination functions
+%% Calculate thresholds
 
 % The idea here is just to compare the single and dual task performance on
 % the same graphs.
 plotting = gen_discFuncs(stimulus,0);
 
-%% Send plotting to CSV file
+%% Send thresholds to CSV file
 
 plo2csv(plotting);
 

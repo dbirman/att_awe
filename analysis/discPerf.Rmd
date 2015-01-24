@@ -26,6 +26,7 @@ Cleaning up the data files
 ```{r cleanup}
 main = main %>% mutate(taskf = factor(task,levels=c(1,2),labels=c('Noise','Contrast')))
 main = main %>% mutate(cuesf = factor(cues,levels=c(1,2),labels=c('One','Four')))
+main = main %>% mutate(pedf = factor(pedestal,levels=c(1,2,3),labels=c('1','2','3')))
 main = main %>% filter(threshold>0,threshold<.55)
 main = main %>% mutate(dualf = factor(dual,levels=c(1,2),labels=c('Single','Dual')))
 mainmean = main %>% group_by(taskf,pedestal,cuesf,dualf) %>% summarise(mu=mean(threshold),sd=sd(threshold))
@@ -35,15 +36,33 @@ per = per %>% filter(threshold>0,threshold<.25)
 permean = per %>% group_by(taskf) %>% summarise(mu=mean(threshold),sd=sd(threshold))
 ```
 
-Let's start by looking at the discrimination functions in the main data
+Let's start by looking at the discrimination functions in the main data. First let's do some adjusting to get mainmean to have some rounded text (for plotting onto the ggplot)
 
 ```{r}
-ggplot(data=main,aes(pedestal,threshold,color=cuesf,linetype=dualf)) +
-  geom_point() +
+mainmean = mainmean %>% mutate(muround=round(mu,2))
+```
+
+
+```{r}
+pdf('../analysis/s300/figures/discFuncs.pdf')
+main %>% ggplot(aes(pedestal,threshold,color=cuesf,linetype=dualf)) +
   geom_line(data=mainmean,aes(pedestal,mu,color=cuesf,linetype=dualf)) +
   geom_errorbar(data=mainmean,aes(pedestal,mu,ymin=mu-sd,ymax=mu+sd,color=cuesf,linetype=dualf),width=.1) +
+#   geom_text(data=mainmean,aes(label=mainmean$muround,x=mainmean$pedestal+.2,y=mainmean$mu)) +
   facet_grid(.~taskf) +
+  scale_x_continuous(breaks=c(1,2,3)) +
   theme_bw()
+dev.off()
+```
+
+TESTING IMAGE DISPLAY
+```{r}
+library(png)
+library(grid)
+img = readPNG('../images/built/con100noi050_img.png')
+g = rasterGrob(img,interpolate=TRUE)
+qplot(1:10,1:10,geom="blank") +
+  annotation_custom(g,xmin=2,xmax=4,ymin=2,ymax=4)
 ```
 
 Now let's look at the discrimination functions in the peripheral data
