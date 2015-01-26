@@ -10,6 +10,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(lme4)
+library(effects)
 ```
 
 ```{r}
@@ -54,6 +55,10 @@ for (fi in filesToLoad) {
   }
 }
 
+pdata = pdata %>%
+  mutate(respond=factor(respond,levels=c(0,1),labels=c('no','yes'))) %>%
+  mutate(tGen=factor(tGen,levels=c(1,2),labels=c('f','m')))
+
 # Do a final cleanup
 mdata = cleanup(mdata)
 pdata = cleanup(pdata)
@@ -70,8 +75,31 @@ mdata %>%
   geom_smooth(method="lm") +
   facet_grid(taskf~dualf) +
   theme_bw()
-mdata %>%
-  lm(data=.,RT ~ taskf + dualf + dPed + correct + index) %>%
+out1 = lmer(data=mdata,RT ~ taskf + dualf + ped + correct + index + (1|img))
+out1 %>%
+  summary ->
+  rs
+rs
+```
+
+The coefficients for each condition were, pededestal effect (per ped): `round(rs$coeffficients['ped',],2)`, dual task effect (dual): `round(rs$coeffficients['dualfdual',],2)`, correct effect (cor-inc): `round(rs$coeffficients['correctcor',],2)`, time effect (entire experiment): `round(rs$coeffficients['index',],2)`.
+
+```{r}
+plot(allEffects(out1))
+```
+
+```{r}
+# peripheral task
+pdata %>%
+  ggplot(aes(tImg,RT,color=dualf)) +
+  geom_point() +
+  facet_grid(.~dualf) +
+  ggtitle('Peripheral')
+out2 = lmer(data=pdata,RT ~ dualf + correct + respond + SOA + tGen + index + (1|tImg),na.action=na.omit)
+out2 %>%
   summary
+plot(allEffects(out2))
+
+# Not in a subset of trials "mainTrial" shows no effect
 ```
 

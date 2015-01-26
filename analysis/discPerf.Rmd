@@ -23,51 +23,72 @@ per = read.csv('../analysis/s300/csv/perThresholds.csv')
 
 Cleaning up the data files
 
+```{r}
+noise = c(0.0758581800212435,         0.148047198031689,         0.268941421369995,         0.437823499114202,         0.622459331201855)
+noisePed = noise[2:4]
+contrast = c(.1, .15, .25, .4, .6)
+contrastPed = contrast[2:4]
+```
+
 ```{r cleanup}
 main = main %>% mutate(taskf = factor(task,levels=c(1,2),labels=c('Noise','Contrast')))
 main = main %>% mutate(cuesf = factor(cues,levels=c(1,2),labels=c('One','Four')))
 main = main %>% mutate(pedf = factor(pedestal,levels=c(1,2,3),labels=c('1','2','3')))
 main = main %>% filter(threshold>0,threshold<.55)
 main = main %>% mutate(dualf = factor(dual,levels=c(1,2),labels=c('Single','Dual')))
-mainmean = main %>% group_by(taskf,pedestal,cuesf,dualf) %>% summarise(mu=mean(threshold),sd=sd(threshold))
 
 per = per %>% mutate(taskf = factor(task,levels=c(1,2,3),labels=c('Single','Dual:Noise','Dual:Contrast')))
 per = per %>% filter(threshold>0,threshold<.25)
 permean = per %>% group_by(taskf) %>% summarise(mu=mean(threshold),sd=sd(threshold))
 ```
 
+Now let's add the pedestal values for noise and contrast into the data.frame, this is a bit of a pain and unfortunately I don't know a better solution.
+```{r}
+pedFrame = data.frame(taskf=c('Noise','Noise','Noise',
+                   'Contrast','Contrast','Contrast'),
+           pedestal=c(1,2,3,
+                      1,2,3),
+           pedValue=c(noisePed,
+                          contrastPed))
+main = main %>% merge(pedFrame)
+```
+
+
 Let's start by looking at the discrimination functions in the main data. First let's do some adjusting to get mainmean to have some rounded text (for plotting onto the ggplot)
 
 ```{r}
+mainmean = main %>% 
+  group_by(taskf,pedestal,cuesf,dualf) %>% 
+  summarise(mu=mean(threshold),sd=sd(threshold))
 mainmean = mainmean %>% mutate(muround=round(mu,2))
 ```
 
 
 ```{r}
-pdf('../analysis/s300/figures/discFuncs.pdf')
-main %>% ggplot(aes(pedestal,threshold,color=cuesf,linetype=dualf)) +
-  geom_line(data=mainmean,aes(pedestal,mu,color=cuesf,linetype=dualf)) +
-  geom_errorbar(data=mainmean,aes(pedestal,mu,ymin=mu-sd,ymax=mu+sd,color=cuesf,linetype=dualf),width=.1) +
+# pdf('../analysis/s300/figures/discFuncs.pdf')
+ggplot() +
+  geom_line(data=mainmean,aes(pedestal,mu,color=dualf,linetype=cuesf)) +
+  geom_errorbar(data=mainmean,aes(pedestal,mu,ymin=mu-sd,ymax=mu+sd,color=dualf,linetype=cuesf),width=.1) +
 #   geom_text(data=mainmean,aes(label=mainmean$muround,x=mainmean$pedestal+.2,y=mainmean$mu)) +
   facet_grid(.~taskf) +
-  scale_x_continuous(breaks=c(1,2,3)) +
   theme_bw()
-dev.off()
+# dev.off()
 ```
 
 TESTING IMAGE DISPLAY
 ```{r}
-library(png)
-library(grid)
-img = readPNG('../images/built/con100noi050_img.png')
-g = rasterGrob(img,interpolate=TRUE)
-qplot(1:10,1:10,geom="blank") +
-  annotation_custom(g,xmin=2,xmax=4,ymin=2,ymax=4)
+# library(png)
+# library(grid)
+# img = readPNG('../images/built/con100noi050_img.png')
+# g = rasterGrob(img,interpolate=TRUE)
+# qplot(1:10,1:10,geom="blank") +
+#   annotation_custom(g,xmin=2,xmax=4,ymin=2,ymax=4)
 ```
 
 Now let's look at the discrimination functions in the peripheral data
 
 ```{r plot peripheral barplot}
+pdf('../analysis/s300/figures/discFuncsGender.pdf')
 ggplot() +
   geom_point(data=per,aes(taskf,y=threshold,color=taskf),size=5) +
   geom_errorbar(data=permean,aes(taskf,mu,ymin=mu-sd,ymax=mu+sd),size=.5,width=.3) +
@@ -76,12 +97,46 @@ ggplot() +
 
 contrasts(per$taskf) = cbind(c(2,-1,-1),c(0,1,-1))
 per %>% lm(data=.,threshold ~ taskf) %>% summary()
+dev.off()
 ```
 
 Now let's normalize all of our data by the mean values.
 
 ```{r}
-perNorm = merge(per,permean) %>% mutate(tnorm = (threshold - mu) / sd)
-mainNorm = merge(main,mainmean) %>% mutate(tnorm = (threshold - mu) / sd)
+perNorm = per %>%
+  mutate(single = permean[1,2]$mu) %>%
+  mutate(nThresh = threshold / single)
+mainNorm = main %>%
+  mutate(nThresh = threshold / pedValue)
 ```
+
+```{r}
+pedFrame = pedFrame %>%
+  mutate(rpedValue = round(pedValue,2))
+mainNormMean = mainNorm %>%
+  group_by(taskf,pedValue,cuesf,dualf) %>% 
+  summarise(mu=mean(nThresh),sd=sd(nThresh))
+```
+
+```{r}
+ggplot() +
+  geom_line(data=mainNormMean,aes(pedValue,mu,color=dualf,linetype=cuesf)) +
+  geom_errorbar(data=mainNormMean,aes(pedValue,mu,ymin=mu-sd,ymax=mu+sd,color=dualf,linetype=cuesf),width=.03) +
+#   geom_text(data=mainmean,aes(label=mainmean$muround,x=mainmean$pedestal+.2,y=mainmean$mu)) +
+  facet_grid(.~taskf) +
+  theme_bw()
+```
+
+```{r}
+perNormMean = perNorm %>%
+  group_by(taskf) %>%
+  summarise(mu=mean(nThresh),sd=sd(nThresh))
+ggplot() +
+  geom_point(data=perNorm,aes(taskf,y=nThresh,color=taskf),size=5) +
+  geom_errorbar(data=perNormMean,aes(taskf,mu,ymin=mu-sd,ymax=mu+sd),size=.5,width=.3) +
+  geom_point(data=perNormMean,aes(taskf,mu),size=6) +
+  theme_bw()
+```
+
+
 
