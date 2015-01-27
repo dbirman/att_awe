@@ -20,10 +20,10 @@ cleanup <- function(data) {
     mutate(RT = RT*1000,correct=factor(correct,levels=c(0,1),labels=c("inc","cor"))) %>%
     mutate(taskf = factor(task,levels=c(1,2),labels=c('noise','contrast'))) %>%
     mutate(dualf = factor(dual,levels=c(0,1),labels=c('single','dual'))) %>%
-    mutate(index = 1:nrow(.))
+    mutate(index = 1:nrow(.)) %>%
+    select(-task,-dual)
 }
 ```
-
 
 Let's start loading our data
 
@@ -39,12 +39,11 @@ for (fi in filesToLoad) {
   
   # Switch to determine what kind of analysis we do
   main = main %>% 
-    mutate(dual=run$dual) %>%
-    mutate(task=run$blockType)
+    mutate(dual=run$dual,task=run$blockType,runNum=fi)
   
   per = per %>% 
-    mutate(dual=run$dual) %>%
-    mutate(task=run$blockType)
+    mutate(dual=run$dual,task=run$blockType,runNum=fi) %>%
+    rename(trial=mainTrial)
   
   if (fi==1) {
     mdata = main
@@ -62,8 +61,23 @@ pdata = pdata %>%
 # Do a final cleanup
 mdata = cleanup(mdata)
 pdata = cleanup(pdata)
-  
 ```
+
+# Peripheral Main Merge!!
+
+NOT FUNCTIONAL YET... Not totally clear how to do this? You need to use trial==mainTrial but only within each subset of runNum.
+
+```{r}
+
+# mpdata = semi_join(mdata,pdata,by='runNum')
+```
+
+Custom changes to mdata
+```{r}
+mdata = mdata %>%
+  mutate(cues = factor(cues,levels=c(1,4),labels=c('1','4')))
+```
+
 
 Now let's start the analysis, using `mdata` and `pdata`. 
 
@@ -101,5 +115,27 @@ out2 %>%
 plot(allEffects(out2))
 
 # Not in a subset of trials "mainTrial" shows no effect
+```
+
+
+
+# Correct Dependencies
+
+Does being correct depend on anything?
+
+```{r}
+out3 = mdata %>%
+  glm(data=.,correct ~ interval + index + taskf + dualf + cues,family='binomial')
+out3 %>%
+  summary
+plot(allEffects(out3))
+```
+
+```{r}
+out4 = pdata %>%
+  glm(data=.,correct ~ position + respond + tGen + SOA + taskf + dualf + index,family='binomial')
+out4 %>%
+  summary
+plot(allEffects(out4))
 ```
 

@@ -37,43 +37,28 @@ load(fullfile(analysis.datFolder,files(end).name));
 
 staircaseplots(stimulus);
 
-%% Calculate thresholds
-
-% The idea here is just to compare the single and dual task performance on
-% the same graphs.
+%% Send main to CSV file
 plotting = gen_discFuncs(stimulus,0);
-
-%% Send thresholds to CSV file
-
 plo2csv(plotting);
 
-% % % % % % % %% normalize plotting
-% % % % % % % 
-% % % % % % % [regplotting, rplottingsd] = normPlotting(plotting,0);
-% % % % % % % [normplotting, nplottingsd] = normPlotting(plotting,1);
-% % % % % % % 
-%% plot disc
-% gen_discPlots(plotting,stimulus,0);
-% % % % % % % gen_discPlots(regplotting,rplottingsd,stimulus);
-% % % % % % % gen_discPlots(normplotting,nplottingsd,stimulus);
-
-% % % % % % % % %% Generate peripheral performance
-% % % % % % % % 
-% % % % % % % % peripheral = gen_perPerf(stimulus);
-
 %% Send peripheral to CSV file
-
+gen_perPerf(stimulus);
 per2csv(peripheral);
 
-% % % % % % % % %% Plot peripheral
-% % % % % % % % 
-% % % % % % % % gen_perPlots(peripheral,0);
-% % % % % % % % gen_perPlots(peripheral,1);
-% % % % % % % % 
-% % % % % % % % %% Generate Performance Plots
-% % % % % % % % 
-% % % % % % % % % The idea here is to have a plot that shows the dual task performance in
-% % % % % % % % % comparison with the single task performance for both gender and
-% % % % % % % % % contrast/noise at the same time.
-% % % % % % % % 
-% % % % % % % % gen_perf(stimulus,normplotting,peripheral);
+%% Eye Movement Analysis
+
+% First find the expHolder files with eye data
+eyeData = [];
+for e = 1:length(expHolder)
+    if length(expHolder{e}) > 3
+        eyeData = [eyeData e];
+    end
+end
+eyeHolder = expHolder(eyeData);
+
+%% Analyze
+
+for e = 1:length(eyeHolder)
+    eye = eyeHolder{e};
+    dispEyeTracesMain(eye);
+end

@@ -137,6 +137,3 @@ ggplot() +
   geom_point(data=perNormMean,aes(taskf,mu),size=6) +
   theme_bw()
 ```
-
-
-

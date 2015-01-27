@@ -5,7 +5,7 @@ try
     load(inFile);
     %% Peripheral re-org
     e = getTaskParameters(myscreen,task);
-    expeye = getTaskEyeTraces(inFile,'taskNum=1','phaseNum=1','segNum=2','removeBlink=1');
+    expeye = getTaskEyeTraces(inFile,'taskNum=1','phaseNum=1','removeBlink=1');
     pereye = getTaskEyeTraces(inFile,'taskNum=2','phaseNum=1','segNum=2','removeBlink=1');
     if isfield(expeye,'eye')
         e{4} = expeye.eye;
