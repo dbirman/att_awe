@@ -133,7 +133,7 @@ plot(allEffects(out3))
 ```
 
 ```{r}
-out4 = pdata %>%
+str(out4 = pdata %>%
   glm(data=.,correct ~ position + respond + tGen + SOA + taskf + dualf + index,family='binomial')
 out4 %>%
   summary

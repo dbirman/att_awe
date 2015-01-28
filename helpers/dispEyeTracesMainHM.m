@@ -29,48 +29,50 @@ cx = H*cos(deg2rad(45));
 cy = H*sin(deg2rad(45));
 
 segNames = {'ITI','Cue','Disp1','Resp1','Disp2','Resp2','RespMain'};
-figure
-set(gcf, 'units', 'centimeters', 'pos', [25 25 28 40])
 meanX =[];
 meanY=[];
-for loc = 1:4
-    for s = 1:7
-        subplot(7,4,loc+(s-1)*4)
-        hold on
-        xs = [];
-        ys = [];
-        for t = 1:length(main.randVars.targetLoc)
-            if loc==main.randVars.targetLoc(t)
-                cT = main.trials(t);
-                xData = eye.xPos(t,:);
-                meanX = [meanX nanmean(xData)];
-                yData = eye.yPos(t,:);
-                meanY = [meanY nanmean(yData)];
-                times = cT.segtime;
-                times = times - times(1);
-                % Looking at a specific segment
-                lowBound = times(s);
-                try
-                    upBound = times(s+1);
-                catch
-                    upBound = inf;
+for cues = [1 4]
+    figure
+    set(gcf, 'units', 'centimeters', 'pos', [25 25 28 40])
+    for loc = 1:4
+        for s = 1:7
+            subplot(7,4,loc+(s-1)*4)
+            hold on
+            xs = [];
+            ys = [];
+            for t = 1:length(main.randVars.targetLoc)
+                if loc==main.randVars.targetLoc(t) && cues == main.parameter.cues(t)
+                    cT = main.trials(t);
+                    xData = eye.xPos(t,:);
+                    meanX = [meanX nanmean(xData)];
+                    yData = eye.yPos(t,:);
+                    meanY = [meanY nanmean(yData)];
+                    times = cT.segtime;
+                    times = times - times(1);
+                    % Looking at a specific segment
+                    lowBound = times(s);
+                    try
+                        upBound = times(s+1);
+                    catch
+                        upBound = inf;
+                    end
+                    pos = find([eye.time > lowBound] .* [eye.time < upBound]);
+    %                 plot(xData(pos),yData(pos),'*');
+                    xs = [xs xData(pos)];
+                    ys = [ys yData(pos)];
                 end
-                pos = find([eye.time > lowBound] .* [eye.time < upBound]);
-%                 plot(xData(pos),yData(pos),'*');
-                xs = [xs xData(pos)];
-                ys = [ys yData(pos)];
             end
+            scattercloud(xs,ys,25,.5,'g*',hot());
+            title(segNames{s});
+            axis([mean(meanX)-9 mean(meanX)+9 mean(meanY)-9 mean(meanY)+9])
+            square(cx+mean(meanX),cy+mean(meanY),stimSize);
+            square(mean(meanX)-cx,mean(meanY)-cy,stimSize);
+            square(mean(meanX)-cx,cy+mean(meanY),stimSize);
+            square(cx+mean(meanX),mean(meanY)-cy,stimSize);
+            circle(mean(meanX),mean(meanY),1);
+
+            hold off
         end
-        scattercloud(xs,ys,25,.5,'g*',hot());
-        title(segNames{s});
-        axis([mean(meanX)-9 mean(meanX)+9 mean(meanY)-9 mean(meanY)+9])
-        square(cx+mean(meanX),cy+mean(meanY),stimSize);
-        square(mean(meanX)-cx,mean(meanY)-cy,stimSize);
-        square(mean(meanX)-cx,cy+mean(meanY),stimSize);
-        square(cx+mean(meanX),mean(meanY)-cy,stimSize);
-        circle(mean(meanX),mean(meanY),1);
-        
-        hold off
     end
 end
 
