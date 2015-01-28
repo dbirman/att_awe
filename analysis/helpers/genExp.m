@@ -132,7 +132,7 @@ try
     e{2}.randVars = rmfield(e{2}.randVars,'gender');
     e{2}.randVars = rmfield(e{2}.randVars,'images');
     %% run Variables
-    e{3}.runVars.blocks = stimulus.blockList;
+    e{3}.runVars.blocks = stimulus.blocks.blockList;
     e{3}.runVars.dual = stimulus.dualList(end);
     e{3}.runVars.pedestals = stimulus.pedestals;
     e{3}.runVars.runNum = stimulus.counter;

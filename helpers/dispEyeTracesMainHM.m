@@ -37,6 +37,8 @@ for loc = 1:4
     for s = 1:7
         subplot(7,4,loc+(s-1)*4)
         hold on
+        xs = [];
+        ys = [];
         for t = 1:length(main.randVars.targetLoc)
             if loc==main.randVars.targetLoc(t)
                 cT = main.trials(t);
@@ -54,15 +56,19 @@ for loc = 1:4
                     upBound = inf;
                 end
                 pos = find([eye.time > lowBound] .* [eye.time < upBound]);
-                plot(xData(pos),yData(pos),'*');
+%                 plot(xData(pos),yData(pos),'*');
+                xs = [xs xData(pos)];
+                ys = [ys yData(pos)];
             end
         end
+        scattercloud(xs,ys,25,.5,'g*',hot());
         title(segNames{s});
         axis([mean(meanX)-9 mean(meanX)+9 mean(meanY)-9 mean(meanY)+9])
         square(cx+mean(meanX),cy+mean(meanY),stimSize);
         square(mean(meanX)-cx,mean(meanY)-cy,stimSize);
         square(mean(meanX)-cx,cy+mean(meanY),stimSize);
         square(cx+mean(meanX),mean(meanY)-cy,stimSize);
+        circle(mean(meanX),mean(meanY),1);
         
         hold off
     end
@@ -76,7 +82,7 @@ function circle(x,y,r)
 ang=0:0.01:2*pi; 
 xp=r*cos(ang);
 yp=r*sin(ang);
-plot(x+xp,y+yp);
+plot(x+xp,y+yp,'w');
 
 function square(x,y,e)
 % x and y are the center
@@ -88,7 +94,7 @@ x1 = x + e/2;
 y1 = y + e/2;
 xs = 0:.5:e;
 hold on
-plot(xs+x0,repmat(y0,1,length(xs)),'r'); % top line
-plot(xs+x0,repmat(y1,1,length(xs)),'r'); % bottom line
-plot(repmat(x0,1,length(xs)),y0+xs,'r');
-plot(repmat(x1,1,length(xs)),y0+xs,'r');
+plot(xs+x0,repmat(y0,1,length(xs)),'w'); % top line
+plot(xs+x0,repmat(y1,1,length(xs)),'w'); % bottom line
+plot(repmat(x0,1,length(xs)),y0+xs,'w');
+plot(repmat(x1,1,length(xs)),y0+xs,'w');

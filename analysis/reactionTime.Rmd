@@ -129,6 +129,7 @@ out3 = mdata %>%
 out3 %>%
   summary
 plot(allEffects(out3))
+# plot(allEffects(glm(data=mdata,correct~interval,family='binomial')))
 ```
 
 ```{r}

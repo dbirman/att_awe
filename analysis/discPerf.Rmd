@@ -51,6 +51,10 @@ pedFrame = data.frame(taskf=c('Noise','Noise','Noise',
            pedValue=c(noisePed,
                           contrastPed))
 main = main %>% merge(pedFrame)
+main = main %>%
+  mutate(imgFile = ifelse(taskf=='Noise',
+                          sprintf('../images/built/con%03.fnoi%03.f_img.png',50,(threshold+pedValue)*100),
+                          sprintf('../images/built/con%03.fnoi%03.f_img.png',(threshold+pedValue)*100,50)))
 ```
 
 
@@ -66,7 +70,7 @@ mainmean = mainmean %>% mutate(muround=round(mu,2))
 
 ```{r}
 # pdf('../analysis/s300/figures/discFuncs.pdf')
-ggplot() +
+g = ggplot(data=mainmean,aes(pedestal,mu)) +
   geom_line(data=mainmean,aes(pedestal,mu,color=dualf,linetype=cuesf)) +
   geom_errorbar(data=mainmean,aes(pedestal,mu,ymin=mu-sd,ymax=mu+sd,color=dualf,linetype=cuesf),width=.1) +
 #   geom_text(data=mainmean,aes(label=mainmean$muround,x=mainmean$pedestal+.2,y=mainmean$mu)) +
@@ -80,7 +84,7 @@ TESTING IMAGE DISPLAY
 # library(png)
 # library(grid)
 # img = readPNG('../images/built/con100noi050_img.png')
-# g = rasterGrob(img,interpolate=TRUE)
+# img = rasterGrob(img,interpolate=TRUE)
 # qplot(1:10,1:10,geom="blank") +
 #   annotation_custom(g,xmin=2,xmax=4,ymin=2,ymax=4)
 ```
@@ -88,7 +92,7 @@ TESTING IMAGE DISPLAY
 Now let's look at the discrimination functions in the peripheral data
 
 ```{r plot peripheral barplot}
-pdf('../analysis/s300/figures/discFuncsGender.pdf')
+# pdf('../analysis/s300/figures/discFuncsGender.pdf')
 ggplot() +
   geom_point(data=per,aes(taskf,y=threshold,color=taskf),size=5) +
   geom_errorbar(data=permean,aes(taskf,mu,ymin=mu-sd,ymax=mu+sd),size=.5,width=.3) +
@@ -97,7 +101,7 @@ ggplot() +
 
 contrasts(per$taskf) = cbind(c(2,-1,-1),c(0,1,-1))
 per %>% lm(data=.,threshold ~ taskf) %>% summary()
-dev.off()
+# dev.off()
 ```
 
 Now let's normalize all of our data by the mean values.

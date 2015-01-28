@@ -35,14 +35,14 @@ load(fullfile(analysis.datFolder,files(end).name));
 
 %% Generate staircase graphs
 
-staircaseplots(stimulus);
+% staircaseplots(stimulus);
 
 %% Send main to CSV file
 plotting = gen_discFuncs(stimulus,0);
 plo2csv(plotting);
 
 %% Send peripheral to CSV file
-gen_perPerf(stimulus);
+peripheral = gen_perPerf(stimulus);
 per2csv(peripheral);
 
 %% Eye Movement Analysis
@@ -60,5 +60,6 @@ eyeHolder = expHolder(eyeData);
 
 for e = 1:length(eyeHolder)
     eye = eyeHolder{e};
-    dispEyeTracesMain(eye);
+%     dispEyeTracesMain(eye); % old version, no heatmaps
+    dispEyeTracesMainHM(eye);
 end
