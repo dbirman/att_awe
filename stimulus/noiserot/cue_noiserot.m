@@ -12,9 +12,6 @@
 %             subject's folder. Defaults to the last stimfile. Warning:
 %             Only the first stimfile is saved with the image file data,
 %             subsequent stimfiles only contain run data.
-%             dual (0/1) - Uses the dual task staircases instead of the
-%             single-task staircases. Never run a participant without
-%             correctly setting this flag!
 %             plots (0/1) - Displays staircase plots (and estimated
 %             psychophysic functions)
 %             practice (def=0) - Displays on ten trials
@@ -142,9 +139,9 @@ dispLoadFig = 0; keepAspectRatio = 0;
 stimulus = InitStimRot(stimulus,categories,dispLoadFig,keepAspectRatio);
 
 %% Build stimulus mask
-gaussianWin = mglMakeGaussian(stimulus.widthDeg,stimulus.heightDeg,stimulus.widthDeg/2,stimulus.heightDeg/2);
+gaussianWin = mglMakeGaussian(stimulus.widthDeg,stimulus.heightDeg,stimulus.widthDeg/3,stimulus.heightDeg/3);
 win = stimulus.maxIndex-stimulus.maxIndex*gaussianWin;
-mask = ones(size(win,1),size(win,2),4)*stimulus.colors.midGratingIndex;
+mask = ones(size(win,1),size(win,2),4)*.5;
 mask(:,:,4) = win;
 stimulus.mask = mglCreateTexture(mask);
 
@@ -154,19 +151,15 @@ stimulus.mask = mglCreateTexture(mask);
 task{1}{1}.waitForBacktick = 1;
 stimulus.seg.ITI = 1;
 stimulus.seg.cue = 2;
-stimulus.seg.stim1 = 3;
-stimulus.seg.presp1 = 4;
-stimulus.seg.stim2 = 5;
-stimulus.seg.presp2 = 6;
-stimulus.seg.resp = 7;
-task{1}{1}.segmin = [1 1 .5 1 .5 1 1.4];
-task{1}{1}.segmax = [1 1 .5 1 .5 1 1.4];
-task{1}{1}.synchToVol = [0 0 0 0 0 0 0];
-task{1}{1}.getResponse = [0 0 0 0 0 0 1];
+stimulus.seg.stim = 3;
+stimulus.seg.resp = 4;
+task{1}{1}.segmin = [1 1 1 inf];
+task{1}{1}.segmax = [1 1 1 inf];
+task{1}{1}.synchToVol = [0 0 0 0];
+task{1}{1}.getResponse = [0 0 0 1];
 % We will use the 2-4 pedestal of 1-5 options, to always have one above or
 % below.
 task{1}{1}.parameter.pedestal = 2:4; %% IMPORTANT %%
-task{1}{1}.parameter.pedestalRandom = 2:4; %% IMPORTANT%%
 task{1}{1}.parameter.dummy = 1:4; % This just makes sure the number of trials is large enough
 task{1}{1}.parameter.cues = [1 4]; %% IMPORTANT %%
 %%

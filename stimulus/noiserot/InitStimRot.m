@@ -22,58 +22,31 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
   % keep the averageMag and averageDc so that we can normalize images
   stimulus.averageMag = 0;
   stimulus.averageDC = 0;
-  stimulus.p.averageMag = 0;
 
   for i = 1:stimulus.nCategories
     if ~any(strcmp(categories{i},{'scramble','blank','gray'}))
       % load images
       stimulus.raw{i} = loadNormalizedEqImages(fullfile(stimulus.imageDirMain,categories{i}),'width',stimulus.widthPix,'height',stimulus.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
-      if isequal(fullfile(stimulus.imageDirMain,categories{i}),fullfile(stimulus.imageDirPer,categories{i}))
-          stimulus.p.raw{i} = stimulus.raw{i};
-      else
-        stimulus.p.raw{i} = loadNormalizedEqImages(fullfile(stimulus.imageDirPer,categories{i}),'width',stimulus.p.widthPix,'height',stimulus.p.heightPix,'dispFig',dispFig,'keepAspectRatio',keepAspectRatio);
-      end
 
       % make sure we opened ok
-      if isempty(stimulus.raw{i}) || isempty(stimulus.p.raw{i})
+      if isempty(stimulus.raw{i})
         disp(sprintf('(initstim) Could not load images; %s',categories{i}));
         keyboard
       end
       % get average mag
       stimulus.averageMag = stimulus.averageMag + stimulus.raw{i}.averageMag;
-      stimulus.p.averageMag = stimulus.p.averageMag + stimulus.p.raw{i}.averageMag;
       stimulus.averageDC = stimulus.averageDC +stimulus.raw{i}.averageDC;
       averageN = averageN + 1;
     else
       stimulus.raw{i}.n = 0;
-      stimulus.p.raw{i}.n = 0;
     end
   end
   % compute average
   stimulus.averageMag = stimulus.averageMag/averageN;
-  stimulus.p.averageMag = stimulus.p.averageMag/averageN;
   stimulus.averageDC = stimulus.averageDC/averageN;
   % and set that we have loaded
   stimulus.imageDir = stimulus.imageDirMain;
-  stimulus.p.imageDir = stimulus.imageDirPer;
   
-  %% PERIPHERAL IMAGES
-  disp(sprintf('(initstim) Building peripheral images... ___'));
-  for cat = 1:length(stimulus.p.raw)
-      for imgN = 1:stimulus.p.raw{cat}.n
-          thisImage = stimulus.p.raw{cat}.halfFourier{imgN};
-          thisImage.mag = stimulus.p.averageMag;
-          i = reconstructFromHalfFourier(thisImage);
-     
-          stimulus.p.images{cat,1}(:,:,imgN) = processPeripheralImage(stimulus,i,npdf,mrmax,mrmin);
-          for pi = 2:10
-              i_ps = pinkNoise(i,thisImage,.01);
-              stimulus.p.images{cat,pi}(:,:,imgN) = processPeripheralImage(stimulus,i_ps,npdf,mrmax,mrmin);
-          end
-          disppercent(calcPercentDone(cat,length(stimulus.p.raw),imgN,stimulus.p.raw{cat}.n));
-      end
-  end
-  disp(sprintf('(initstim) Building main images... ___'));
   %% MAIN IMAGES
   for cat = 1:length(stimulus.raw)
       for imgN = 1:stimulus.raw{cat}.n
@@ -96,34 +69,10 @@ else
   disp(sprintf('(initstim) Stimulus already initialized'));
 end
 
-%% Build Peripheral Textures
-disp(sprintf('(initstim) Building peripheral textures... ___'));
-for cat = 1:length(stimulus.p.raw)
-    for imgN = 1:stimulus.p.raw{cat}.n                
-        for m = 1:10
-            stimulus.p.tex{cat,m}(imgN) = mglCreateTexture(stimulus.p.images{cat,m}(:,:,imgN));
-        end
-        disppercent(calcPercentDone(cat,length(stimulus.p.raw),imgN,stimulus.p.raw{cat}.n));
-    end
-end
-
 disppercent(inf);
 
 stimulus.trialStart = mglGetSecs;
 stimulus.categories = categories;
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    processPeripheralImage        %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function img11 = processPeripheralImage(stimulus,image,npdf,mrmax,mrmin)
-
-% change the image to match the PDF
-image = (mrmax-mrmin)*histeq(image/255,npdf) + mrmin;
-
-img11 = replaceColors(image,stimulus.colors.nReservedPeripheral);
-
-img11 = flipud(img11);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 %        pinkNoise       %
@@ -150,18 +99,6 @@ image = L0 + sqrt(K) * (img - L0) + sqrt(1-K) * (noise - L0);
 % Make sure we are inside range
 image(image>ma) = ma;
 image(image<mi) = mi;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%    replaceColors        %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function image2 = replaceColors(image,N)
-N = ceil(N);
-qts = 1/N:1/N:1;
-cutoffs = fliplr(quantile(image(:),qts));
-image2 = image;
-for i = 1:N
-    image2(image<=cutoffs(i)) = N-i;
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    fixBoundaries        %
