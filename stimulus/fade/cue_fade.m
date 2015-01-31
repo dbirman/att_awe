@@ -323,11 +323,13 @@ myscreen.flushmode = 1;
 
 global stimulus
 
-if task.thistrial.blockTrialNum == 1
-    task.thistrial.seglen(1) = 1.5;
-else
-    task.thistrial.seglen(1) = 1;
-end
+% This code can be used to adjust the length of the ITI (or any other
+% segment)
+% if task.thistrial.blockTrialNum == 1
+%     task.thistrial.seglen(1) = 1.5;
+% else
+%     task.thistrial.seglen(1) = 1;
+% end
 
 task.thistrial.target = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,1);
 task.thistrial.cues = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,2);
@@ -357,23 +359,29 @@ global stimulus
 
 switch task.thistrial.thisseg
     case stimulus.seg.ITI
-        stimulus.fixColor = stimulus.colors.reservedColor(4);
-        stimulus.changing = 0;
+        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.changing = 0;
+        stimulus.live.faces = 0;
     case stimulus.seg.cue
-        stimulus.fixColor = stimulus.colors.reservedColor(4);
-        stimulus.changing = 0;
+        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.changing = 0;
+        stimulus.live.faces = 1;
     case stimulus.seg.stim_1hold
-        stimulus.fixColor = stimulus.colors.reservedColor(4);
-        stimulus.changing = 0;
+        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.changing = 0;
+        stimulus.live.faces = 1;
     case stimulus.seg.stim_2chng
-        stimulus.fixColor = stimulus.colors.reservedColor(4);
-        stimulus.changing = task.thistrial.change;
+        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.changing = task.thistrial.change;
+        stimulus.live.faces = 1;
     case stimulus.seg.stim_3hold
-        stimulus.fixColor = stimulus.colors.reservedColor(4);
-        stimulus.changing = 0;
+        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.changing = 0;
+        stimulus.live.faces = 1;
     case stimulus.seg.resp
-        stimulus.fixColor = stimulus.colors.reservedColor(3);
-        stimulus.changing = 0;
+        stimulus.live.fixColor = stimulus.colors.reservedColor(3);
+        stimulus.live.changing = 0;
+        stimulus.live.faces = 0;
 end
 
 %%
@@ -388,12 +396,14 @@ mglClearScreen(stimulus.colors.reservedColor(5));
 
 upFix(stimulus);
 upCues(task,stimulus);
-upFaces(task,stimulus);
+if stimulus.live.faces
+    upFaces(task,stimulus);
+end
 
 %%
 function upFix(stimulus)
 
-mglFixationCross(1,1,stimulus.fixColor);
+mglFixationCross(1,1,stimulus.live.fixColor);
 
 %%
 function upCues(task,stimulus)
@@ -410,14 +420,14 @@ else
 end
 ang = d2r(ang);
 mglLines2(cos(ang + atan(usePos1./usePos2))*.1,sin(ang + atan(usePos1./usePos2))*.1, ...
-    cos(ang + atan(usePos1./usePos2))*.75,sin(ang + atan(usePos1./usePos2))*.75,1,stimulus.fixColor);
+    cos(ang + atan(usePos1./usePos2))*.75,sin(ang + atan(usePos1./usePos2))*.75,1,stimulus.live.fixColor);
 
 function upFaces(task,stimulus)
 
-rNum = length(stimulus.changeTex);
 
 for imagePos = 1:4
-    if stimulus.changing && imagePos == task.thistrial.target
+    if stimulus.live.changing && imagePos == task.thistrial.target
+        rNum = length(stimulus.changeTex);
         % figure out how long it's been since this segment started
         changeTime = (mglGetSecs - task.thistrial.segStartSeconds) * 1000;
         if changeTime < 200
@@ -452,7 +462,7 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
     if task.thistrial.gotResponse == 0
         % Store whether this was correct
         task.thistrial.correct = find(stimulus.responseKeys==task.thistrial.whichButton) == task.thistrial.change+1;
-        stimulus.fixColor = fixColors{task.thistrial.correct+1};
+        stimulus.live.fixColor = fixColors{task.thistrial.correct+1};
         disp(sprintf('(fade) Response %s',responseText{task.thistrial.correct+1}));
         stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)} = ...
             doStaircase('update',stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)},task.thistrial.correct);
