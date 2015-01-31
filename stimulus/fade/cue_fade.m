@@ -433,10 +433,13 @@ for imagePos = 1:4
         if changeTime < 200
             % we are still dropping
             % current frame is:
-            frame = (rNum-1)*round(changeTime/200) + 1;
+            frame = round(changeTime*2/(400/(rNum-1)))+1;
         else
-            frame = (rNum-1)*round((changeTime-200)/200)+1;
+            frame = 51-round(changeTime*2/(400/(rNum-1)));
         end
+            disp(sprintf('displayed frame %i at %03.f',frame,changeTime));
+        if frame < 1, frame = 1; end
+        if frame > rNum, frame = rNum; end
         curimage = stimulus.changeTex{frame};
     else
         % Get the image from the textures built on the fly
@@ -535,7 +538,7 @@ if isfield(stimulus,'changeTex')
         mglDeleteTexture(stimulus.changeTex{i});
     end
 else
-    stimulus.changeTex = cell(length(range));
+    stimulus.changeTex = cell(1,length(range));
 end
 
 for i = 1:length(range)
