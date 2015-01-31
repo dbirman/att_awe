@@ -17,7 +17,7 @@ npdf = normpdf(0:255,125.5,50);
 npdf = scalePdf(npdf,0:255,1);
 % scale by the ratio
 % change the image to match the PDF
-gaussianWin = mglMakeSmoothBorderMask(11,12,8.5,2);
+gaussianWin = mglMakeSmoothBorderMask(6,5.5,5,.5);
 win = 255-255*(gaussianWin);
 mask = ones(size(win,1),size(win,2),4)*.5*255;
 mask(:,:,4) = win;
@@ -27,8 +27,8 @@ img = flipud(files.raw.im(:,:,1));
 img2 = (255-0)*histeq(img/255,npdf) + 0;
 
 imgTex = mglCreateTexture(img2);
-mglBltTexture(imgTex,[0 0 4 4]);
-mglBltTexture(maskTex,[0 0 5 5]);
+mglBltTexture(imgTex,[0 0 5.5 5.5]);
+mglBltTexture(maskTex,[0 0 5.5 5.5]);
 mglFlush
 
 %% Fade into a low contrast version
