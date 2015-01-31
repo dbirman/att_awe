@@ -437,7 +437,6 @@ for imagePos = 1:4
         else
             frame = 51-round(changeTime*2/(400/(rNum-1)));
         end
-            disp(sprintf('displayed frame %i at %03.f',frame,changeTime));
         if frame < 1, frame = 1; end
         if frame > rNum, frame = rNum; end
         curimage = stimulus.changeTex{frame};
