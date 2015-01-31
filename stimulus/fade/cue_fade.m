@@ -146,7 +146,7 @@ stimulus = InitStimFade(stimulus,categories,dispLoadFig,keepAspectRatio);
 
 gaussianWin = mglMakeSmoothBorderMask(6,5.5,5,.5);
 win = 255-255*(gaussianWin);
-stimulus.mask = ones(size(win,1),size(win,2),4)*.5*255;
+stimulus.mask = ones(size(win,1),size(win,2),4)*stimulus.colors.reservedColor(5)*255;
 stimulus.mask(:,:,4) = win;
 
 %% Setup Task
@@ -512,8 +512,9 @@ end
 stimulus = getBlockImages(stimulus);
 
 % setup mask
-temp(:,:,1:3) = stimulus.mask(:,:,1:3)*stimulus.blocks.curMaxContrast;
-temp(:,:,4) = stimulus.mask(:,:,4);
+% temp(:,:,1:3) = stimulus.mask(:,:,1:3)*stimulus.blocks.curMaxContrast;
+% temp(:,:,4) = stimulus.mask(:,:,4);
+temp = stimulus.mask;
 stimulus.maskTex = mglCreateTexture(temp);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
