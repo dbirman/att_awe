@@ -6,14 +6,6 @@ function stimulus = InitStimFade(stimulus,categories,dispFig,keepAspectRatio)
 if iseven(stimulus.widthPix), stimulus.widthPix = stimulus.widthPix-1;end
 if iseven(stimulus.heightPix), stimulus.heightPix = stimulus.heightPix-1;end
 
-% Normalize the 10-level image by the equalized histogram
-rmed = .5*255;
-mrmax = 255;
-mrmin = 0;
-% build the normalized PDF
-npdf = normpdf(mrmin:mrmax,rmed,80);
-npdf = npdf / sum(npdf);
-
 % check whether images are loaded
 averageN = 0;
 if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(stimulus.categories,categories) || dispFig
@@ -130,16 +122,11 @@ end
 ma = max(image(:));
 mi = min(image(:));
 
-% Get the new boundaries
-rmed = stimulus.colors.nReservedColors + 1 + stimulus.pedestals.maxRange;
-rmax = rmed + range;
-rmin = rmed - range;
-
-if rmin < stimulus.colors.nReservedColors
+if stimulus.colors.mrmin < stimulus.colors.nReservedColors
     error('Boundary fixing failed, image contrast range is too large');
 end
 
 % Scale image to full range
-image = image * (rmax - rmin) / (ma - mi);
+image = image * (stimulus.colors.mrmax - stimulus.colors.mrmin) / (ma - mi);
 % Move to the image median
-image = image - min(image(:)) + rmin;
+image = image - min(image(:)) + stimulus.colors.mrmin;

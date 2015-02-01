@@ -75,7 +75,7 @@ stimulus.responseKeys = [10 9]; % corresponds to CHANGE - NO CHANGE
 
 % Colors: We reserve the first few colors, red, green, white, black, gray
 % (Background)
-stimulus.colors.reservedColors = [1 0 0;0 1 0;1 1 1;0 0 0;.5 .5 .5];
+stimulus.colors.reservedColors = [0 0 0;1 1 1;1 0 0;0 1 0;.5 .5 .5];
 
 stimulus.colors.nReservedColors = size(stimulus.colors.reservedColors,1);
 stimulus.maxIndex = 255;
@@ -144,10 +144,13 @@ stimulus = InitStimFade(stimulus,categories,dispLoadFig,keepAspectRatio);
 
 %% Initialize Mask
 
-gaussianWin = mglMakeSmoothBorderMask(6,5.5,5,.5);
-win = 255-255*(gaussianWin);
-stimulus.mask = ones(size(win,1),size(win,2),4)*stimulus.colors.reservedColor(5)*255;
+gaussianWin = mglMakeSmoothBorderMask(1,1,.9,.1,.1,399,399);
+% win = 255-255*gaussianWin;
+win = 255*(gaussianWin>0);
+% win = win * (255-stimulus.colors.mrmin) / (max(win(:))-min(win(:))) + stimulus.colors.mrmin;
+stimulus.mask = ones(size(win,1),size(win,2),3)*stimulus.colors.reservedColor(5)*255;
 stimulus.mask(:,:,4) = win;
+stimulus.maskTex = mglCreateTexture(stimulus.mask);
 
 %% Setup Task
 
@@ -159,7 +162,7 @@ stimulus.seg.stim_1hold = 3; % the stimulus is on for 1s
 stimulus.seg.stim_2chng = 4;
 stimulus.seg.stim_3hold = 5;
 stimulus.seg.resp = 6;
-task{1}{1}.seglen = [1 1 .1 .4 .1 1];
+task{1}{1}.seglen = [1 1 .1 2 .1 1];
 task{1}{1}.synchToVol = [0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 1 1];
 task{1}{1}.parameter.blockTrialNum = 1:16; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
@@ -358,27 +361,27 @@ global stimulus
 
 switch task.thistrial.thisseg
     case stimulus.seg.ITI
-        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = 0;
         stimulus.live.faces = 0;
     case stimulus.seg.cue
-        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = 0;
         stimulus.live.faces = 1;
     case stimulus.seg.stim_1hold
-        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = 0;
         stimulus.live.faces = 1;
     case stimulus.seg.stim_2chng
-        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = task.thistrial.change;
         stimulus.live.faces = 1;
     case stimulus.seg.stim_3hold
-        stimulus.live.fixColor = stimulus.colors.reservedColor(4);
+        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = 0;
         stimulus.live.faces = 1;
     case stimulus.seg.resp
-        stimulus.live.fixColor = stimulus.colors.reservedColor(3);
+        stimulus.live.fixColor = stimulus.colors.reservedColor(2);
         stimulus.live.changing = 0;
         stimulus.live.faces = 0;
 end
@@ -445,7 +448,7 @@ for imagePos = 1:4
     end
     % Push image to buffer
     mglBltTexture(curimage,[stimulus.posx(imagePos) stimulus.posy(imagePos) stimulus.widthDeg stimulus.heightDeg]);
-    mglBltTexture(stimulus.maskTex,[stimulus.posx(imagePos) stimulus.posy(imagePos) stimulus.widthDeg+1 stimulus.heightDeg+1]);
+%     mglBltTexture(stimulus.maskTex,[stimulus.posx(imagePos) stimulus.posy(imagePos) stimulus.widthDeg stimulus.heightDeg]);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -457,7 +460,7 @@ function [task, myscreen] = getResponseCallback(task, myscreen)
 global stimulus
 
 responseText = {'Incorrect','Correct'};
-fixColors = {stimulus.colors.reservedColor(1),stimulus.colors.reservedColor(2)};
+fixColors = {stimulus.colors.reservedColor(4),stimulus.colors.reservedColor(1)};
 
 if any(task.thistrial.whichButton == stimulus.responseKeys)
     if task.thistrial.gotResponse == 0
@@ -484,7 +487,7 @@ global stimulus
 stimulus.blocks.counter = stimulus.blocks.counter + 1;
 
 % clear screen
-mglClearScreen(stimulus.colors.reservedColor(5));
+mglClearScreen(stimulus.colors.reservedColor(1));
 
 myscreen.flushMode = 0;
 
@@ -510,12 +513,6 @@ while length(unique(stimulus.blocks.curImageList))~=4
 end
 
 stimulus = getBlockImages(stimulus);
-
-% setup mask
-% temp(:,:,1:3) = stimulus.mask(:,:,1:3)*stimulus.blocks.curMaxContrast;
-% temp(:,:,4) = stimulus.mask(:,:,4);
-temp = stimulus.mask;
-stimulus.maskTex = mglCreateTexture(temp);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                              HELPER FUNCTIONS                           %%
@@ -553,9 +550,13 @@ for i = 1:length(range)
     % scale by the ratio
     npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
     % change the image to match the PDF
-    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    img2 = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    
+    img2(stimulus.mask(:,:,4)==0) = 4;
+%     img3(:,:,1) = img2; img3(:,:,2) = img2; img3(:,:,3) = img2;
+%     img3(:,:,4) = stimulus.mask(:,:,4);
 
-    stimulus.changeTex{i} = mglCreateTexture(img);
+    stimulus.changeTex{i} = mglCreateTexture(img2);
 end
 
 %% getDeltaPed
@@ -584,6 +585,10 @@ for i = 1:4
     npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
     % change the image to match the PDF
     img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    
+    img(stimulus.mask(:,:,4)==0) = 4;
+%     img2(:,:,1) = img; img2(:,:,2) = img; img2(:,:,3) = img;
+%     img2(:,:,4) = stimulus.mask(:,:,4);
     % add to flyTex
     stimulus.flyTex{i} = mglCreateTexture(img);
 end
