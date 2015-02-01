@@ -146,11 +146,15 @@ stimulus = InitStimFade(stimulus,categories,dispLoadFig,keepAspectRatio);
 
 gaussianWin = mglMakeSmoothBorderMask(1,1,.9,.1,.1,399,399);
 % win = 255-255*gaussianWin;
-win = 255*(gaussianWin>0);
+win = 255-255*(gaussianWin>0);
 % win = win * (255-stimulus.colors.mrmin) / (max(win(:))-min(win(:))) + stimulus.colors.mrmin;
-stimulus.mask = ones(size(win,1),size(win,2),3)*stimulus.colors.reservedColor(5)*255;
+stimulus.mask = ones(size(win,1),size(win,2),3)*.5*255;
 stimulus.mask(:,:,4) = win;
 stimulus.maskTex = mglCreateTexture(stimulus.mask);
+
+%% Choose step sizes for changes
+
+stimulus.steps = 20;
 
 %% Setup Task
 
@@ -429,19 +433,24 @@ function upFaces(task,stimulus)
 
 for imagePos = 1:4
     if stimulus.live.changing && imagePos == task.thistrial.target
+        time = task.thistrial.seglen(stimulus.seg.stim_2chng)*1000;
         rNum = length(stimulus.changeTex);
         % figure out how long it's been since this segment started
         changeTime = (mglGetSecs - task.thistrial.segStartSeconds) * 1000;
-        if changeTime < 200
-            % we are still dropping
-            % current frame is:
-            frame = round(changeTime*2/(400/(rNum-1)))+1;
-        else
-            frame = 51-round(changeTime*2/(400/(rNum-1)));
-        end
+        % down up code
+% %         if changeTime < time / 2
+% %             % we are still dropping
+% %             % current frame is:
+% %             frame = round(changeTime*2/(time/(rNum-1)))+1;
+% %         else
+% %             frame = (rNum*2-1)-round(changeTime*2/(time/(rNum-1)));
+% %         end
+        % down only code
+        frame = round(changeTime/(time/(rNum-1)))+1;
         if frame < 1, frame = 1; end
         if frame > rNum, frame = rNum; end
         curimage = stimulus.changeTex{frame};
+        disp(sprintf('frame %i time %03.f',frame,changeTime));
     else
         % Get the image from the textures built on the fly
         curimage = stimulus.flyTex{imagePos};
@@ -460,7 +469,7 @@ function [task, myscreen] = getResponseCallback(task, myscreen)
 global stimulus
 
 responseText = {'Incorrect','Correct'};
-fixColors = {stimulus.colors.reservedColor(4),stimulus.colors.reservedColor(1)};
+fixColors = {stimulus.colors.reservedColor(3),stimulus.colors.reservedColor(4)};
 
 if any(task.thistrial.whichButton == stimulus.responseKeys)
     if task.thistrial.gotResponse == 0
@@ -532,7 +541,7 @@ if lowCon <= 0
     lowCon = .01;
 end
 
-range = lowCon : (highCon-lowCon)/25 : highCon;
+range = fliplr(lowCon : (highCon-lowCon)/(stimulus.steps-1) : highCon);
 
 if isfield(stimulus,'changeTex')
     for i = 1:length(stimulus.changeTex)
@@ -550,13 +559,9 @@ for i = 1:length(range)
     % scale by the ratio
     npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
     % change the image to match the PDF
-    img2 = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
-    
-    img2(stimulus.mask(:,:,4)==0) = 4;
-%     img3(:,:,1) = img2; img3(:,:,2) = img2; img3(:,:,3) = img2;
-%     img3(:,:,4) = stimulus.mask(:,:,4);
+    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
 
-    stimulus.changeTex{i} = mglCreateTexture(img2);
+    stimulus.changeTex{i} = mglCreateTexture(img);
 end
 
 %% getDeltaPed
@@ -586,7 +591,7 @@ for i = 1:4
     % change the image to match the PDF
     img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
     
-    img(stimulus.mask(:,:,4)==0) = 4;
+%     img(stimulus.mask(:,:,4)==0) = 4;
 %     img2(:,:,1) = img; img2(:,:,2) = img; img2(:,:,3) = img;
 %     img2(:,:,4) = stimulus.mask(:,:,4);
     % add to flyTex
