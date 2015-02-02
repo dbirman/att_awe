@@ -73,54 +73,36 @@ myscreen = initStimulus('stimulus',myscreen);
 
 stimulus.responseKeys = [10 9]; % corresponds to CHANGE - NO CHANGE
 
-% Colors: We reserve the first few colors, red, green, white, black, gray
-% (Background)
-stimulus.colors.reservedColors = [0 0 0;1 1 1;1 0 0;0 1 0;.5 .5 .5];
+stimulus.colors.rmed = 127.5;
+stimulus.colors.mrmax = 255;
+stimulus.colors.mrmin = 0;
 
-stimulus.colors.nReservedColors = size(stimulus.colors.reservedColors,1);
-stimulus.maxIndex = 255;
-stimulus.colors.nFaceColors = stimulus.maxIndex - stimulus.colors.nReservedColors;
-
-stimulus.colors.minFaceIndex = stimulus.maxIndex+1-stimulus.colors.nFaceColors;
-stimulus.colors.maxFaceIndex = stimulus.maxIndex;
-
-stimulus.pedestals.maxRange = (255-(stimulus.colors.nReservedColors+1))/2;
-
-% set the reserved colors - this gives a convenient value between 0 and 1 to use the reserved colors with
-for i = 1:stimulus.colors.nReservedColors
-  stimulus.colors.reservedColor(i) = (i-1)/stimulus.maxIndex;
-end
-
-stimulus.colors.rmed = stimulus.colors.nReservedColors + 1 + stimulus.pedestals.maxRange;
-stimulus.colors.mrmax = stimulus.colors.rmed + stimulus.pedestals.maxRange;
-stimulus.colors.mrmin = stimulus.colors.rmed - stimulus.pedestals.maxRange;
-
-stimulus.basepdf = normpdf(stimulus.colors.mrmin:stimulus.colors.mrmax,stimulus.colors.rmed,50);
+stimulus.basepdf = normpdf(stimulus.colors.mrmin:stimulus.colors.mrmax,stimulus.colors.rmed,75);
 
 %% MGL Parameters
-mglTextSet('Helvetica',32,stimulus.colors.reservedColor(2)*255,... % this doesn't work... not sure why
+mglTextSet('Helvetica',32,255,... % this doesn't work... not sure why
 0,0,0,0,0,0,0);
     
 %% Gamma Table Initialization
 
 % set the reserved colors
-stimulus.gammaTable(1:size(stimulus.colors.reservedColors,1),1:size(stimulus.colors.reservedColors,2))=stimulus.colors.reservedColors;
-
-% get gamma table
-if ~isfield(myscreen,'gammaTable')
-  stimulus.linearizedGammaTable = mglGetGammaTable;
-  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
-  disp(sprintf('(cuecon:initGratings) No gamma table found in myscreen. Contrast displays like this'));
-  disp(sprintf('         should be run with a valid calibration made by moncalib for this monitor.'));
-  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
-end
-stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
+% stimulus.gammaTable(1:size(stimulus.colors.reservedColors,1),1:size(stimulus.colors.reservedColors,2))=stimulus.colors.reservedColors;
+% 
+% % get gamma table
+% if ~isfield(myscreen,'gammaTable')
+%   stimulus.linearizedGammaTable = mglGetGammaTable;
+%   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+%   disp(sprintf('(cuecon:initGratings) No gamma table found in myscreen. Contrast displays like this'));
+%   disp(sprintf('         should be run with a valid calibration made by moncalib for this monitor.'));
+%   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+% end
+% stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 
 %% Initialize Images
 
 % set initial thresholds
-stimulus.pedestals.contrast = [ .2 .3 .5];
-stimulus.baseThresh(1) = .15;
+stimulus.pedestals.contrast = [ .3 .4 .6];
+stimulus.baseThresh(1) = .2;
 % These noise levels correspond to an SnR of 
 % noisevals = [1.75 1.25 .75 .25 -.25];
 % stimulus.pedestals.noise = 1./(1+exp(noisevals));
@@ -364,23 +346,23 @@ global stimulus
 
 switch task.thistrial.thisseg
     case stimulus.seg.ITI
-        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
+        stimulus.live.fixColor = 0;
         stimulus.live.changing = 0;
         stimulus.live.faces = 0;
     case stimulus.seg.cue
-        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
+        stimulus.live.fixColor = 0;
         stimulus.live.changing = 0;
         stimulus.live.faces = 0;
     case stimulus.seg.stim_1hold
-        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
+        stimulus.live.fixColor = 0;
         stimulus.live.changing = 0;
         stimulus.live.faces = 1;
     case stimulus.seg.stim_2chng
-        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
+        stimulus.live.fixColor = 0;
         stimulus.live.changing = task.thistrial.change;
         stimulus.live.faces = 1;
     case stimulus.seg.resp
-        stimulus.live.fixColor = stimulus.colors.reservedColor(2);
+        stimulus.live.fixColor = 1;
         stimulus.live.changing = 0;
         stimulus.live.faces = 0;
 end
@@ -464,7 +446,7 @@ function [task, myscreen] = getResponseCallback(task, myscreen)
 global stimulus
 
 responseText = {'Incorrect','Correct'};
-fixColors = {stimulus.colors.reservedColor(3),stimulus.colors.reservedColor(4)};
+fixColors = {[1 0 0],[0 1 0]};
 
 if any(task.thistrial.whichButton == stimulus.responseKeys)
     if task.thistrial.gotResponse == 0
