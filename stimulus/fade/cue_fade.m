@@ -587,10 +587,10 @@ stimulus.staircase{1,1} = doStaircase('init','upDown',...
         'initialStepsize',stimulus.baseThresh(1)/3,...
         'minThreshold=.001','maxThreshold=.2','stepRule','pest',...
         'nTrials=60','maxStepsize=.1','minStepsize=.001');
-stimulus.staircase{2,1} = stimulus.staircase{1};
+stimulus.staircase{2,1} = stimulus.staircase{1,1};
 for i = 2:length(stimulus.pedestals.contrast)
-    stimulus.staircase{1,i} = stimulus.staircase{1};
-    stimulus.staircase{2,i} = stimulus.staircase{1};
+    stimulus.staircase{1,i} = stimulus.staircase{1,1};
+    stimulus.staircase{2,i} = stimulus.staircase{1,1};
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%
