@@ -501,7 +501,9 @@ stimulus.blocks.counter = stimulus.blocks.counter + 1;
 
 % clear screen
 mglClearScreen(stimulus.colors.rmed/255);
-mglTextDraw('Run starting... please wait.',[0 0]);
+if task.trialnum==1
+    mglTextDraw('Run starting... please wait.',[0 0]);
+end
 mglFlush
 
 myscreen.flushMode = 1;
