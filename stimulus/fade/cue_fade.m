@@ -98,7 +98,7 @@ stimulus.colors.mrmin = stimulus.colors.rmed - stimulus.pedestals.maxRange;
 stimulus.basepdf = normpdf(stimulus.colors.mrmin:stimulus.colors.mrmax,stimulus.colors.rmed,50);
 
 %% MGL Parameters
-mglTextSet('Helvetica',32,stimulus.colors.reservedColor(3),... % this doesn't work... not sure why
+mglTextSet('Helvetica',32,stimulus.colors.reservedColor(2)*255,... % this doesn't work... not sure why
 0,0,0,0,0,0,0);
     
 %% Gamma Table Initialization
@@ -119,8 +119,8 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 %% Initialize Images
 
 % set initial thresholds
-stimulus.pedestals.contrast = [ .15 .25 .4];
-stimulus.baseThresh(1) = .05;
+stimulus.pedestals.contrast = [ .2 .3 .5];
+stimulus.baseThresh(1) = .15;
 % These noise levels correspond to an SnR of 
 % noisevals = [1.75 1.25 .75 .25 -.25];
 % stimulus.pedestals.noise = 1./(1+exp(noisevals));
@@ -145,10 +145,9 @@ stimulus = InitStimFade(stimulus,categories,dispLoadFig,keepAspectRatio);
 %% Initialize Mask
 
 gaussianWin = mglMakeSmoothBorderMask(1,1,.9,.1,.1,399,399);
-% win = 255-255*gaussianWin;
-win = 255-255*(gaussianWin>0);
-% win = win * (255-stimulus.colors.mrmin) / (max(win(:))-min(win(:))) + stimulus.colors.mrmin;
-stimulus.mask = ones(size(win,1),size(win,2),3)*.5*255;
+win = 255-255*gaussianWin;
+% win = 255-255*(gaussianWin>0);
+stimulus.mask = ones(size(win,1),size(win,2),3)*stimulus.colors.rmed;
 stimulus.mask(:,:,4) = win;
 stimulus.maskTex = mglCreateTexture(stimulus.mask);
 
@@ -164,11 +163,10 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.cue = 2; % the cue is on for 1s
 stimulus.seg.stim_1hold = 3; % the stimulus is on for 1s
 stimulus.seg.stim_2chng = 4;
-stimulus.seg.stim_3hold = 5;
-stimulus.seg.resp = 6;
-task{1}{1}.seglen = [1 1 .1 2 .1 1];
-task{1}{1}.synchToVol = [0 0 0 0 0 0];
-task{1}{1}.getResponse = [0 0 0 0 1 1];
+stimulus.seg.resp = 5;
+task{1}{1}.seglen = [1 1 .1 1 1];
+task{1}{1}.synchToVol = [0 0 0 0 0];
+task{1}{1}.getResponse = [0 0 0 1 1];
 task{1}{1}.parameter.blockTrialNum = 1:16; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
 task{1}{1}.numBlocks = 6;
 
@@ -280,6 +278,7 @@ end
 mglClearScreen(stimulus.colors.reservedColor(5));
 mglTextDraw('Run complete... please wait.',[0 0]);
 mglFlush
+myscreen.flushMode = 1;
 disp('(fade) Run ending...');
 
 if plots
@@ -322,7 +321,7 @@ end
 
 function [task, myscreen] = startTrialCallback(task,myscreen)
 
-myscreen.flushmode = 1;
+myscreen.flushMode = 0;
 % We need to do a number of things here. First we need to set up the
 % missing thistrial parameters. Second, we will pre-calculate the textures
 % that will be displayed on this particular trial. 
@@ -371,7 +370,7 @@ switch task.thistrial.thisseg
     case stimulus.seg.cue
         stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = 0;
-        stimulus.live.faces = 1;
+        stimulus.live.faces = 0;
     case stimulus.seg.stim_1hold
         stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = 0;
@@ -379,10 +378,6 @@ switch task.thistrial.thisseg
     case stimulus.seg.stim_2chng
         stimulus.live.fixColor = stimulus.colors.reservedColor(1);
         stimulus.live.changing = task.thistrial.change;
-        stimulus.live.faces = 1;
-    case stimulus.seg.stim_3hold
-        stimulus.live.fixColor = stimulus.colors.reservedColor(1);
-        stimulus.live.changing = 0;
         stimulus.live.faces = 1;
     case stimulus.seg.resp
         stimulus.live.fixColor = stimulus.colors.reservedColor(2);
@@ -438,13 +433,13 @@ for imagePos = 1:4
         % figure out how long it's been since this segment started
         changeTime = (mglGetSecs - task.thistrial.segStartSeconds) * 1000;
         % down up code
-% %         if changeTime < time / 2
-% %             % we are still dropping
-% %             % current frame is:
-% %             frame = round(changeTime*2/(time/(rNum-1)))+1;
-% %         else
-% %             frame = (rNum*2-1)-round(changeTime*2/(time/(rNum-1)));
-% %         end
+% % % %         if changeTime < time / 2
+% % % %             % we are still dropping
+% % % %             % current frame is:
+% % % %             frame = round(changeTime*2/(time/(rNum-1)))+1;
+% % % %         else
+% % % %             frame = (rNum*2-1)-round(changeTime*2/(time/(rNum-1)));
+% % % %         end
         % down only code
         frame = round(changeTime/(time/(rNum-1)))+1;
         if frame < 1, frame = 1; end
@@ -457,7 +452,7 @@ for imagePos = 1:4
     end
     % Push image to buffer
     mglBltTexture(curimage,[stimulus.posx(imagePos) stimulus.posy(imagePos) stimulus.widthDeg stimulus.heightDeg]);
-%     mglBltTexture(stimulus.maskTex,[stimulus.posx(imagePos) stimulus.posy(imagePos) stimulus.widthDeg stimulus.heightDeg]);
+    mglBltTexture(stimulus.maskTex,[stimulus.posx(imagePos) stimulus.posy(imagePos) stimulus.widthDeg stimulus.heightDeg]);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -496,16 +491,19 @@ global stimulus
 stimulus.blocks.counter = stimulus.blocks.counter + 1;
 
 % clear screen
-mglClearScreen(stimulus.colors.reservedColor(1));
+mglClearScreen(stimulus.colors.reservedColor(5));
+mglTextDraw('Run starting... please wait.',[0 0]);
+mglFlush
 
-myscreen.flushMode = 0;
+myscreen.flushMode = 1;
 
 % let the user know
 disp(sprintf('(fade) Starting block number: %i',stimulus.blocks.counter));
 
 stimulus.blocks.curTrialPerm = stimulus.blocks.permutationMatrix(randperm(size(stimulus.blocks.permutationMatrix,1)),:);
 stimulus.blocks.curContrastList = stimulus.blocks.contrastListOptions(stimulus.blocks.counter,:);
-stimulus.blocks.curMaxContrast = max(stimulus.pedestals.contrast(stimulus.blocks.curContrastList));
+stimulus.blocks.curMaxContrast = 1;
+% stimulus.blocks.curMaxContrast = max(stimulus.pedestals.contrast(stimulus.blocks.curContrastList));
 
 setGammaTableForMaxContrast(stimulus.blocks.curMaxContrast);
 
@@ -591,9 +589,6 @@ for i = 1:4
     % change the image to match the PDF
     img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
     
-%     img(stimulus.mask(:,:,4)==0) = 4;
-%     img2(:,:,1) = img; img2(:,:,2) = img; img2(:,:,3) = img;
-%     img2(:,:,4) = stimulus.mask(:,:,4);
     % add to flyTex
     stimulus.flyTex{i} = mglCreateTexture(img);
 end
@@ -620,62 +615,43 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%
 function dispStaircase(stimulus)
 
-% % % % try
-% % % %     if stimulus.dual
-% % % %         stairtype = 'dualstaircase';
-% % % %     else
-% % % %         stairtype = 'staircase';
-% % % %     end
-% % % % 
-% % % %     plotting = zeros(2,3);
-% % % %     if stimulus.blocks.counter == 1
-% % % %         % noise
-% % % %         if isfield(stimulus.pedestals,'SnR')
-% % % %             typeP = 'SnR';
-% % % %         else
-% % % %             typeP = 'noise';
-% % % %         end
-% % % %         num = 1;
-% % % %     else
-% % % %         typeP = 'contrast';
-% % % %         num = 2;
-% % % %     end
-% % % %     
-% % % %     figure % this is the 'staircase' figure
-% % % %     title(sprintf('%s, Staircase plot (R->G->B high)',stimulus.blocks.blockTypes{stimulus.blocks.counter}));
-% % % %     hold on
-% % % %     drawing = {'-r' '-g' '-b'
-% % % %                 '--r' '--g' '--b'};
-% % % %     for cues = 1:2
-% % % %         for ped = 1:3
-% % % %             try
-% % % %                 testV = [];
-% % % %                 for i = 1:length(stimulus.(stairtype){num,cues,ped})
-% % % %                     testV = [testV stimulus.(stairtype){num,cues,ped}(i).testValues];
-% % % %                 end
-% % % %                 plot(testV,drawing{cues,ped});
-% % % %             catch
-% % % %             end
-% % % %             try
-% % % %                 out = doStaircase('threshold',stimulus.(stairtype){num,cues,ped},'type','weibull'); % noise, 1 cue, lowest
-% % % %                 plotting(cues,ped) = out.threshold;
-% % % %             catch
-% % % %                 plotting(cues,ped) = -1;
-% % % %             end
-% % % %         end
-% % % %     end
-% % % %     hold off
-% % % %     figure
-% % % %     hold on
-% % % %     title(sprintf('%s, R->G->B High',stimulus.blocks.blockTypes{stimulus.blocks.counter}));
-% % % %     plot(stimulus.pedestals.(typeP)(2:4),plotting(1,:),'-r');
-% % % %     plot(stimulus.pedestals.(typeP)(2:4),plotting(2,:),'--r');
-% % % %     axis([stimulus.pedestals.(typeP)(1) stimulus.pedestals.(typeP)(5) 0 1]);
-% % % %     hold off
-% % % % 
-% % % % catch
-% % % %     disp('(fade) Figures were not generated successfully.');
-% % % % end
+try
+    
+    figure % this is the 'staircase' figure
+    title(sprintf('%s, Staircase plot (R->G->B high)',stimulus.blocks.blockTypes{stimulus.blocks.counter}));
+    hold on
+    drawing = {'-r' '-g' '-b'
+                '--r' '--g' '--b'};
+    for cues = 1:2
+        for ped = 1:3
+            try
+                testV = [];
+                for i = 1:length(stimulus.staircase{cues,ped})
+                    testV = [testV stimulus.staircase{cues,ped}(i).testValues];
+                end
+                plot(testV,drawing{cues,ped});
+            catch
+            end
+            try
+                out = doStaircase('threshold',stimulus.staircase{cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                plotting(cues,ped) = out.threshold;
+            catch
+                plotting(cues,ped) = -1;
+            end
+        end
+    end
+    hold off
+    figure
+    hold on
+    title(sprintf('%s, R->G->B High'));
+    plot(stimulus.pedestals.contrast(1:3),plotting(1,:),'-r');
+    plot(stimulus.pedestals.contrast(1:3),plotting(2,:),'--r');
+    axis([stimulus.pedestals.contrast(1) stimulus.pedestals.contrast(3) 0 1]);
+    hold off
+
+catch
+    disp('(fade) Figures were not generated successfully.');
+end
 
 %% checkStaircaseStop
 function checkStaircaseStop(stimulus)
