@@ -242,7 +242,7 @@ for phaseNum = 1:length(task{1})
     [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],@startBlockCallback);
 end
 
-mglClearScreen(stimulus.colors.reservedColor(5));
+mglClearScreen(stimulus.colors.rmed/255);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init staircase
@@ -275,7 +275,7 @@ while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
 end
 
 % task ended
-mglClearScreen(stimulus.colors.reservedColor(5));
+mglClearScreen(stimulus.colors.rmed/255);
 mglTextDraw('Run complete... please wait.',[0 0]);
 mglFlush
 myscreen.flushMode = 1;
@@ -393,7 +393,7 @@ end
 function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
-mglClearScreen(stimulus.colors.reservedColor(5));
+mglClearScreen(stimulus.colors.rmed/255);
 
 upFix(stimulus);
 upCues(task,stimulus);
@@ -491,7 +491,7 @@ global stimulus
 stimulus.blocks.counter = stimulus.blocks.counter + 1;
 
 % clear screen
-mglClearScreen(stimulus.colors.reservedColor(5));
+mglClearScreen(stimulus.colors.rmed/255);
 mglTextDraw('Run starting... please wait.',[0 0]);
 mglFlush
 
