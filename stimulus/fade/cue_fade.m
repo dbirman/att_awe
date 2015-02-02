@@ -362,22 +362,27 @@ switch task.thistrial.thisseg
     case stimulus.seg.ITI
         stimulus.live.fixColor = 0;
         stimulus.live.changing = 0;
+        stimulus.live.cues = 0;
         stimulus.live.faces = 0;
     case stimulus.seg.cue
         stimulus.live.fixColor = 0;
         stimulus.live.changing = 0;
+        stimulus.live.cues = 1;
         stimulus.live.faces = 0;
     case stimulus.seg.stim_1hold
         stimulus.live.fixColor = 0;
         stimulus.live.changing = 0;
+        stimulus.live.cues = 1;
         stimulus.live.faces = 1;
     case stimulus.seg.stim_2chng
         stimulus.live.fixColor = 0;
         stimulus.live.changing = task.thistrial.change;
+        stimulus.live.cues = 1;
         stimulus.live.faces = 1;
     case stimulus.seg.resp
         stimulus.live.fixColor = 1;
         stimulus.live.changing = 0;
+        stimulus.live.cues = 1;
         stimulus.live.faces = 0;
 end
 
@@ -392,7 +397,9 @@ global stimulus
 mglClearScreen(stimulus.colors.rmed/255);
 
 upFix(stimulus);
-upCues(task,stimulus);
+if stimulus.live.cues
+    upCues(task,stimulus);
+end
 if stimulus.live.faces
     upFaces(task,stimulus);
 end
