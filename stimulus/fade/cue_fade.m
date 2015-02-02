@@ -332,6 +332,8 @@ if task.thistrial.cues == 1
     else
         task.thistrial.changeTarget = task.thistrial.target;
     end
+else
+    task.thistrial.changeTarget = task.thistrial.target;
 end
 task.thistrial.contrastList = stimulus.blocks.curContrastList;
 task.thistrial.maxContrast = stimulus.blocks.curMaxContrast;
