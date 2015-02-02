@@ -151,7 +151,7 @@ task{1}{1}.segmax = [1 1 .5 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1 1];
 task{1}{1}.parameter.blockTrialNum = 1:16; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
-task{1}{1}.numBlocks = 6;
+task{1}{1}.numBlocks = 7;
 
 %% Block variables
 
@@ -160,7 +160,8 @@ task{1}{1}.numBlocks = 6;
 % These values are randomized for each block and are pulled as a random
 % permutation of a matrix stored in stimulus.blocks.curTrialPerm
 
-task{1}{1}.randVars.calculated.target = nan;
+task{1}{1}.randVars.calculated.target = nan; % This is the target that gets cued
+task{1}{1}.randVars.calculated.changeTarget = nan; % This is the actual location that changes
 task{1}{1}.randVars.calculated.cues = nan;
 task{1}{1}.randVars.calculated.change = nan; % will the stimulus actually change
 
@@ -322,6 +323,16 @@ global stimulus
 task.thistrial.target = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,1);
 task.thistrial.cues = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,2);
 task.thistrial.change = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,3);
+if task.thistrial.cues == 1
+    % only on focal trials
+    if rand < .1
+        locs = [1 2 3 4];
+        locs = locs(locs~=task.thistrial.target);
+        task.thistrial.changeTarget = locs(randi(3));
+    else
+        task.thistrial.changeTarget = task.thistrial.target;
+    end
+end
 task.thistrial.contrastList = stimulus.blocks.curContrastList;
 task.thistrial.maxContrast = stimulus.blocks.curMaxContrast;
 
@@ -392,12 +403,18 @@ mglFixationCross(1,1,stimulus.live.fixColor);
 %%
 function upCues(task,stimulus)
 
+if task.thistrial.thisseg == stimulus.seg.resp
+    tLoc = task.thistrial.changeTarget;
+else
+    tLoc = task.thistrial.target;
+end
+
 ang = [180 0 0 180];
 if task.thistrial.cues == 1 || task.thistrial.thisseg == stimulus.seg.resp
     % We can't just display all of the lines, we just want one line
-    usePos1 = stimulus.posx(task.thistrial.target);
-    usePos2 = stimulus.posy(task.thistrial.target);
-    ang = ang(task.thistrial.target);
+    usePos1 = stimulus.posx(tLoc);
+    usePos2 = stimulus.posy(tLoc);
+    ang = ang(tLoc);
 else
     usePos1 = stimulus.posx;
     usePos2 = stimulus.posy;
@@ -410,7 +427,7 @@ function upFaces(task,stimulus)
 
 
 for imagePos = 1:4
-    if stimulus.live.changing && imagePos == task.thistrial.target
+    if stimulus.live.changing && imagePos == task.thistrial.changeTarget
         time = task.thistrial.seglen(stimulus.seg.stim_2chng)*1000;
         rNum = length(stimulus.changeTex);
         % figure out how long it's been since this segment started
@@ -515,7 +532,7 @@ function stimulus = buildChangeTex(task,stimulus)
 % 150 hz, so we need 15 images down. Note since this is trial start (the 
 % ITI) it doesn't matter if we drop frames right now.
 
-highCon = stimulus.pedestals.contrast(task.thistrial.contrastList(task.thistrial.target));
+highCon = stimulus.pedestals.contrast(task.thistrial.contrastList(task.thistrial.changeTarget));
 lowCon = highCon - task.thistrial.deltaPed;
 if lowCon <= 0
     disp('(fade) Required contrast range dropped below zero, truncating');
@@ -534,7 +551,7 @@ end
 
 for i = 1:length(range)
     % get the image
-    img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.target)}(:,:,stimulus.blocks.curImageList(task.thistrial.target));
+    img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget));
     % set the contrast
     curCon = range(i);
     % scale by the ratio
