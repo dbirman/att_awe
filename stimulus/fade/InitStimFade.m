@@ -49,7 +49,7 @@ if ~isfield(stimulus,'imagesLoaded') || (~stimulus.imagesLoaded) || ~isequal(sti
           
           image = reconstructFromHalfFourier(thisImage);
           
-          image = fixBoundaries(image,stimulus.pedestals.maxRange);
+%           image = fixBoundaries(image,255);
           stimulus.images{cat}(:,:,imgN) = flipud(image);
           
           % Display percent done

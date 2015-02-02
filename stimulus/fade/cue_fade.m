@@ -488,7 +488,7 @@ stimulus.blocks.curContrastList = stimulus.blocks.contrastListOptions(stimulus.b
 stimulus.blocks.curMaxContrast = 1;
 % stimulus.blocks.curMaxContrast = max(stimulus.pedestals.contrast(stimulus.blocks.curContrastList));
 
-setGammaTableForMaxContrast(stimulus.blocks.curMaxContrast);
+% setGammaTableForMaxContrast(stimulus.blocks.curMaxContrast);
 
 % now that we know the current contrasts values we can build the flyTex
 % values for this current trial
