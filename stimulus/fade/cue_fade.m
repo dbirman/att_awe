@@ -101,8 +101,8 @@ mglTextSet('Helvetica',32,255,... % this doesn't work... not sure why
 %% Initialize Images
 
 % set initial thresholds
-stimulus.pedestals.contrast = [ .3 .4 .6];
-stimulus.baseThresh(1) = .2;
+stimulus.pedestals.contrast = [ .4 .6 .9];
+stimulus.baseThresh(1) = .35;
 % These noise levels correspond to an SnR of 
 % noisevals = [1.75 1.25 .75 .25 -.25];
 % stimulus.pedestals.noise = 1./(1+exp(noisevals));
@@ -146,7 +146,8 @@ stimulus.seg.cue = 2; % the cue is on for 1s
 stimulus.seg.stim_1hold = 3; % the stimulus is on for 1s
 stimulus.seg.stim_2chng = 4;
 stimulus.seg.resp = 5;
-task{1}{1}.seglen = [1 1 .1 1 1];
+task{1}{1}.segmin = [1 1 .1 .5 1.2];
+task{1}{1}.segmax = [1 1 .5 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1 1];
 task{1}{1}.parameter.blockTrialNum = 1:16; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
@@ -427,7 +428,7 @@ for imagePos = 1:4
         if frame < 1, frame = 1; end
         if frame > rNum, frame = rNum; end
         curimage = stimulus.changeTex{frame};
-        disp(sprintf('frame %i time %03.f',frame,changeTime));
+%         disp(sprintf('frame %i time %03.f',frame,changeTime));
     else
         % Get the image from the textures built on the fly
         curimage = stimulus.flyTex{imagePos};
@@ -600,7 +601,7 @@ function dispStaircase(stimulus)
 try
     
     figure % this is the 'staircase' figure
-    title(sprintf('%s, Staircase plot (R->G->B high)',stimulus.blocks.blockTypes{stimulus.blocks.counter}));
+    title('%s, Staircase plot (R->G->B high)');
     hold on
     drawing = {'-r' '-g' '-b'
                 '--r' '--g' '--b'};
