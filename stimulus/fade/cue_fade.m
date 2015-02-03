@@ -149,7 +149,7 @@ stimulus.seg.resp = 5;
 task{1}{1}.segmin = [1 1 .1 .5 1.2];
 task{1}{1}.segmax = [1 1 .5 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0 0];
-task{1}{1}.getResponse = [0 0 0 1 1];
+task{1}{1}.getResponse = [0 0 0 0 1];
 task{1}{1}.parameter.blockTrialNum = 1:16; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
 task{1}{1}.numBlocks = 7;
 
@@ -164,6 +164,7 @@ task{1}{1}.randVars.calculated.target = nan; % This is the target that gets cued
 task{1}{1}.randVars.calculated.changeTarget = nan; % This is the actual location that changes
 task{1}{1}.randVars.calculated.cues = nan;
 task{1}{1}.randVars.calculated.change = nan; % will the stimulus actually change
+task{1}{1}.randVars.calculated.catch = 0;
 
 % Each block has a very specific set of stimuli which are maintained across
 % the block. Again, these are counterbalanced across blocks in a random
@@ -329,6 +330,7 @@ if task.thistrial.cues == 1
         locs = [1 2 3 4];
         locs = locs(locs~=task.thistrial.target);
         task.thistrial.changeTarget = locs(randi(3));
+        task.thistrial.catch = 1;
     else
         task.thistrial.changeTarget = task.thistrial.target;
     end
