@@ -11,7 +11,6 @@ try
         clear expeye
     end
     
-    
     %% Main Re-organization
     e{1}.randVars.image1 = zeros(size(e{1}.randVars.deltaPed));
     e{1}.randVars.image2 = zeros(size(e{1}.randVars.deltaPed));

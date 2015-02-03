@@ -1,4 +1,4 @@
-function fade2csv ( e )
+function fade2csv ( e)
 
 global analysis
 % This function writes three files, 'main(Run#).csv', 'per(Run#).csv', and
@@ -24,53 +24,94 @@ if ~isdir(saveLoc)
 end
 mainFile = fullfile(saveLoc,sprintf('main%02.f.csv',runNum));
 runFile = fullfile(saveLoc,sprintf('run%02.f.csv',runNum));
+eyeFile = fullfile(saveLoc,sprintf('eye%02.f.csv',runNum));
+
+%% Write Eye
+
+if ~exist(eyeFile,'file')
+    if ~isempty(eye)
+        eyeHeader = {'trial','time','xPos','yPos','pupil'};
+
+        eyeData = [];
+        for t = 1:size(eye.xPos,1)
+            % trial t
+            eyeData(end+1:end+size(eye.xPos,2),1) = repmat(t,size(eye.xPos,2),1);
+            eyeData(end+1:end+size(eye.xPos,2),2) = eye.time;
+            for i = 3:length(eyeHeader)
+                eyeData(end+1:end+size(eye.xPos,2),i) = eye.(eyeHeader{i})(t,:)*1000;
+            end
+        end
+        % Now write to eyeFile
+        disp(sprintf('(fade2csv) Writing eye file... %s',eyeFile));
+        tic
+        csvwriteh(eyeFile,eyeData,eyeHeader);
+        time = toc;
+        disp(sprintf('Success in %02.2f (s)',time));
+    end
+else
+    disp(sprintf('File %s found, not over-writing!',eyeFile));
+end
 
 %% Write Main
 
-% just to track trials
-main.trialNum = 1:main.nTrials;
-
-% First re-organize into a matrix, tracking the headers
-mainHeader = {'trial','RT','response' ...
-    'correct','tPos','cPos','catch','tGen','tCon','cCon','dPed','tImg','cImg' ... % rand items
-    'blockTrial'}; % parameter items
+if ~exist(mainFile,'file')
+    % just to track trials
+    main.trialNum = 1:main.nTrials;
     
-
-% For each item in the header (re-named) what is the corresponding data?
-corrData = {'trialNum','reactionTime','response'};
-% These come AFTER all the corrData items. They are pulled from
-% 'main.randVars'
-randData = {'correct','target','changeTarget','catch','tGen','tCon','cCon','deltaPed','tImage','cImage'};
-
-pedData = {'blockTrialNum'};
-
-if length(randData)+length(corrData)+length(pedData) ~= length(mainHeader)
-    error('Lengths are incorrect! Check your variables');
+    % First re-organize into a matrix, tracking the headers
+    mainHeader = {'trial','RT','response' ...
+        'correct','tPos','cPos','catch','tGen','tCon','cCon','dPed','tImg','cImg' ... % rand items
+        'blockTrial'}; % parameter items
+    
+    
+    % For each item in the header (re-named) what is the corresponding data?
+    corrData = {'trialNum','reactionTime','response'};
+    % These come AFTER all the corrData items. They are pulled from
+    % 'main.randVars'
+    randData = {'correct','target','changeTarget','catch','tGen','tCon','cCon','deltaPed','tImage','cImage'};
+    
+    pedData = {'blockTrialNum'};
+    
+    if length(randData)+length(corrData)+length(pedData) ~= length(mainHeader)
+        error('Lengths are incorrect! Check your variables');
+    end
+    
+    mainData = [];
+    
+    % mainData(:,1) % COLUMN 1
+    for i = 1:length(corrData)
+        mainData(:,end+1) = main.(corrData{i});
+    end
+    
+    for j = 1:length(randData)
+        mainData(:,end+1) = main.randVars.(randData{j});
+    end
+    
+    for k = 1:length(pedData)
+        mainData(:,end+1) = main.parameter.(pedData{k});
+    end
+    
+    % Now write to mainFile
+    disp(sprintf('(fade2csv) Writing main file... %s',mainFile));
+    csvwriteh(mainFile,mainData,mainHeader);
+    disp('Success');
+else
+    disp(sprintf('File %s found, not over-writing!',mainFile));
 end
-
-mainData = [];
-
-% mainData(:,1) % COLUMN 1
-for i = 1:length(corrData)
-    mainData(:,end+1) = main.(corrData{i});
-end
-
-for j = 1:length(randData)
-    mainData(:,end+1) = main.randVars.(randData{j});
-end
-
-for k = 1:length(pedData)
-    mainData(:,end+1) = main.parameter.(pedData{k});
-end
-
-% Now write to mainFile
-csvwriteh(mainFile,mainData,mainHeader);
 
 %% Write run
 
-% % runHeader = {'dual','blockType'};
-% % runData = [run.runVars.dual run.runVars.blocks(end)];
-% % 
-% % csvwriteh(runFile,runData,runHeader);
+if ~exist(runFile,'file')
+    runHeader = {'pedC1','pedC2','pedC3'};
+    runData = [main.runVars.pedestals.contrast(1),...
+        main.runVars.pedestals.contrast(2),...
+        main.runVars.pedestals.contrast(3)];
+    
+    disp(sprintf('(fade2csv) Writing run file... %s',runFile));
+    csvwriteh(runFile,runData,runHeader);
+    disp('Success');
+else
+    disp(sprintf('File %s found, not over-writing!',runFile));
+end
 
 end

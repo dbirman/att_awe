@@ -38,28 +38,9 @@ load(fullfile(analysis.datFolder,files(end).name));
 % staircaseplots(stimulus);
 
 %% Send main to CSV file
-plotting = gen_discFuncs(stimulus,0);
-plo2csv(plotting);
+plotting = fade_discFuncs(stimulus,0);
+fade_plo2csv(plotting);
 
-%% Send peripheral to CSV file
-peripheral = gen_perPerf(stimulus);
+%% Send catch to CSV file
+cat = fade_catPerf(stimulus);
 per2csv(peripheral);
-
-%% Eye Movement Analysis
-
-% First find the expHolder files with eye data
-eyeData = [];
-for e = 1:length(expHolder)
-    if length(expHolder{e}) > 3
-        eyeData = [eyeData e];
-    end
-end
-eyeHolder = expHolder(eyeData);
-
-%% Analyze
-
-for e = 1:length(eyeHolder)
-    eye = eyeHolder{e};
-%     dispEyeTracesMain(eye); % old version, no heatmaps
-    dispEyeTracesMainHM(eye);
-end
