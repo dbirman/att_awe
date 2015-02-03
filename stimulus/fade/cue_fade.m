@@ -315,24 +315,18 @@ myscreen.flushMode = 0;
 
 global stimulus
 
-% This code can be used to adjust the length of the ITI (or any other
-% segment)
-% if task.thistrial.blockTrialNum == 1
-%     task.thistrial.seglen(1) = 1.5;
-% else
-%     task.thistrial.seglen(1) = 1;
-% end
-
 task.thistrial.target = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,1);
 task.thistrial.cues = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,2);
 task.thistrial.change = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,3);
 if task.thistrial.cues == 1
     % only on focal trials
-    if rand < .1
+    if rand < .15
         locs = [1 2 3 4];
         locs = locs(locs~=task.thistrial.target);
         task.thistrial.changeTarget = locs(randi(3));
         task.thistrial.catch = 1;
+        % If this is a catch trial, extend the response window to 2.5 s
+        task.thistrial.seglen(5) = 2.5;
     else
         task.thistrial.changeTarget = task.thistrial.target;
     end
@@ -343,11 +337,16 @@ task.thistrial.contrastList = stimulus.blocks.curContrastList;
 task.thistrial.genderList = stimulus.blocks.curGenderList;
 task.thistrial.maxContrast = stimulus.blocks.curMaxContrast;
 
-disp(sprintf('(cue_fade) Starting trial %i',task.thistrial.blockTrialNum));
-
 % Get Delta
 [task.thistrial.deltaPed, stimulus] = getDeltaPed(task,stimulus, ...
     task.thistrial.contrastList(task.thistrial.target),task.thistrial.cues);
+
+catchType = {'regular','catch'};
+changeType = {'no change','change'};
+% Display info
+disp(sprintf('(fade) Trial %i is a %s trial. Displaying with %0.2f contrast - %0.2f delta. With %s',task.thistrial.blockTrialNum,catchType{task.thistrial.catch+1}, ...
+    stimulus.pedestals.contrast(task.thistrial.contrastList(task.thistrial.changeTarget)),task.thistrial.deltaPed,...
+    changeType{task.thistrial.change+1}));
 
 % Build changeTex
 if task.thistrial.change
@@ -446,20 +445,11 @@ for imagePos = 1:4
         rNum = length(stimulus.changeTex);
         % figure out how long it's been since this segment started
         changeTime = (mglGetSecs - task.thistrial.segStartSeconds) * 1000;
-        % down up code
-% % % %         if changeTime < time / 2
-% % % %             % we are still dropping
-% % % %             % current frame is:
-% % % %             frame = round(changeTime*2/(time/(rNum-1)))+1;
-% % % %         else
-% % % %             frame = (rNum*2-1)-round(changeTime*2/(time/(rNum-1)));
-% % % %         end
         % down only code
         frame = round(changeTime/(time/(rNum-1)))+1;
         if frame < 1, frame = 1; end
         if frame > rNum, frame = rNum; end
         curimage = stimulus.changeTex{frame};
-%         disp(sprintf('frame %i time %03.f',frame,changeTime));
     else
         % Get the image from the textures built on the fly
         curimage = stimulus.flyTex{imagePos};
@@ -588,7 +578,7 @@ end
 
 function [deltaPed, stimulus] = getDeltaPed(task,stimulus,tCon,cues)
 if task.thistrial.catch
-    [deltaPed, stimulus.staircatch] = doStaircase('testValue',stimulus.staircatch);
+    [deltaPed, stimulus.staircatch] = doStaircase('testValue',stimulus.stairCatch);
 else
     [deltaPed, stimulus.staircase{cues,tCon}] = doStaircase('testValue',stimulus.staircase{cues,tCon});
 end
@@ -624,7 +614,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initStaircase(stimulus)
 
-stimulus.stairCatch = doStaircase('init',
+stimulus.stairCatch = doStaircase('init','fixed',...
+    'fixedVals',[.075 .125 .175 .25]);
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
 stimulus.staircase{1,1} = doStaircase('init','upDown',...
         'initialThreshold',stimulus.baseThresh(1),...
