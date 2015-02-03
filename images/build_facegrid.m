@@ -4,11 +4,11 @@ function out = build_facegrid(contrast,noise,p_mask)
 % specified dataset, using the exact same procedure that cue_noisecon
 % employs.
 
-cFolder = '~/proj/att_awe/images/brazil_faces/';
+cFolder = fullfile('C:\Users\Dan\proj\att_awe\images\brazil_faces\');
 
 gen = {'m/','f/'};
 
-loc = [cFolder gen{2}];
+loc = fullfile(cFolder, gen{2});
 
 %% Load a random image from loc folder 
 
