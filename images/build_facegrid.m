@@ -70,42 +70,15 @@ for c = 1:length(contrast)
     end
 end
 
-%% scalePDF
 
-function [scaled, X2] = scalePdf(unscaled,X,factor)
-if factor > 1
-    error('Scale not designed for scale > 1');
+%% test func
+
+figure
+hold on
+plot(0:255,npdf)
+for x = fliplr(.01:.3:.91)
+s = scalePdf(npdf,0:255,x);
+plot(0:255/(length(s)-1):255,s)
 end
-
-X2 = min(X):factor*(X(2)-X(1)):max(X);
-pad = floor((length(X2)-length(X))/2);
-scaled = [zeros(1,pad) unscaled zeros(1,pad)];
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% pinkNoise %%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-function image = pinkNoise(img_f,K,p_mask)
-
-img = reconstructFromHalfFourier(img_f);
-% Get the image range
-ma = 255;
-mi = 0;
-
-if K == 1
-    image = img;
-    return
-end
-
-% Generate white noise
-nimg_f = img_f;
-nimg_f.phase = p_mask;
-noise = reconstructFromHalfFourier(nimg_f);
-
-L0 = mean2(img);
-image = L0 + sqrt(K) * (img - L0) + sqrt(1-K) * (noise - L0);
-
-% Make sure we are inside range
-image(image>ma) = ma;
-image(image<mi) = mi;
+axis([0 255 .0005 .008])
+legend({'Full Contrast','90%','60%','30%','1%'})

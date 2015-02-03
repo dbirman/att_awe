@@ -1,5 +1,9 @@
 close all hidden
 
+creps = {.5,0:.01:1};
+nreps = {0:.01:1,.5};
+
+p_mask = rand(1,15536)*2*pi;
 % Load an image and its grid
 out = build_facegrid;
 

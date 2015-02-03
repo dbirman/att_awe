@@ -1,0 +1,31 @@
+---
+title: "fade_eyes"
+author: "Dan Birman"
+date: "February 3, 2015"
+output: html_document
+---
+
+Loading some important stuff
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(lme4)
+```
+
+```{r}
+data = read.csv('/Users/dan/data/cue_fade/s300/analysis/csv/eye01.csv')
+data$time = data$time*1000
+```
+
+# Analysis!
+
+```{r}
+data %>%
+#   filter(time>2000) %>%
+#   filter(time<3000) %>%
+  ggplot() +
+  geom_point(aes(xPos,yPos))
+```
+
