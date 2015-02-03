@@ -8,7 +8,7 @@ for fi = 1:length(files)
     if isfile(fixFile)
         disp(sprintf('(noisecon_analysis) Found fixed file for %s, ignoring...',curFile));
     else
-        success = genExp(curFile,fixFile);
+        success = fade_genExp(curFile,fixFile);
         if success
             disp(sprintf('(noisecon_analysis) Output in: %s',fixFile));
         else

@@ -2,9 +2,7 @@ function plotting = gen_discFuncs(stimulus,check)
 
 disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy (use check=1 flag)');
 
-plotting = cell(2,3,2,2);
-for num = 1:2
-    
+plotting = cell(2,3);
     for cues = 1:2
         for ped = 1:3
             try
@@ -12,9 +10,9 @@ for num = 1:2
 %                     out1 = doStaircase('threshold',stimulus.staircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
 %                     keyboard
                 else
-                    for i = 1:length(stimulus.staircase{num,cues,ped})
-                        if stimulus.staircase{num,cues,ped}(i).trialNum > 0
-                            out{i} = doStaircase('threshold',stimulus.staircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
+                    for i = 1:length(stimulus.staircase{cues,ped})
+                        if stimulus.staircase{cues,ped}(i).trialNum > 0
+                            out{i} = doStaircase('threshold',stimulus.staircase{cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
                         end
                     end 
                 end
@@ -22,28 +20,9 @@ for num = 1:2
                 for i = 1:length(out)
                     thresh(i) = out{i}.threshold;
                 end
-                plotting{cues,ped,1,num} = thresh;
+                plotting{cues,ped} = thresh;
             catch
-                plotting{cues,ped,1,num} = -1;
-            end
-            try
-                if check
-                    out2 = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped},'dispFig',1,'type','weibull'); % noise, 1 cue, lowest
-                    keyboard
-                else
-                    for i = 1:length(stimulus.dualstaircase{num,cues,ped})
-                        if stimulus.dualstaircase{num,cues,ped}(i).trialNum > 0
-                            out2{i} = doStaircase('threshold',stimulus.dualstaircase{num,cues,ped}(i),'type','weibull');% noise, 1 cue, lowest
-                        end
-                    end
-                end
-                for i = 1:length(out2)
-                    thresh2(i) = out2{i}.threshold;
-                end
-                plotting{cues,ped,2,num} = thresh2;
-            catch
-                plotting{cues,ped,2,num} = -1;
+                plotting{cues,ped} = -1;
             end
         end
     end
-end

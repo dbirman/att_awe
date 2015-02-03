@@ -146,12 +146,12 @@ stimulus.seg.cue = 2; % the cue is on for 1s
 stimulus.seg.stim_1hold = 3; % the stimulus is on for 1s
 stimulus.seg.stim_2chng = 4;
 stimulus.seg.resp = 5;
-task{1}{1}.segmin = [1 1 .1 .5 1.2];
-task{1}{1}.segmax = [1 1 .5 .5 1.2];
+task{1}{1}.segmin = [1 .8 .1 .5 1.2];
+task{1}{1}.segmax = [1 .8 .5 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 1];
-task{1}{1}.parameter.blockTrialNum = 1:16; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
-task{1}{1}.numBlocks = 7;
+task{1}{1}.parameter.blockTrialNum = 1:20; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
+task{1}{1}.numBlocks = 6;
 
 %% Block variables
 
@@ -181,6 +181,7 @@ end
 
 % task{1}{1}.randVars.calculated.noiseList = nan(4,2);
 task{1}{1}.randVars.calculated.contrastList = nan(4);
+task{1}{1}.randVars.calculated.genderList = nan(4);
 task{1}{1}.randVars.calculated.maxContrast = nan;
 task{1}{1}.randVars.calculated.deltaPed = nan;
 task{1}{1}.randVars.calculated.imageNums = nan(1,4);
@@ -203,6 +204,7 @@ else
     % within a single block and need to be counterbalanced. Target #, cues,
     % and change. [Targets;Cues;Change]
     stimulus.blocks.permutationMatrix = [repmat(1:4,1,4)',repmat([1,1,1,1,2,2,2,2],1,2)',[zeros(1,8),ones(1,8)]'];
+    stimulus.blocks.permutationMatrix = [stimulus.blocks.permutationMatrix ; 1 1 1; 2 1 1; 3 1 1; 4 1 1];
     % Now we want to set up the target pedestals we'll use for each of the
     % blocks (stored in thistrial.contrastList). On each block we'll use on
     % of these permutations, until we run out and we reset the list.
@@ -338,12 +340,13 @@ else
     task.thistrial.changeTarget = task.thistrial.target;
 end
 task.thistrial.contrastList = stimulus.blocks.curContrastList;
+task.thistrial.genderList = stimulus.blocks.curGenderList;
 task.thistrial.maxContrast = stimulus.blocks.curMaxContrast;
 
 disp(sprintf('(cue_fade) Starting trial %i',task.thistrial.blockTrialNum));
 
 % Get Delta
-[task.thistrial.deltaPed, stimulus] = getDeltaPed(stimulus, ...
+[task.thistrial.deltaPed, stimulus] = getDeltaPed(task,stimulus, ...
     task.thistrial.contrastList(task.thistrial.target),task.thistrial.cues);
 
 % Build changeTex
@@ -483,8 +486,10 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
         task.thistrial.correct = find(stimulus.responseKeys==task.thistrial.whichButton) == task.thistrial.change+1;
         stimulus.live.fixColor = fixColors{task.thistrial.correct+1};
         disp(sprintf('(fade) Response %s',responseText{task.thistrial.correct+1}));
-        stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)} = ...
-            doStaircase('update',stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)},task.thistrial.correct);
+        if ~task.thistrial.catch
+            stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)} = ...
+                doStaircase('update',stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)},task.thistrial.correct);
+        end
     else
         disp(sprintf('(fade) Subject responded multiple times: %i',task.thistrial.gotResponse+1));
     end
@@ -546,7 +551,11 @@ function stimulus = buildChangeTex(task,stimulus)
 % ITI) it doesn't matter if we drop frames right now.
 
 highCon = stimulus.pedestals.contrast(task.thistrial.contrastList(task.thistrial.changeTarget));
-lowCon = highCon - task.thistrial.deltaPed;
+if task.thistrial.catch
+    lowCon = highCon - .15;
+else
+    lowCon = highCon - task.thistrial.deltaPed;
+end
 if lowCon <= 0
     disp('(fade) Required contrast range dropped below zero, truncating');
     lowCon = .01;
@@ -577,8 +586,12 @@ end
 
 %% getDeltaPed
 
-function [deltaPed, stimulus] = getDeltaPed(stimulus,tCon,cues)
-[deltaPed, stimulus.staircase{cues,tCon}] = doStaircase('testValue',stimulus.staircase{cues,tCon});
+function [deltaPed, stimulus] = getDeltaPed(task,stimulus,tCon,cues)
+if task.thistrial.catch
+    [deltaPed, stimulus.staircatch] = doStaircase('testValue',stimulus.staircatch);
+else
+    [deltaPed, stimulus.staircase{cues,tCon}] = doStaircase('testValue',stimulus.staircase{cues,tCon});
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -611,6 +624,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initStaircase(stimulus)
 
+stimulus.stairCatch = doStaircase('init',
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
 stimulus.staircase{1,1} = doStaircase('init','upDown',...
         'initialThreshold',stimulus.baseThresh(1),...

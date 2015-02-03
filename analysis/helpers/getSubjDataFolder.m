@@ -1,11 +1,17 @@
-function [datFolder, anFolder] = getSubjDataFolder( )
+function [datFolder, anFolder] = getSubjDataFolder( experiment )
 
 if isempty(mglGetSID)
     error('Please set subject ID first.');
 end
 
-datFolder = sprintf('~/data/cue_noisecon/%s',mglGetSID);
-anFolder = sprintf('~/proj/att_awe/analysis/%s',mglGetSID);
+switch experiment
+    case 'noisecon'
+        datFolder = fullfile(sprintf('~/data/cue_noisecon/%s',mglGetSID));
+    case 'fade'
+        datFolder = fullfile(sprintf('~/data/cue_fade/%s',mglGetSID));
+end
+        
+anFolder = fullfile(datFolder,'analysis');
 
 if ~isdir(anFolder)
     mkdir(anFolder);
