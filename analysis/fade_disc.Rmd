@@ -43,7 +43,8 @@ mainmean = mainmean %>% mutate(muround=round(mu,2))
 main %>%
   ggplot(data=.) +
   geom_line(aes(pedestal,threshold,color=taskf,linetype=cuesf)) +
-  geom_errorbar(data=mainmean,aes(pedestal,mu,ymin=mu-sd,ymax=mu+sd,color=taskf,linetype=cuesf))
+  geom_errorbar(data=mainmean,aes(pedestal,mu,ymin=mu-sd,ymax=mu+sd,color=taskf,linetype=cuesf)) +
+  theme_bw()
 ```
 
 
