@@ -52,9 +52,9 @@ if width == 250
     mask = [zeros(90,250);mask;zeros(60,250)];
 end
 if width == 399
-    mask_size = [200 200];
-    mask = repmat([zeros(1,100),ones(1,200),zeros(1,100)],200,1);
-    mask = [zeros(100,400);mask;zeros(100,400)];
+    mask_size = [180 180];
+    mask = repmat([zeros(1,110),ones(1,180),zeros(1,110)],180,1);
+    mask = [zeros(110,400);mask;zeros(110,400)];
 end
 
 % load each image

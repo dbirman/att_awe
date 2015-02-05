@@ -88,6 +88,7 @@ mglTextSet('Helvetica',32,255,... % this doesn't work... not sure why
 
 % set initial thresholds
 stimulus.pedestals.contrast = [ .4 .6 .9];
+stimulus.pedestals.noise = .4;
 stimulus.baseThresh(1) = .35;
 
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
@@ -573,26 +574,35 @@ end
 
     % get the image
 img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget));
+nimg_f = getHalfFourier(img);
+nimg_f.phase = stimulus.blocks.curPMask(task.thistrial.changeTarget,:);
+noise = reconstructFromHalfFourier(nimg_f);
+L0 = mean2(img);
+if task.thistrial.catchTask == 2
+    curCon = highValue;
+    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+end
 for i = 1:length(range)
 
 %     else
+tic
     if task.thistrial.catchTask == 2
-        curCon = highValue;
-        curNoi = .4+range(i);
-
+        K = .4+range(i);
     else
         curCon = range(i);
-        curNoi = .4;
+        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+        K = .4;
     end
 
-    img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(task.thistrial.changeTarget,:));
+    image = L0 + sqrt(K) * (img - L0) + sqrt(1-K) * (noise - L0);
     % set the contrast
     % scale by the ratio
-    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
     % change the image to match the PDF
-    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
-    
-    stimulus.changeTex{i} = mglCreateTexture(img);
+    imagef = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(image/255,npdf) + stimulus.colors.mrmin;
+    disp(sprintf('time: %.3f',toc))
+    tic
+    stimulus.changeTex{i} = mglCreateTexture(imagef);
+    disp(toc)
 end
 
 %% getDeltaPed
@@ -622,7 +632,7 @@ for i = 1:4
     img = stimulus.images{stimulus.blocks.curGenderList(i)}(:,:,stimulus.blocks.curImageList(i));
     % Contrast
     
-    curNoi = .4;
+    curNoi = stimulus.pedestals.noise;
     
     img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(i,:));
     
