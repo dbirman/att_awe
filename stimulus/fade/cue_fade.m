@@ -319,7 +319,7 @@ if task.thistrial.cues == 1
         task.thistrial.changeTarget = locs(randi(3));
         task.thistrial.catch = 1;
         % If this is a catch trial, extend the response window to 2.5 s
-        task.thistrial.seglen(5) = 2.5;
+        task.thistrial.seglen(stimulus.seg.resp) = 2.5;
     else
         task.thistrial.changeTarget = task.thistrial.target;
     end
