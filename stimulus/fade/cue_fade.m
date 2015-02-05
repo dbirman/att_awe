@@ -148,6 +148,7 @@ task{1}{1}.randVars.calculated.changeTarget = nan; % This is the actual location
 task{1}{1}.randVars.calculated.cues = nan;
 task{1}{1}.randVars.calculated.change = nan; % will the stimulus actually change
 task{1}{1}.randVars.calculated.catch = 0;
+task{1}{1}.randVars.calculated.catchTask = nan;
 
 % Each block has a very specific set of stimuli which are maintained across
 % the block. Again, these are counterbalanced across blocks in a random
@@ -168,6 +169,9 @@ task{1}{1}.randVars.calculated.maxContrast = nan;
 task{1}{1}.randVars.calculated.deltaPed = nan;
 task{1}{1}.randVars.calculated.imageNums = nan(1,4);
 task{1}{1}.randVars.calculated.correct = nan;
+task{1}{1}.randVars.calculated.trialNum = nan;
+
+stimulus.curTrial = 0;
 
 %% Block setup
 if isfield(stimulus,'blocks') && isfield(stimulus.blocks,'loaded')
@@ -187,6 +191,7 @@ else
     % and change. [Targets;Cues;Change]
     stimulus.blocks.permutationMatrix = [repmat(1:4,1,4)',repmat([1,1,1,1,2,2,2,2],1,2)',[zeros(1,8),ones(1,8)]'];
     stimulus.blocks.permutationMatrix = [stimulus.blocks.permutationMatrix ; 1 1 1; 2 1 1; 3 1 1; 4 1 1];
+    stimulus.blocks.permutationMatrix = [stimulus.blocks.permutationMatrix ; 1 1 0; 2 1 0; 3 1 0; 4 1 0];
     % Now we want to set up the target pedestals we'll use for each of the
     % blocks (stored in thistrial.pedestalList). On each block we'll use on
     % of these permutations, until we run out and we reset the list.
@@ -297,16 +302,20 @@ myscreen.flushMode = 0;
 
 global stimulus
 
+stimulus.curTrial = stimulus.curTrial + 1;
+task.thistrial.trialNum = stimulus.curTrial;
+
 task.thistrial.target = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,1);
 task.thistrial.cues = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,2);
 task.thistrial.change = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,3);
 if task.thistrial.cues == 1
     % only on focal trials
-    if rand < .15
+    if rand < .2
         locs = [1 2 3 4];
         locs = locs(locs~=task.thistrial.target);
         task.thistrial.changeTarget = locs(randi(3));
         task.thistrial.catch = 1;
+        task.thistrial.catchTask = randi(2);
         % If this is a catch trial, extend the response window to 2.5 s
         task.thistrial.seglen(stimulus.seg.resp) = 2.5;
     else
@@ -327,8 +336,13 @@ catchType = {'regular','catch'};
 changeType = {'no change','change'};
 % Display info
 trialType = {'contrast','noise'};
-disp(sprintf('(fade) Trial %i is a %s trial. Displaying with %0.2f %s - %0.2f delta. With %s',task.thistrial.blockTrialNum,catchType{task.thistrial.catch+1}, ...
-    stimulus.pedestals.(trialType{task.thistrial.task})(task.thistrial.pedestalList(task.thistrial.changeTarget)),stimulus.taskOpts{task.thistrial.task},task.thistrial.deltaPed,...
+if isnan(task.thistrial.catchTask)
+    type = 1;
+else
+    type = task.thistrial.catchTask;
+end
+disp(sprintf('(fade) Trial %i is a %s trial. Displaying with %0.2f %s - %0.2f delta. With %s',task.thistrial.trialNum,catchType{task.thistrial.catch+1}, ...
+    stimulus.pedestals.(trialType{type})(task.thistrial.pedestalList(task.thistrial.changeTarget)),trialType{type},task.thistrial.deltaPed,...
     changeType{task.thistrial.change+1}));
 
 % Build changeTex
@@ -467,6 +481,8 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
         if ~task.thistrial.catch
             stimulus.staircase{task.thistrial.cues,task.thistrial.pedestalList(task.thistrial.target)} = ...
                 doStaircase('update',stimulus.staircase{task.thistrial.cues,task.thistrial.pedestalList(task.thistrial.target)},task.thistrial.correct);
+        else
+            stimulus.stairCatch = doStaircase('update',stimulus.stairCatch,task.thistrial.correct);
         end
     else
         disp(sprintf('(fade) Subject responded multiple times: %i',task.thistrial.gotResponse+1));
@@ -485,7 +501,7 @@ global stimulus
 % clear screen
 mglClearScreen(stimulus.colors.rmed/255);
 if task.trialnum==1
-    mglTextDraw(stimulus.taskOpts{stimulus.blocks.taskList(end)},[0 0]);
+    mglTextDraw('Run Starting...',[0 0]);
 end
 mglFlush
 
@@ -532,24 +548,20 @@ function stimulus = buildChangeTex(task,stimulus)
 % 150 hz, so we need 15 images down. Note since this is trial start (the 
 % ITI) it doesn't matter if we drop frames right now.
 
-if stimulus.blocks.curTask == 1
-    highValue = stimulus.pedestals.contrast(task.thistrial.pedestalList(task.thistrial.changeTarget));
-else
-    highValue = stimulus.pedestals.noise(task.thistrial.pedestalList(task.thistrial.changeTarget));
-end
+highValue = stimulus.pedestals.contrast(task.thistrial.pedestalList(task.thistrial.changeTarget));
 
-if task.thistrial.catch
-    lowValue = highValue - .15;
-else
-    lowValue = highValue - task.thistrial.deltaPed;
-end
+lowValue = highValue - task.thistrial.deltaPed;
+
 if lowValue <= 0
     disp('(fade) Required contrast range dropped below zero, truncating');
     lowValue = .01;
 end
 
-range = fliplr(lowValue : (highValue-lowValue)/(stimulus.steps-1) : highValue);
-
+if task.thistrial.catchTask == 1
+    range = fliplr(lowValue : (highValue-lowValue)/(stimulus.steps-1) : highValue);
+else
+    range = fliplr(0:task.thistrial.deltaPed/(stimulus.steps-1):task.thistrial.deltaPed);
+end
 
 if isfield(stimulus,'changeTex')
     for i = 1:length(stimulus.changeTex)
@@ -559,30 +571,27 @@ else
     stimulus.changeTex = cell(1,length(range));
 end
 
-for i = 1:length(range)
     % get the image
-    img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget));
-%     if stimulus.blocks.curTask == 1
-        % set the contrast
-        curCon = range(i);
-        % scale by the ratio
-        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-        % change the image to match the PDF
-        img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
-%     else
-%         
-%         % set the contrast
-%         curCon = .5;
-%         % scale by the ratio
-%         npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-%         % change the image to match the PDF
-%         img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
-%         % set the contrast
-%         curNoi = range(i);
-% 
-%         img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(task.thistrial.changeTarget,:));
-%     end
+img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget));
+for i = 1:length(range)
 
+%     else
+    if task.thistrial.catchTask == 2
+        curCon = highValue;
+        curNoi = .4+range(i);
+
+    else
+        curCon = range(i);
+        curNoi = .4;
+    end
+
+    img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(task.thistrial.changeTarget,:));
+    % set the contrast
+    % scale by the ratio
+    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+    % change the image to match the PDF
+    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    
     stimulus.changeTex{i} = mglCreateTexture(img);
 end
 
@@ -611,35 +620,21 @@ for i = 1:4
     
     % get the image
     img = stimulus.images{stimulus.blocks.curGenderList(i)}(:,:,stimulus.blocks.curImageList(i));
-%     if stimulus.blocks.curTask == 1
-        % Contrast
+    % Contrast
     
-        % set the contrast
-        curCon = stimulus.pedestals.contrast(stimulus.blocks.curpedestalList(i));
-        % scale by the ratio
-        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-        % change the image to match the PDF
-        img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
-
-        % add to flyTex
-        stimulus.flyTex{i} = mglCreateTexture(img);
-%     else
-%         % Noise
-%     
-%         % set the contrast
-%         curCon = .5;
-%         % scale by the ratio
-%         npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-%         % change the image to match the PDF
-%         img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
-%         % set the contrast
-%         curNoi = stimulus.pedestals.noise(stimulus.blocks.curpedestalList(i));
-% 
-%         img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(i,:));
-% 
-%         % add to flyTex
-%         stimulus.flyTex{i} = mglCreateTexture(img);
-%     end
+    curNoi = .4;
+    
+    img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(i,:));
+    
+    % set the contrast
+    curCon = stimulus.pedestals.contrast(stimulus.blocks.curpedestalList(i));
+    % scale by the ratio
+    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+    % change the image to match the PDF
+    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    
+    % add to flyTex
+    stimulus.flyTex{i} = mglCreateTexture(img);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -650,15 +645,13 @@ function stimulus = initStaircase(stimulus)
 stimulus.stairCatch = doStaircase('init','fixed',...
     'fixedVals',[.075 .125 .175 .25]);
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
-stimulus.staircase{1,1} = doStaircase('init','upDown',...
-    'initialThreshold',stimulus.baseThresh(1),...
-    'initialStepsize',stimulus.baseThresh(1)/3,...
-    'minThreshold=.001','maxThreshold=.2','stepRule','pest',...
-    'nTrials=60','maxStepsize=.1','minStepsize=.001');
-stimulus.staircase{2,1,task} = stimulus.staircase{1,1};
+stimulus.staircase{1,1} = doStaircase('init','fixed',...
+    'fixedVals',[.05 .075 .09 .11 .13 .15 .175]);
+stimulus.staircase{2,1} = doStaircase('init','fixed',...
+    'fixedVals',[.075 .1 .12 .14 .16 .18 .205]);
 for i = 2:length(stimulus.pedestals.contrast)
     stimulus.staircase{1,i} = stimulus.staircase{1,1};
-    stimulus.staircase{2,i} = stimulus.staircase{1,1};
+    stimulus.staircase{2,i} = stimulus.staircase{2,1};
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%
