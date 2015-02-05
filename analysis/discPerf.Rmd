@@ -17,8 +17,8 @@ library(lme4)
 Loading the data files
 
 ```{r}
-main = read.csv('../analysis/s300/csv/mainThresholds.csv')
-per = read.csv('../analysis/s300/csv/perThresholds.csv')
+main = read.csv('C:\\Users\\Dan\\proj\\att_awe\\analysis\\cue_noisecon\\s300\\csv\\mainThresholds.csv')
+per = read.csv('C:\\Users\\Dan\\proj\\att_awe\\analysis\\cue_noisecon\\s300\\csv\\perThresholds.csv')
 ```
 
 Cleaning up the data files
@@ -44,12 +44,13 @@ permean = per %>% group_by(taskf) %>% summarise(mu=mean(threshold),sd=sd(thresho
 
 Now let's add the pedestal values for noise and contrast into the data.frame, this is a bit of a pain and unfortunately I don't know a better solution.
 ```{r}
+single = mainmean %>% group_by(taskf,pedestal) %>% summarise(mu = mean(mu))
 pedFrame = data.frame(taskf=c('Noise','Noise','Noise',
                    'Contrast','Contrast','Contrast'),
            pedestal=c(1,2,3,
                       1,2,3),
-           pedValue=c(noisePed,
-                          contrastPed))
+           pedValue=c(single$mu[1:3],
+                          single$mu[4:6]))
 main = main %>% merge(pedFrame)
 main = main %>%
   mutate(imgFile = ifelse(taskf=='Noise',
@@ -111,7 +112,7 @@ perNorm = per %>%
   mutate(single = permean[1,2]$mu) %>%
   mutate(nThresh = threshold / single)
 mainNorm = main %>%
-  mutate(nThresh = threshold / pedValue)
+  mutate(nThresh = 1/ (threshold / pedValue)
 ```
 
 ```{r}
