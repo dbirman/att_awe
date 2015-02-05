@@ -79,7 +79,6 @@ stimulus.colors.mrmin = 0;
 
 stimulus.basepdf = normpdf(stimulus.colors.mrmin:stimulus.colors.mrmax,stimulus.colors.rmed,75);
 
-stimulus.taskOpts = {'Contrast','Noise'};
 
 %% MGL Parameters
 mglTextSet('Helvetica',32,255,... % this doesn't work... not sure why
