@@ -5,6 +5,10 @@
 
 function image = pinkNoise(img,img_f,K,p_mask)
 
+if isempty(img_f)
+    img_f = getHalfFourier(img);
+end
+
 % Get the image range
 ma = max(img(:));
 mi = min(img(:));

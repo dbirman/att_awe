@@ -79,35 +79,22 @@ stimulus.colors.mrmin = 0;
 
 stimulus.basepdf = normpdf(stimulus.colors.mrmin:stimulus.colors.mrmax,stimulus.colors.rmed,75);
 
+stimulus.taskOpts = {'Contrast','Noise'};
+
 %% MGL Parameters
 mglTextSet('Helvetica',32,255,... % this doesn't work... not sure why
 0,0,0,0,0,0,0);
     
-%% Gamma Table Initialization
-
-% set the reserved colors
-% stimulus.gammaTable(1:size(stimulus.colors.reservedColors,1),1:size(stimulus.colors.reservedColors,2))=stimulus.colors.reservedColors;
-% 
-% % get gamma table
-% if ~isfield(myscreen,'gammaTable')
-%   stimulus.linearizedGammaTable = mglGetGammaTable;
-%   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
-%   disp(sprintf('(cuecon:initGratings) No gamma table found in myscreen. Contrast displays like this'));
-%   disp(sprintf('         should be run with a valid calibration made by moncalib for this monitor.'));
-%   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
-% end
-% stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
-
 %% Initialize Images
 
 % set initial thresholds
 stimulus.pedestals.contrast = [ .4 .6 .9];
 stimulus.baseThresh(1) = .35;
 % These noise levels correspond to an SnR of 
-% noisevals = [1.75 1.25 .75 .25 -.25];
-% stimulus.pedestals.noise = 1./(1+exp(noisevals));
+noisevals = [.75 0 -.75];
+stimulus.pedestals.noise = 1./(1+exp(noisevals));
 % stimulus.pedestals.SnR = stimulus.pedestals.noise ./ (1-stimulus.pedestals.noise);
-% baseThresh(1) = .55;
+stimulus.baseThresh(2) = .3;
 stimulus.nPedestals = length(stimulus.pedestals.contrast);
 
 % load images
@@ -145,13 +132,14 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.cue = 2; % the cue is on for 1s
 stimulus.seg.stim_1hold = 3; % the stimulus is on for 1s
 stimulus.seg.stim_2chng = 4;
-stimulus.seg.resp = 5;
-task{1}{1}.segmin = [1 .8 .1 .5 1.2];
-task{1}{1}.segmax = [1 .8 .5 .5 1.2];
-task{1}{1}.synchToVol = [0 0 0 0 0];
-task{1}{1}.getResponse = [0 0 0 0 1];
+stimulus.seg.ISI = 5;
+stimulus.seg.resp = 6;
+task{1}{1}.segmin = [1 .8 .1 .5 .25 1.3];
+task{1}{1}.segmax = [1 .8 .5 .5 .75 1.3];
+task{1}{1}.synchToVol = [0 0 0 0 0 0];
+task{1}{1}.getResponse = [0 0 0 0 0 1];
 task{1}{1}.parameter.blockTrialNum = 1:20; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
-task{1}{1}.numBlocks = 6;
+task{1}{1}.numBlocks = 5;
 
 %% Block variables
 
@@ -165,6 +153,7 @@ task{1}{1}.randVars.calculated.changeTarget = nan; % This is the actual location
 task{1}{1}.randVars.calculated.cues = nan;
 task{1}{1}.randVars.calculated.change = nan; % will the stimulus actually change
 task{1}{1}.randVars.calculated.catch = 0;
+task{1}{1}.randVars.calculated.task = nan; % 1 = contrast, 2 = noise
 
 % Each block has a very specific set of stimuli which are maintained across
 % the block. Again, these are counterbalanced across blocks in a random
@@ -180,7 +169,7 @@ end
 % these are variables that we want to track for later analysis.
 
 % task{1}{1}.randVars.calculated.noiseList = nan(4,2);
-task{1}{1}.randVars.calculated.contrastList = nan(4);
+task{1}{1}.randVars.calculated.pedestalList = nan(4);
 task{1}{1}.randVars.calculated.genderList = nan(4);
 task{1}{1}.randVars.calculated.maxContrast = nan;
 task{1}{1}.randVars.calculated.deltaPed = nan;
@@ -191,12 +180,13 @@ task{1}{1}.randVars.calculated.correct = nan;
 if isfield(stimulus,'blocks') && isfield(stimulus.blocks,'loaded')
     % We already have our blocks
     stimulus.blocks = rmfield(stimulus.blocks,'loaded'); % remove the load field, otherwise it gets saved across runs
-    % Make sure we have enough contrastListOptions
-    if stimulus.blocks.counter + 7 > size(stimulus.blocks.contrastListOptions,1)
-        % Not enough, let's double the size of contrastListOptions
-        stimulus.blocks.contrastListOptions = [stimulus.blocks.contrastListOptions ; ...
-            stimulus.blocks.contrastListOptions(randperm(size(stimulus.blocks.contrastListOptions,1)),:)];
+    % Make sure we have enough pedestalListOptions
+    if stimulus.blocks.counter + 7 > size(stimulus.blocks.pedestalListOptions,1)
+        % Not enough, let's double the size of pedestalListOptions
+        stimulus.blocks.pedestalListOptions = [stimulus.blocks.pedestalListOptions ; ...
+            stimulus.blocks.pedestalListOptions(randperm(size(stimulus.blocks.pedestalListOptions,1)),:)];
     end
+    stimulus.blocks.taskList(end+1) = 1 + mod(stimulus.blocks.taskList(end));
 else
     % This is the first run, build up the blocks.
     
@@ -206,21 +196,23 @@ else
     stimulus.blocks.permutationMatrix = [repmat(1:4,1,4)',repmat([1,1,1,1,2,2,2,2],1,2)',[zeros(1,8),ones(1,8)]'];
     stimulus.blocks.permutationMatrix = [stimulus.blocks.permutationMatrix ; 1 1 1; 2 1 1; 3 1 1; 4 1 1];
     % Now we want to set up the target pedestals we'll use for each of the
-    % blocks (stored in thistrial.contrastList). On each block we'll use on
+    % blocks (stored in thistrial.pedestalList). On each block we'll use on
     % of these permutations, until we run out and we reset the list.
     counter = 1;
     for i = 1:3
         for j = 1:3
             for k = 1:3
                 for l = 1:3
-                    stimulus.blocks.contrastListOptions(counter,:) = [i,k,k,l];
+                    stimulus.blocks.pedestalListOptions(counter,:) = [i,k,k,l];
                     counter = counter + 1;
                 end
             end
         end
     end
-    stimulus.blocks.contrastListOptions = stimulus.blocks.contrastListOptions(randperm(size(stimulus.blocks.contrastListOptions,1)),:);
+    stimulus.blocks.pedestalListOptions = stimulus.blocks.pedestalListOptions(randperm(size(stimulus.blocks.pedestalListOptions,1)),:);
     stimulus.blocks.counter = 0;
+    taskOpts = [1 2];
+    stimulus.blocks.taskList = taskOpts(randi(length(taskOpts)));
 end
 
 %% Full Setup
@@ -315,6 +307,7 @@ myscreen.flushMode = 0;
 
 global stimulus
 
+task.thistrial.task = stimulus.blocks.curTask;
 task.thistrial.target = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,1);
 task.thistrial.cues = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,2);
 task.thistrial.change = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,3);
@@ -333,19 +326,20 @@ if task.thistrial.cues == 1
 else
     task.thistrial.changeTarget = task.thistrial.target;
 end
-task.thistrial.contrastList = stimulus.blocks.curContrastList;
+task.thistrial.pedestalList = stimulus.blocks.curpedestalList;
 task.thistrial.genderList = stimulus.blocks.curGenderList;
 task.thistrial.maxContrast = stimulus.blocks.curMaxContrast;
 
 % Get Delta
 [task.thistrial.deltaPed, stimulus] = getDeltaPed(task,stimulus, ...
-    task.thistrial.contrastList(task.thistrial.target),task.thistrial.cues);
+    task.thistrial.pedestalList(task.thistrial.target),task.thistrial.cues);
 
 catchType = {'regular','catch'};
 changeType = {'no change','change'};
 % Display info
-disp(sprintf('(fade) Trial %i is a %s trial. Displaying with %0.2f contrast - %0.2f delta. With %s',task.thistrial.blockTrialNum,catchType{task.thistrial.catch+1}, ...
-    stimulus.pedestals.contrast(task.thistrial.contrastList(task.thistrial.changeTarget)),task.thistrial.deltaPed,...
+trialType = {'contrast','noise'};
+disp(sprintf('(fade) Trial %i is a %s trial. Displaying with %0.2f %s - %0.2f delta. With %s',task.thistrial.blockTrialNum,catchType{task.thistrial.catch+1}, ...
+    stimulus.pedestals.(trialType{task.thistrial.task})(task.thistrial.pedestalList(task.thistrial.changeTarget)),stimulus.taskOpts{task.thistrial.task},task.thistrial.deltaPed,...
     changeType{task.thistrial.change+1}));
 
 % Build changeTex
@@ -383,6 +377,11 @@ switch task.thistrial.thisseg
         stimulus.live.changing = task.thistrial.change;
         stimulus.live.cues = 1;
         stimulus.live.faces = 1;
+    case stimulus.seg.ISI
+        stimulus.live.fixColor = 0;
+        stimulus.live.changing = 0;
+        stimulus.live.cues = 0;
+        stimulus.live.faces = 0;
     case stimulus.seg.resp
         stimulus.live.fixColor = 1;
         stimulus.live.changing = 0;
@@ -477,8 +476,8 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
         stimulus.live.fixColor = fixColors{task.thistrial.correct+1};
         disp(sprintf('(fade) Response %s',responseText{task.thistrial.correct+1}));
         if ~task.thistrial.catch
-            stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)} = ...
-                doStaircase('update',stimulus.staircase{task.thistrial.cues,task.thistrial.contrastList(task.thistrial.target)},task.thistrial.correct);
+            stimulus.staircase{task.thistrial.cues,task.thistrial.pedestalList(task.thistrial.target),stimulus.blocks.curTask} = ...
+                doStaircase('update',stimulus.staircase{task.thistrial.cues,task.thistrial.pedestalList(task.thistrial.target),stimulus.blocks.curTask},task.thistrial.correct);
         end
     else
         disp(sprintf('(fade) Subject responded multiple times: %i',task.thistrial.gotResponse+1));
@@ -493,25 +492,27 @@ function [task, myscreen] = startBlockCallback(task, myscreen)
 
 global stimulus
 
-% Increment block (it starts at 0)
-stimulus.blocks.counter = stimulus.blocks.counter + 1;
 
 % clear screen
 mglClearScreen(stimulus.colors.rmed/255);
 if task.trialnum==1
-    mglTextDraw('Run starting... please wait.',[0 0]);
+    mglTextDraw(stimulus.taskOpts{stimulus.blocks.taskList(end)},[0 0]);
 end
 mglFlush
 
 myscreen.flushMode = 1;
+% Increment block (it starts at 0)
+stimulus.blocks.counter = stimulus.blocks.counter + 1;
+
 
 % let the user know
 disp(sprintf('(fade) Starting block number: %i',stimulus.blocks.counter));
 
+stimulus.blocks.curTask = stimulus.blocks.taskList(end);
 stimulus.blocks.curTrialPerm = stimulus.blocks.permutationMatrix(randperm(size(stimulus.blocks.permutationMatrix,1)),:);
-stimulus.blocks.curContrastList = stimulus.blocks.contrastListOptions(stimulus.blocks.counter,:);
+stimulus.blocks.curpedestalList = stimulus.blocks.pedestalListOptions(stimulus.blocks.counter,:);
 stimulus.blocks.curMaxContrast = 1;
-% stimulus.blocks.curMaxContrast = max(stimulus.pedestals.contrast(stimulus.blocks.curContrastList));
+% stimulus.blocks.curMaxContrast = max(stimulus.pedestals.contrast(stimulus.blocks.curpedestalList));
 
 % setGammaTableForMaxContrast(stimulus.blocks.curMaxContrast);
 
@@ -519,6 +520,9 @@ stimulus.blocks.curMaxContrast = 1;
 % values for this current trial
 stimulus.blocks.curGenderList = randi(2,4);
 stimulus.blocks.curImageList = [-1 -1 -1 -1];
+for i = 1:4
+    stimulus.blocks.curPMask(i,:) = rand(1,length(stimulus.raw{1}.halfFourier{1}.phase))*2*pi;
+end
 while length(unique(stimulus.blocks.curImageList))~=4
     for img = 1:4
         iNum = randi(size(stimulus.images{stimulus.blocks.curGenderList(img)},3));
@@ -540,18 +544,24 @@ function stimulus = buildChangeTex(task,stimulus)
 % 150 hz, so we need 15 images down. Note since this is trial start (the 
 % ITI) it doesn't matter if we drop frames right now.
 
-highCon = stimulus.pedestals.contrast(task.thistrial.contrastList(task.thistrial.changeTarget));
-if task.thistrial.catch
-    lowCon = highCon - .15;
+if stimulus.blocks.curTask == 1
+    highValue = stimulus.pedestals.contrast(task.thistrial.pedestalList(task.thistrial.changeTarget));
 else
-    lowCon = highCon - task.thistrial.deltaPed;
-end
-if lowCon <= 0
-    disp('(fade) Required contrast range dropped below zero, truncating');
-    lowCon = .01;
+    highValue = stimulus.pedestals.noise(task.thistrial.pedestalList(task.thistrial.changeTarget));
 end
 
-range = fliplr(lowCon : (highCon-lowCon)/(stimulus.steps-1) : highCon);
+if task.thistrial.catch
+    lowValue = highValue - .15;
+else
+    lowValue = highValue - task.thistrial.deltaPed;
+end
+if lowValue <= 0
+    disp('(fade) Required contrast range dropped below zero, truncating');
+    lowValue = .01;
+end
+
+range = fliplr(lowValue : (highValue-lowValue)/(stimulus.steps-1) : highValue);
+
 
 if isfield(stimulus,'changeTex')
     for i = 1:length(stimulus.changeTex)
@@ -564,12 +574,26 @@ end
 for i = 1:length(range)
     % get the image
     img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget));
-    % set the contrast
-    curCon = range(i);
-    % scale by the ratio
-    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-    % change the image to match the PDF
-    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    if stimulus.blocks.curTask == 1
+        % set the contrast
+        curCon = range(i);
+        % scale by the ratio
+        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+        % change the image to match the PDF
+        img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    else
+        
+        % set the contrast
+        curCon = .5;
+        % scale by the ratio
+        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+        % change the image to match the PDF
+        img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+        % set the contrast
+        curNoi = range(i);
+
+        img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(task.thistrial.changeTarget,:));
+    end
 
     stimulus.changeTex{i} = mglCreateTexture(img);
 end
@@ -580,7 +604,7 @@ function [deltaPed, stimulus] = getDeltaPed(task,stimulus,tCon,cues)
 if task.thistrial.catch
     [deltaPed, stimulus.staircatch] = doStaircase('testValue',stimulus.stairCatch);
 else
-    [deltaPed, stimulus.staircase{cues,tCon}] = doStaircase('testValue',stimulus.staircase{cues,tCon});
+    [deltaPed, stimulus.staircase{cues,tCon,stimulus.blocks.curTask}] = doStaircase('testValue',stimulus.staircase{cues,tCon,stimulus.blocks.curTask});
 end
 
 
@@ -596,17 +620,38 @@ if isfield(stimulus,'flyTex')
     end
 end
 for i = 1:4
+    
     % get the image
     img = stimulus.images{stimulus.blocks.curGenderList(i)}(:,:,stimulus.blocks.curImageList(i));
-    % set the contrast
-    curCon = stimulus.pedestals.contrast(stimulus.blocks.curContrastList(i));
-    % scale by the ratio
-    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-    % change the image to match the PDF
-    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    if stimulus.blocks.curTask == 1
+        % Contrast
     
-    % add to flyTex
-    stimulus.flyTex{i} = mglCreateTexture(img);
+        % set the contrast
+        curCon = stimulus.pedestals.contrast(stimulus.blocks.curpedestalList(i));
+        % scale by the ratio
+        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+        % change the image to match the PDF
+        img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+
+        % add to flyTex
+        stimulus.flyTex{i} = mglCreateTexture(img);
+    else
+        % Noise
+    
+        % set the contrast
+        curCon = .5;
+        % scale by the ratio
+        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+        % change the image to match the PDF
+        img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+        % set the contrast
+        curNoi = stimulus.pedestals.noise(stimulus.blocks.curpedestalList(i));
+
+        img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(i,:));
+
+        % add to flyTex
+        stimulus.flyTex{i} = mglCreateTexture(img);
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -617,15 +662,17 @@ function stimulus = initStaircase(stimulus)
 stimulus.stairCatch = doStaircase('init','fixed',...
     'fixedVals',[.075 .125 .175 .25]);
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
-stimulus.staircase{1,1} = doStaircase('init','upDown',...
-        'initialThreshold',stimulus.baseThresh(1),...
-        'initialStepsize',stimulus.baseThresh(1)/3,...
-        'minThreshold=.001','maxThreshold=.2','stepRule','pest',...
-        'nTrials=60','maxStepsize=.1','minStepsize=.001');
-stimulus.staircase{2,1} = stimulus.staircase{1,1};
-for i = 2:length(stimulus.pedestals.contrast)
-    stimulus.staircase{1,i} = stimulus.staircase{1,1};
-    stimulus.staircase{2,i} = stimulus.staircase{1,1};
+for task = 1:2
+    stimulus.staircase{1,1,task} = doStaircase('init','upDown',...
+            'initialThreshold',stimulus.baseThresh(task),...
+            'initialStepsize',stimulus.baseThresh(task)/3,...
+            'minThreshold=.001','maxThreshold=.2','stepRule','pest',...
+            'nTrials=60','maxStepsize=.1','minStepsize=.001');
+    stimulus.staircase{2,1,task} = stimulus.staircase{1,1,task};
+    for i = 2:length(stimulus.pedestals.contrast)
+        stimulus.staircase{1,i,task} = stimulus.staircase{1,1,task};
+        stimulus.staircase{2,i,task} = stimulus.staircase{1,1,task};
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -634,6 +681,7 @@ end
 function dispStaircase(stimulus)
 
 try
+    taskOpts = {'contrast','noise'};
     
     figure % this is the 'staircase' figure
     title('%s, Staircase plot (R->G->B high)');
@@ -644,14 +692,14 @@ try
         for ped = 1:3
             try
                 testV = [];
-                for i = 1:length(stimulus.staircase{cues,ped})
-                    testV = [testV stimulus.staircase{cues,ped}(i).testValues];
+                for i = 1:length(stimulus.staircase{cues,ped,stimulus.blocks.curTask})
+                    testV = [testV stimulus.staircase{cues,ped,stimulus.blocks.curTask}(i).testValues];
                 end
                 plot(testV,drawing{cues,ped});
             catch
             end
             try
-                out = doStaircase('threshold',stimulus.staircase{cues,ped},'type','weibull'); % noise, 1 cue, lowest
+                out = doStaircase('threshold',stimulus.staircase{cues,ped,stimulus.blocks.curTask},'type','weibull'); % noise, 1 cue, lowest
                 plotting(cues,ped) = out.threshold;
             catch
                 plotting(cues,ped) = -1;
@@ -662,9 +710,9 @@ try
     figure
     hold on
     title(sprintf('%s, R->G->B High'));
-    plot(stimulus.pedestals.contrast(1:3),plotting(1,:),'-r');
-    plot(stimulus.pedestals.contrast(1:3),plotting(2,:),'--r');
-    axis([stimulus.pedestals.contrast(1) stimulus.pedestals.contrast(3) 0 1]);
+    plot(stimulus.pedestals.(taskOpts{stimulus.blocks.curTask})(1:3),plotting(1,:),'-r');
+    plot(stimulus.pedestals.(taskOpts{stimulus.blocks.curTask})(1:3),plotting(2,:),'--r');
+    axis([stimulus.pedestals.(taskOpts{stimulus.blocks.curTask})(1) stimulus.pedestals.(taskOpts{stimulus.blocks.curTask})(3) 0 1]);
     hold off
 
 catch
@@ -675,38 +723,39 @@ end
 function checkStaircaseStop(stimulus)
 % Check both staircases
 for cues = 1:2
-    s = stimulus.staircase{cues};
-    if doStaircase('stop',s)
-        % this is a bit of a pain... you can't pass an initialThreshold
-        % argument do doStaircase('init',s, ...), it ignores everything and
-        % resets using the calculated threshold. Because you can't override it
-        [args, vals, ~] = getArgs(s(1).initArgs);
-        threshPos = -1;
-        stepPos = -1;
-        for i = 1:length(args)
-            switch args{i}
-                case 'initialThreshold'
-                    threshPos = i;
-                case 'initialStepsize'
-                    stepPos = i;
+    for ped = 1:3
+        s = stimulus.staircase{cues,ped,stimulus.blocks.curTask};
+        if doStaircase('stop',s)
+            % this is a bit of a pain... you can't pass an initialThreshold
+            % argument do doStaircase('init',s, ...), it ignores everything and
+            % resets using the calculated threshold. Because you can't override it
+            [args, vals, ~] = getArgs(s(1).initArgs);
+            threshPos = -1;
+            stepPos = -1;
+            for i = 1:length(args)
+                switch args{i}
+                    case 'initialThreshold'
+                        threshPos = i;
+                    case 'initialStepsize'
+                        stepPos = i;
+                end
             end
+            out = doStaircase('threshold',s);
+            in = input(sprintf('Resetting Staircase... Estimate is: %1.2f. Reset ([Y]/[C]ustom/[O]riginal): ',out.threshold),'s');
+            switch in
+                case 'Y'
+                    vals{threshPos} = out.threshold;
+                    vals{stepPos} = out.threshold / 3;
+                case 'C'
+                    disp('Original values:');
+                    disp(sprintf('%s: %0.2f',args{threshPos},num2str(vals{threshPos})));
+                    val = str2double(input('New threshold value: ','s'));
+                    vals{threshPos} = val;
+                    vals{stepPos} = val / 3;
+                case 'O'
+            end
+            disp('THIS CODE IS NOT CERTAIN TO WORK! CHECK THE OUTPUT!');
+            stimulus.staircase{cues,ped,stimulus.blocks.curTask} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
         end
-        out = doStaircase('threshold',s);
-        in = input(sprintf('Resetting Staircase... Estimate is: %1.2f. Reset ([Y]/[C]ustom/[O]riginal): ',out.threshold),'s');
-        switch in
-            case 'Y'
-                vals{threshPos} = out.threshold;
-                vals{stepPos} = out.threshold / 3;
-            case 'C'
-                disp('Original values:');
-                disp(sprintf('%s: %0.2f',args{threshPos},num2str(vals{threshPos})));
-                val = str2double(input('New threshold value: ','s'));
-                vals{threshPos} = val;
-                vals{stepPos} = val / 3;
-            case 'O'
-        end
-        disp('THIS CODE IS NOT CERTAIN TO WORK! CHECK THE OUTPUT!');
-        stimulus.staircase{cues} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
-        STOP = 1;
     end
 end
