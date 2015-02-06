@@ -118,7 +118,7 @@ stimulus.maskTex = mglCreateTexture(stimulus.mask);
 
 %% Choose step sizes for changes
 
-stimulus.steps = 20;
+stimulus.steps = 5;
 
 %% Setup Task
 
@@ -343,7 +343,7 @@ else
     type = task.thistrial.catchTask;
 end
 disp(sprintf('(fade) Trial %i is a %s trial. Displaying with %0.2f %s - %0.2f delta. With %s',task.thistrial.trialNum,catchType{task.thistrial.catch+1}, ...
-    stimulus.pedestals.(trialType{type})(task.thistrial.pedestalList(task.thistrial.changeTarget)),trialType{type},task.thistrial.deltaPed,...
+    stimulus.pedestals.contrast(task.thistrial.pedestalList(task.thistrial.changeTarget)),trialType{type},task.thistrial.deltaPed,...
     changeType{task.thistrial.change+1}));
 
 % Build changeTex
@@ -558,9 +558,12 @@ if lowValue <= 0
     lowValue = .01;
 end
 
-if task.thistrial.catchTask == 1
+if isnan(task.thistrial.catchTask)
+    % contrast
     range = fliplr(lowValue : (highValue-lowValue)/(stimulus.steps-1) : highValue);
 else
+    % gender change
+    disp('NOT SET UP YET');
     range = fliplr(0:task.thistrial.deltaPed/(stimulus.steps-1):task.thistrial.deltaPed);
 end
 
@@ -572,37 +575,18 @@ else
     stimulus.changeTex = cell(1,length(range));
 end
 
-    % get the image
-img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget));
-nimg_f = getHalfFourier(img);
-nimg_f.phase = stimulus.blocks.curPMask(task.thistrial.changeTarget,:);
-noise = reconstructFromHalfFourier(nimg_f);
-L0 = mean2(img);
-if task.thistrial.catchTask == 2
-    curCon = highValue;
-    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-end
+% get the image
+img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget))/255;
 for i = 1:length(range)
-
-%     else
-tic
-    if task.thistrial.catchTask == 2
-        K = .4+range(i);
-    else
-        curCon = range(i);
-        npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
-        K = .4;
-    end
-
-    image = L0 + sqrt(K) * (img - L0) + sqrt(1-K) * (noise - L0);
+    % scale the contrast distribution
+    npdf = scalePdf(stimulus.basepdf,0:255,range(i));
+    
     % set the contrast
     % scale by the ratio
     % change the image to match the PDF
-    imagef = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(image/255,npdf) + stimulus.colors.mrmin;
-    disp(sprintf('time: %.3f',toc))
-    tic
+    imagef = 255*histeq(img,npdf);
+    
     stimulus.changeTex{i} = mglCreateTexture(imagef);
-    disp(toc)
 end
 
 %% getDeltaPed
@@ -631,11 +615,7 @@ for i = 1:4
     % get the image
     img = stimulus.images{stimulus.blocks.curGenderList(i)}(:,:,stimulus.blocks.curImageList(i));
     % Contrast
-    
-    curNoi = stimulus.pedestals.noise;
-    
-    img = pinkNoise(img,[],curNoi,stimulus.blocks.curPMask(i,:));
-    
+   
     % set the contrast
     curCon = stimulus.pedestals.contrast(stimulus.blocks.curpedestalList(i));
     % scale by the ratio
