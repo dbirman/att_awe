@@ -118,7 +118,7 @@ stimulus.maskTex = mglCreateTexture(stimulus.mask);
 
 %% Choose step sizes for changes
 
-stimulus.steps = 5;
+stimulus.steps = 20;
 
 %% Setup Task
 
@@ -150,6 +150,7 @@ task{1}{1}.randVars.calculated.cues = nan;
 task{1}{1}.randVars.calculated.change = nan; % will the stimulus actually change
 task{1}{1}.randVars.calculated.catch = 0;
 task{1}{1}.randVars.calculated.catchTask = nan;
+task{1}{1}.randVars.calculated.catchImage = nan;
 
 % Each block has a very specific set of stimuli which are maintained across
 % the block. Again, these are counterbalanced across blocks in a random
@@ -309,14 +310,20 @@ task.thistrial.trialNum = stimulus.curTrial;
 task.thistrial.target = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,1);
 task.thistrial.cues = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,2);
 task.thistrial.change = stimulus.blocks.curTrialPerm(task.thistrial.blockTrialNum,3);
+task.thistrial.pedestalList = stimulus.blocks.curpedestalList;
+task.thistrial.genderList = stimulus.blocks.curGenderList;
+task.thistrial.maxContrast = stimulus.blocks.curMaxContrast;
 if task.thistrial.cues == 1
     % only on focal trials
-    if rand < .2
+    if rand < 1
         locs = [1 2 3 4];
         locs = locs(locs~=task.thistrial.target);
         task.thistrial.changeTarget = locs(randi(3));
         task.thistrial.catch = 1;
         task.thistrial.catchTask = randi(2);
+        while isnan(task.thistrial.catchImage) || task.thistrial.catchImage==stimulus.blocks.curImageList(task.thistrial.changeTarget)
+            task.thistrial.catchImage = randi(size(stimulus.images{task.thistrial.genderList(task.thistrial.changeTarget)},3));
+        end
         % If this is a catch trial, extend the response window to 2.5 s
         task.thistrial.seglen(stimulus.seg.resp) = 2.5;
     else
@@ -325,9 +332,6 @@ if task.thistrial.cues == 1
 else
     task.thistrial.changeTarget = task.thistrial.target;
 end
-task.thistrial.pedestalList = stimulus.blocks.curpedestalList;
-task.thistrial.genderList = stimulus.blocks.curGenderList;
-task.thistrial.maxContrast = stimulus.blocks.curMaxContrast;
 
 % Get Delta
 [task.thistrial.deltaPed, stimulus] = getDeltaPed(task,stimulus, ...
@@ -550,7 +554,6 @@ function stimulus = buildChangeTex(task,stimulus)
 % ITI) it doesn't matter if we drop frames right now.
 
 highValue = stimulus.pedestals.contrast(task.thistrial.pedestalList(task.thistrial.changeTarget));
-
 lowValue = highValue - task.thistrial.deltaPed;
 
 if lowValue <= 0
@@ -558,13 +561,12 @@ if lowValue <= 0
     lowValue = .01;
 end
 
-if isnan(task.thistrial.catchTask)
+if isnan(task.thistrial.catchTask) || task.thistrial.catchTask==1;
     % contrast
     range = fliplr(lowValue : (highValue-lowValue)/(stimulus.steps-1) : highValue);
 else
     % gender change
-    disp('NOT SET UP YET');
-    range = fliplr(0:task.thistrial.deltaPed/(stimulus.steps-1):task.thistrial.deltaPed);
+    range = 0:100/(stimulus.steps-1):100;
 end
 
 if isfield(stimulus,'changeTex')
@@ -575,18 +577,27 @@ else
     stimulus.changeTex = cell(1,length(range));
 end
 
-% get the image
-img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget))/255;
-for i = 1:length(range)
-    % scale the contrast distribution
-    npdf = scalePdf(stimulus.basepdf,0:255,range(i));
-    
-    % set the contrast
-    % scale by the ratio
-    % change the image to match the PDF
-    imagef = 255*histeq(img,npdf);
-    
-    stimulus.changeTex{i} = mglCreateTexture(imagef);
+if isnan(task.thistrial.catchTask) || task.thistrial.catchTask==1
+    % get the image
+    img = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget))/255;
+    for i = 1:length(range)
+        % scale the contrast distribution
+        npdf = scalePdf(stimulus.basepdf,0:255,range(i));
+        imagef = 255*histeq(img,npdf);
+        stimulus.changeTex{i} = mglCreateTexture(imagef);
+    end
+else
+    disp(sprintf('CHANGE WILL OCCUR AT %i',task.thistrial.changeTarget));
+    npdf = scalePdf(stimulus.basepdf,0:255,highValue);
+    oimg = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,stimulus.blocks.curImageList(task.thistrial.changeTarget))/255;
+    oimg = 255*histeq(oimg,npdf);
+    nimg = stimulus.images{stimulus.blocks.curGenderList(task.thistrial.changeTarget)}(:,:,task.thistrial.catchImage)/255;
+    nimg = 255*histeq(nimg,npdf);
+    % 100% IMAGE MORPH
+    for i = 1:length(range)
+        imgf = oimg*(100-i)/100 + nimg*i/100;
+        stimulus.changeTex{i} = mglCreateTexture(imgf);
+    end
 end
 
 %% getDeltaPed
@@ -619,9 +630,9 @@ for i = 1:4
     % set the contrast
     curCon = stimulus.pedestals.contrast(stimulus.blocks.curpedestalList(i));
     % scale by the ratio
-    npdf = scalePdf(stimulus.basepdf,stimulus.colors.mrmin:stimulus.colors.mrmax,curCon / stimulus.blocks.curMaxContrast);
+    npdf = scalePdf(stimulus.basepdf,0:255,curCon);
     % change the image to match the PDF
-    img = (stimulus.colors.mrmax-stimulus.colors.mrmin)*histeq(img/255,npdf) + stimulus.colors.mrmin;
+    img = 255*histeq(img/255,npdf);
     
     % add to flyTex
     stimulus.flyTex{i} = mglCreateTexture(img);
