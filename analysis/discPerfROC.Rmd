@@ -66,9 +66,11 @@ sem = function(values) {
 }
 perNorm = per2 %>%
   mutate(single = permean[1,2]$mu) %>%
-  mutate(nThresh = 1/(threshold / single))
+  mutate(nThresh = (threshold / single))
 mainNorm = main3 %>%
-  mutate(nThresh = 1/(threshold / single))
+  mutate(nThresh = (threshold / single))
+# mainNorm$nThresh = mainNorm$nThresh * 100
+# perNorm$nThresh = perNorm$nThresh * 100
 ```
 
 Fixing data by averaging across pedestals
@@ -76,32 +78,45 @@ Fixing data by averaging across pedestals
 mainROC = mainNorm %>%
   filter(cuesf=='One') %>%
   group_by(taskf,dualf) %>%
-  summarise(mu=mean(nThresh),sd=sem(nThresh))
+  summarise(mu=1/mean(nThresh),sd=sem(1/nThresh))
 perROC = perNorm %>%
   group_by(taskf) %>%
-  summarise(mu=mean(nThresh),sd=sem(nThresh))
+  summarise(mu=1/mean(nThresh),sd=sem(1/nThresh))
 mainROC$y = c(0,perROC$mu[2],0,perROC$mu[3])
 mainROC$ysd = c(0,perROC$sd[2],0,perROC$sd[3])
+```
+
+```{r}
+theme_nothing <- function(base_size = 12, base_family = "Helvetica")
+  {
+  theme_bw(base_size = base_size, base_family = base_family) %+replace%
+      theme(
+            rect             = element_blank(),
+            line             = element_blank(),
+            axis.ticks.margin = unit(0, "lines")
+           )
+  }
 ```
 
 Data is in ROC, now we need to plot
 ```{r}
  # ROC Plotp
 ggplot(mainROC) +
-  geom_point(aes(mu,y,color=taskf,shape=dualf),size=4) +
-  geom_point(aes(0,perROC$mu[1]),color='black',size=4) +
+  geom_point(aes(mu,y,color=taskf,shape=dualf),size=8) +
+  geom_point(aes(0,perROC$mu[1]),color='black',size=8) +
   geom_errorbar(aes(x=mu,y=y,ymin=y-ysd,ymax=y+ysd,color=taskf,shape=dualf),width=.05) +
-  geom_errorbar(aes(x=0,y=perROC$mu[1],ymin=perROC$mu[1]-perROC$sd[1],ymax=perROC$mu[1]+perROC$sd[1]),width=.1) +
+  geom_errorbar(aes(x=0,y=perROC$mu[1],ymin=perROC$mu[1]-perROC$sd[1],ymax=perROC$mu[1]+perROC$sd[1]),width=.05) +
   geom_errorbarh(aes(x=mu,y=y,xmin=mu-sd,xmax=mu+sd,color=taskf,shape=dualf),width=.05) +
-  geom_vline(xintercept=mainROC$mu[1],color='#F8766D',linetype='dashed',size=1) +
-  geom_vline(xintercept=mainROC$mu[3],color='#00BFC4',linetype='dashed',size=1) +
-  geom_hline(yintercept=perROC$mu[1],color='black',linetype='dashed',size=1) +
-  xlab('Performance on Main Task') +
-  ylab('Performance on Gender Task') +
-  theme_bw() +
-  scale_x_continuous(breaks=c(0)) +
-  scale_y_continuous(breaks=c(0)) +
-  theme(text=element_text(size=25)) +
+  geom_vline(xintercept=1,color='black',linetype='dashed',size=.5) +
+  geom_vline(xintercept=0,color='black',size=1) +
+  geom_hline(yintercept=1,color='black',linetype='dashed',size=.5) +
+  geom_hline(yintercept=0,color='black',size=1) +
+  xlab('Performance on Attention Task') +
+  ylab('Performance on Awareness Task') +
+  theme_nothing() +
+  scale_x_continuous(breaks=c(0,1)) +
+  scale_y_continuous(breaks=c(0,1)) +
+  theme(text=element_text(size=20)) +
   labs(color="Task",shape="Dual")
 ```
 
