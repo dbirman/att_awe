@@ -15,7 +15,7 @@
 %             plots (0/1) - Displays staircase plots (and estimated
 %             psychophysic functions)
 %             practice (def=0) - Displays on ten trials
-%
+% 
 
 function [myscreen] = cue_fade(varargin)
 
