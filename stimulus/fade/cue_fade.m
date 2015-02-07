@@ -76,8 +76,8 @@ stimulus.responseKeys = [10 9]; % corresponds to CHANGE - NO CHANGE
 stimulus.colors.rmed = 127.75;
 stimulus.colors.mrmax = 255;
 stimulus.colors.mrmin = 0;
-stimulus.posx = [-3.8 +3.8 +3.8 -3.8];
-stimulus.posy = [+3.8 +3.8 -3.8 -3.8];
+stimulus.posx = [-4 +4 +4 -4];
+stimulus.posy = [+4 +4 -4 -4];
 
 stimulus.basepdf = normpdf(stimulus.colors.mrmin:stimulus.colors.mrmax,stimulus.colors.rmed,75);
 stimulus.grating.width = 7;
