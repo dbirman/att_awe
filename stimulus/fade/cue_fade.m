@@ -125,8 +125,8 @@ stimulus.seg.stim_1hold = 3; % the stimulus is on for 1s
 stimulus.seg.stim_2chng = 4;
 stimulus.seg.ISI = 5;
 stimulus.seg.resp = 6;
-task{1}{1}.segmin = [1 .8 .25 .75 .25 1.3];
-task{1}{1}.segmax = [1 .8 .25 .75 .75 1.3];
+task{1}{1}.segmin = [1 .8 .25 2 .25 1.3];
+task{1}{1}.segmax = [1 .8 .25 2 .75 1.3];
 task{1}{1}.synchToVol = [0 0 0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 0 0 1];
 task{1}{1}.parameter.blockTrialNum = 1:20; % we just need this to have the right number of trials in each block, we will add our own parameters at each trialstart
@@ -311,7 +311,7 @@ task.thistrial.orientationList = stimulus.blocks.curOrientationList;
 task.thistrial.orientationDirList = stimulus.blocks.curOrientationDirList;
 if task.thistrial.cues == 1
     % only on focal trials
-    if rand < .1
+    if rand < 1
         % pick the change location, not the current target
         locs = [1 2 3 4];
         locs = locs(locs~=task.thistrial.target);
@@ -330,6 +330,8 @@ else
     % normal trial, cues = 4
     task.thistrial.changeTarget = task.thistrial.target;
 end
+
+disp(task.thistrial.changeTarget);
 
 % Get Delta
 [task.thistrial.deltaPed, stimulus] = getDeltaPed(task,stimulus, ...
@@ -547,7 +549,7 @@ function stimulus = initStaircase(stimulus)
 stimulus.stairCatch{1} = doStaircase('init','fixed',...
     'fixedVals',[.15 .25 .35]); % contrast
 stimulus.stairCatch{2} = doStaircase('init','fixed',...
-    'fixedVals',[5 10]); % this is in units of degrees / sec
+    'fixedVals',-1); % this is in units of degrees / sec
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
 stimulus.staircase{1,1} = doStaircase('init','fixed',...
     'fixedVals',[.1 .2 .3]);
