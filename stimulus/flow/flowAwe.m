@@ -149,6 +149,7 @@ task{1}{1}.randVars.calculated.task = nan; % Current task (calc per run)
 task{1}{1}.randVars.calculated.deltaPed = nan; % Current task (calc per run)
 task{1}{1}.randVars.calculated.coherence = nan;
 task{1}{1}.randVars.calculated.contrast = nan;
+task{1}{1}.randVars.calculated.trialNum = nan;
 
 %% Tracking
 
@@ -280,20 +281,30 @@ myscreen.flushMode = 0;
 
 global stimulus
 
+stimulus.curTrial = stimulus.curTrial + 1;
+
+task.thistrial.task = stimulus.runs.curTask;
 task.thistrial.coherence = stimulus.pedestals.flow(task.thistrial.floPedestal);
 task.thistrial.contrast = stimulus.pedestals.contrast(task.thistrial.conPedestal);
+task.thistrial.trialNum = stimulus.curTrial;
 [task.thistrial.deltaPed, stimulus] = getDeltaPed(stimulus,stimulus.runs.curTask,curPedValue(task,stimulus));
 
 if stimulus.runs.curTask==1
     % coherence
     stimulus.live.cohDelta = task.thistrial.deltaPed;
+    if (task.thistrial.coherence + stimulus.live.cohDelta) > 1
+        stimulus.live.cohDelta = 1 - task.thistrial.coherence;
+    end
     stimulus.live.conDelta = 0;
-    disp(sprintf('(flowAwe) Trial ## starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
+    disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
 else
     % contrast
     stimulus.live.cohDelta = 0;
     stimulus.live.conDelta = task.thistrial.deltaPed;
-    disp(sprintf('(flowAwe) Trial ## starting. Coherence: %.02f Contrast %.02f + $.02f',task.thistrial.coherence,task.thistrial.contrast,stimulus.live.conDelta));
+    if (task.thistrial.contrast + stimulus.live.conDelta) > 1
+        stimulus.live.conDelta = 1 - task.thistrial.contrast;
+    end
+    disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f Contrast %.02f + %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast,stimulus.live.conDelta));
 end
 
 function ped = curPedValue(task,stimulus)
