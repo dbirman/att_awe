@@ -97,7 +97,7 @@ stimulus.colors.mrmin = stimulus.colors.nReserved;
 %% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
-stimulus.dots.dotsize = 2;
+stimulus.dots.dotsize = 3;
 stimulus.dots.density = 8;
 stimulus.dots.coherence = 1;
 stimulus.dots.speed = 4;
@@ -112,9 +112,9 @@ stimulus = rmfield(stimulus,'dots');
 stimulus.mask = 1;
 
 stimulus.pedestals.pedOpts = {'flow','contrast'};
-stimulus.pedestals.flow = [.25 .5 .75];
+stimulus.pedestals.flow = [.2 .4 .6 .8];
 stimulus.pedestals.initThresh.flow = .2;
-stimulus.pedestals.contrast = [.25 .5 .75]; % for now...
+stimulus.pedestals.contrast = exp([-3.25 -2.25 -1.25 -.25]);
 stimulus.pedestals.initThresh.contrast = .2;
 
 stimulus.dotsR = initDotsOpticflow(stimulus.dotsR,myscreen);
@@ -201,10 +201,10 @@ task{1}{1}.segmax = [1 1 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
-task{1}{1}.parameter.conPedestal = [1]; % target contrast
-task{1}{1}.parameter.floPedestal = [1 2 3]; % target flow coherence
+task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
+task{1}{1}.parameter.floPedestal = [1 2 3 4]; % target flow coherence
 task{1}{1}.random = 1;
-task{1}{1}.numBlocks = 6;
+task{1}{1}.numBlocks = 3;
 
 %% Run variables
 task{1}{1}.randVars.calculated.task = nan; % Current task (calc per run)
