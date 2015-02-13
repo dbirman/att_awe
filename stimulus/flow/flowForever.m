@@ -17,7 +17,7 @@
 %             practice (def=0) - Displays on ten trials
 % 
 
-function [myscreen] = flowAwe(varargin)
+function [myscreen] = flowForever(varargin)
 
 global stimulus
 %% Initialize Variables
@@ -97,8 +97,8 @@ stimulus.colors.mrmin = stimulus.colors.nReserved;
 %% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
-stimulus.dots.dotsize = 3;
-stimulus.dots.density = 8;
+stimulus.dots.dotsize = 2;
+stimulus.dots.density = 15;
 stimulus.dots.coherence = 1;
 stimulus.dots.speed = 4;
 stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
@@ -112,10 +112,10 @@ stimulus = rmfield(stimulus,'dots');
 stimulus.mask = 1;
 
 stimulus.pedestals.pedOpts = {'flow','contrast'};
-stimulus.pedestals.flow = [.2 .4 .6 .8];
-stimulus.pedestals.initThresh.flow = .2;
-stimulus.pedestals.contrast = exp([-2 -1.41666 -.8333 -.25]);
-stimulus.pedestals.initThresh.contrast = .2;
+stimulus.pedestals.flow = [.8];
+stimulus.pedestals.initThresh.flow = 0;
+stimulus.pedestals.contrast = 1;
+stimulus.pedestals.initThresh.contrast = 0;
 
 stimulus.dotsR = initDotsOpticflow(stimulus.dotsR,myscreen);
 stimulus.dotsL = initDotsOpticflow(stimulus.dotsL,myscreen);
@@ -196,13 +196,13 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.stim = 2;
 stimulus.seg.ISI = 3;
 stimulus.seg.resp = 4;
-task{1}{1}.segmin = [1 1 .1 1.2];
-task{1}{1}.segmax = [1 1 .5 1.2];
+task{1}{1}.segmin = [1 inf .1 1.2];
+task{1}{1}.segmax = [1 inf .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
-task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
-task{1}{1}.parameter.floPedestal = [1 2 3 4]; % target flow coherence
+task{1}{1}.parameter.conPedestal = [1]; % target contrast
+task{1}{1}.parameter.floPedestal = [1]; % target flow coherence
 task{1}{1}.random = 1;
 task{1}{1}.numBlocks = 3;
 
