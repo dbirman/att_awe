@@ -17,7 +17,7 @@
 %             practice (def=0) - Displays on ten trials
 % 
 
-function [myscreen] = cue_fade(varargin)
+function [myscreen] = flowAwe(varargin)
 
 global stimulus
 %% Initialize Variables
@@ -168,8 +168,8 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.stim = 2;
 stimulus.seg.ISI = 3;
 stimulus.seg.resp = 4;
-task{1}{1}.segmin = [1 inf .1 1.2];
-task{1}{1}.segmax = [1 inf .5 1.2];
+task{1}{1}.segmin = [1 1 .1 1.2];
+task{1}{1}.segmax = [1 1 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
