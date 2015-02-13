@@ -115,15 +115,49 @@ stimulus.dotsL.color = ones(stimulus.dotsL.n,1);
 
 % create stencil
 if stimulus.mask
-  mglClearScreen;
-  mglStencilCreateBegin(1,1);
-  % and draw that oval
-  % now draw the wedge
-  mglGluPartialDisk(0,0,0,20,-stimulus.wedge.deg,2*stimulus.wedge.deg,[1 1 1],16);
-  mglGluPartialDisk(0,0,0,20,180-stimulus.wedge.deg,2*stimulus.wedge.deg,[1 1 1],16);
-  mglGluPartialDisk(0,0,0,2,0,360,[1 1 1],60);
-  mglStencilCreateEnd;
-  mglClearScreen;
+    %% basic stencil
+%   mglStencilCreateBegin(1,1);
+%   % and draw that oval
+%   % now draw the wedge
+%   mglGluPartialDisk(0,0,0,20,-stimulus.wedge.deg,2*stimulus.wedge.deg,[1 1 1],16);
+%   mglGluPartialDisk(0,0,0,20,180-stimulus.wedge.deg,2*stimulus.wedge.deg,[1 1 1],16);
+%   mglGluPartialDisk(0,0,0,2,0,360,[1 1 1],60);
+%   mglStencilCreateEnd;
+%   mglClearScreen;
+    %% fancy transparent texture
+    
+    % build a transparency layer with 100%
+    trans = ones(myscreen.screenWidth,myscreen.screenHeight);
+    % blank out the center
+    centerX = myscreen.screenWidth/2; centerY = myscreen.screenHeight/2; % note these are pixel positions
+    % blank out the 'wedges'
+    maxWedgeAng = deg2rad(15);
+    maxCenterDist = 150; % pixel distance from center to gray out
+    for i = 1:size(trans,1)
+        for j = 1:size(trans,2)
+            value = 1; % 100% transparent by default
+            dist = sqrt((i-centerX)^2+(j-centerY)^2); % my distance
+            if dist < maxCenterDist
+                % we are within maxCenterDist of the center
+                value = dist/maxCenterDist;
+            end
+            trans(i,j) = value;
+        end
+    end
+    for i = 1:size(trans,1)
+        for j = 1:size(trans,2)
+            ang = abs(atan((j-centerY)/(i-centerX)));
+            if ang < maxWedgeAng
+                trans(i,j) = trans(i,j) * ang/maxWedgeAng;
+            end
+        end
+    end
+    
+    %copy and generate texture
+    transImg(1:size(trans,1),1:size(trans,2),1:3) = stimulus.colors.rmed; % gray for the actual colors, we only deal with the transparency
+    transImg(:,:,4) = (1-trans)*255;
+    
+    stimulus.maskTex = mglCreateTexture(transImg);
 end
 
 %% Setup Task
@@ -134,8 +168,8 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.stim = 2;
 stimulus.seg.ISI = 3;
 stimulus.seg.resp = 4;
-task{1}{1}.segmin = [1 1 .1 1.2];
-task{1}{1}.segmax = [1 1 .5 1.2];
+task{1}{1}.segmin = [1 inf .1 1.2];
+task{1}{1}.segmax = [1 inf .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
@@ -353,8 +387,8 @@ global stimulus
 
 mglClearScreen(stimulus.colors.rmed/stimulus.colors.mrmax);
 
-upFix(stimulus);
 if stimulus.live.dots==1, stimulus = upDots(task,stimulus,myscreen); end;
+upFix(stimulus);
 
 %%
 function upFix(stimulus)
@@ -381,8 +415,6 @@ else
     rConDelta = stimulus.live.conDelta;
 end
 
-% draw the dots
-if stimulus.mask,mglStencilSelect(1);end
 % dotsR
 % update +contrast
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==1),stimulus.dotsR.y(stimulus.dotsR.con==1),...
@@ -397,7 +429,8 @@ mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==1),stimulus.dotsL.y(stimulus.dot
 % update - contrast
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==2),stimulus.dotsL.y(stimulus.dotsL.con==2),...
     stimulus.dotsL.dotsize,[.5 .5 .5] + task.thistrial.contrast/2 + lConDelta);
-if stimulus.mask,mglStencilSelect(0);end
+
+mglBltTexture(stimulus.maskTex,[0 0 myscreen.imageWidth myscreen.imageHeight]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% Called When a Response Occurs %%%%%%%%%%%%%%%%%%%%
@@ -635,10 +668,17 @@ offscreen = dots.Z>dots.maxZ;
 dots.Z(offscreen) = dots.minZ;
 
 % put points fallen off the X edge back
-offscreen = dots.X < -dots.maxX;
-dots.X(offscreen) = dots.X(offscreen)+2*dots.maxX;
-offscreen = dots.X > dots.maxX;
-dots.X(offscreen) = dots.X(offscreen)-2*dots.maxX;
+if dots.mult > 0 % we are looking at RIGHT dots
+    offscreen = dots.X < 0;
+    dots.X(offscreen) = dots.X(offscreen)+dots.maxX;
+    offscreen = dots.X > dots.maxX;
+    dots.X(offscreen) = dots.X(offscreen)-dots.maxX;
+else % LEFT dots
+    offscreen = dots.X < -dots.maxX;
+    dots.X(offscreen) = dots.X(offscreen)+dots.maxX;
+    offscreen = dots.X > 0;
+    dots.X(offscreen) = dots.X(offscreen)-dots.maxX;
+end
 
 % put points fallen off the Y edge back
 offscreen = dots.Y < -dots.maxY;
