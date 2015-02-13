@@ -23,13 +23,13 @@ global stimulus
 %% Initialize Variables
 
 % add arguments later
-widthDeg = []; heightDeg = [];
 stimFileNum = [];
+unattended = [];
 plots = [];
-practice = [];
-getArgs(varargin,{'widthDeg=5.5', 'heightDeg=5.5', ...
-    'stimFileNum=-1', ...
+getArgs(varargin,{'stimFileNum=-1','unattended=0', ...
     'dual=0','plots=1','practice=0'});
+
+stimulus.unattended = unattended;
 
 stimulus.counter = 1; % This keeps track of what "run" we are on.
 %% Setup Screen
@@ -40,9 +40,9 @@ myscreen = initScreen(screen);
 %% Open Old Stimfile
 stimulus.initStair = 1;
 
-if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_fade/%s',mglGetSID))
+if ~isempty(mglGetSID) && isdir(sprintf('~/data/flowAwe/%s',mglGetSID))
     % Directory exists, check for a stimefile
-    files = dir(sprintf('~/data/cue_fade/%s/1*mat',mglGetSID));
+    files = dir(sprintf('~/data/flowAwe/%s/1*mat',mglGetSID));
 
     if length(files) >= 1
         if stimFileNum == -1
@@ -53,7 +53,7 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cue_fade/%s',mglGetSID))
         else
             fname = files(stimFileNum).name;
         end
-        s = load(sprintf('~/data/cue_fade/%s/%s',mglGetSID,fname));
+        s = load(sprintf('~/data/flowAwe/%s/%s',mglGetSID,fname));
         stimulus.staircase = s.stimulus.staircase;
         stimulus.counter = s.stimulus.counter + 1;
 
@@ -114,7 +114,7 @@ stimulus.mask = 1;
 stimulus.pedestals.pedOpts = {'flow','contrast'};
 stimulus.pedestals.flow = [.2 .4 .6 .8];
 stimulus.pedestals.initThresh.flow = .2;
-stimulus.pedestals.contrast = exp([-3.25 -2.25 -1.25 -.25]);
+stimulus.pedestals.contrast = exp([-2 -1.41666 -.8333 -.25]);
 stimulus.pedestals.initThresh.contrast = .2;
 
 stimulus.dotsR = initDotsOpticflow(stimulus.dotsR,myscreen);
@@ -238,6 +238,18 @@ else
 end
 stimulus.runs.curTask = stimulus.runs.taskList(stimulus.counter);
 
+%% Unattended Mode
+if stimulus.unattended
+    global fixStimulus
+    fixStimulus.diskSize = 0;
+    fixStimulus.stimColor = [.5 .5 .5];
+    fixStimulus.responseColor = stimulus.colors.white;
+    fixStimulus.interColor = stimulus.colors.black;
+    fixStimulus.correctColor = stimulus.colors.green;
+    fixStimulus.incorrectColor = stimulus.colors.red;
+    [task{2}, myscreen] = fixStairInitTask(myscreen);
+end
+
 %% Full Setup
 % Initialize task (note phase == 1)
 for phaseNum = 1:length(task{1})
@@ -283,6 +295,10 @@ phaseNum = 1;
 while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
     % update the task
     [task{1}, myscreen, phaseNum] = updateTask(task{1},myscreen,phaseNum);
+  % update the fixation task
+    if unattended
+        [task{2}, myscreen] = updateTask(task{2},myscreen,1);
+    end
     % flip screen
     myscreen = tickScreen(myscreen,task);
 end
@@ -345,7 +361,11 @@ global stimulus
 
 stimulus.curTrial = stimulus.curTrial + 1;
 
-task.thistrial.task = stimulus.runs.curTask;
+if stimulus.unattended
+    task.thistrial.task = 3;
+else
+    task.thistrial.task = stimulus.runs.curTask;
+end
 task.thistrial.coherence = stimulus.pedestals.flow(task.thistrial.floPedestal);
 task.thistrial.contrast = stimulus.pedestals.contrast(task.thistrial.conPedestal);
 task.thistrial.trialNum = stimulus.curTrial;
@@ -359,7 +379,7 @@ if stimulus.runs.curTask==1
     end
     stimulus.live.conDelta = 0;
     disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
-else
+elseif stimulus.runs.curTask==2
     % contrast
     stimulus.live.cohDelta = 0;
     stimulus.live.conDelta = task.thistrial.deltaPed;
@@ -367,10 +387,19 @@ else
         stimulus.live.conDelta = 1 - task.thistrial.contrast;
     end
     disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f Contrast %.02f + %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast,stimulus.live.conDelta));
+else
+    % unattended
+    stimulus.live.cohDelta = 0;
+    stimulus.live.conDelta = 0;
+    disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast));
 end
 
 % set the gammaTable for this trial
-setGammaTable_flowMax(task.thistrial.contrast + stimulus.live.conDelta);
+if ~stimulus.unattended
+    setGammaTable_flowMax(task.thistrial.contrast + stimulus.live.conDelta);
+else
+    setGammaTable_flowMax(1);
+end
 
 function ped = curPedValue(task,stimulus)
 if stimulus.runs.curTask==1
@@ -418,8 +447,8 @@ global stimulus
 
 mglClearScreen(0.5);
 
-if stimulus.live.dots==1, stimulus = upDots(task,stimulus,myscreen); end;
-upFix(stimulus);
+if stimulus.live.dots==1, stimulus = upDots(task,stimulus,myscreen); end
+if ~stimulus.unattended, upFix(stimulus); end
 
 %%
 function upFix(stimulus)
@@ -545,13 +574,13 @@ function dispStaircase(stimulus)
 try
     taskOpts = {'flow','contrast'};
     
-    figure % this is the 'staircase' figure
-    title('%s, Staircase plot (R->G->B high)');
-    hold on
-    drawing = {'-r' '-g' '-b'
-                '--r' '--g' '--b'};
-    for task = 1:2
-        for ped = 1:3
+    drawing = {'-r' '-g' '-b' '-y'
+                '--r' '--g' '--b' '--y'};
+    for task = 2
+        figure % this is the 'staircase' figure
+        title(sprintf('%s, Staircase plot (R->G->B->Y high)',taskOpts{task}));
+        hold on
+        for ped = 1:4
             try
                 testV = [];
                 for i = 1:length(stimulus.staircase{task,ped})
@@ -572,9 +601,9 @@ try
     figure
     hold on
     title(sprintf('%s, R->G->B High'));
-    plot(stimulus.pedestals.(taskOpts{task})(1:3),plotting(1,:),'-r');
-    plot(stimulus.pedestals.(taskOpts{task})(1:3),plotting(2,:),'--r');
-    axis([stimulus.pedestals.(taskOpts{task})(1) stimulus.pedestals.(taskOpts{task})(3) 0 1]);
+    plot(stimulus.pedestals.(taskOpts{task})(1:4),plotting(1,:),'-r');
+    plot(stimulus.pedestals.(taskOpts{task})(1:4),plotting(2,:),'--r');
+    axis([stimulus.pedestals.(taskOpts{task})(1) stimulus.pedestals.(taskOpts{task})(4) 0 1]);
     hold off
 
 catch
