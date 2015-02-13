@@ -352,7 +352,6 @@ end
 
 function [task, myscreen] = startTrialCallback(task,myscreen)
 
-myscreen.flushMode = 0;
 % We need to do a number of things here. First we need to set up the
 % missing thistrial parameters. Second, we will pre-calculate the textures
 % that will be displayed on this particular trial. 
@@ -414,6 +413,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function [task, myscreen] = startSegmentCallback(task, myscreen)
+
+myscreen.flushMode = 0;
 
 global stimulus
 
