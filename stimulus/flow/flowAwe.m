@@ -73,12 +73,28 @@ myscreen = initStimulus('stimulus',myscreen);
 
 stimulus.responseKeys = [9 10]; % corresponds to LEFT - RIGHT
 
+%% Colors
 stimulus.colors.rmed = 127.75;
-stimulus.colors.mrmax = 255;
-stimulus.colors.mrmin = 0;
 
-stimulus.wedge.deg = 15;
+% We're going to add an equal number of reserved colors to the top and
+% bottom, to try to keep the center of the gamma table stable.
+stimulus.colors.reservedBottom = [1 1 1; 0 0 0]; % fixation cross colors
+stimulus.colors.reservedTop = [1 0 0; 0 1 0]; % correct/incorrect colors
+stimulus.colors.black = 1/255; stimulus.colors.white = 0/255;
+stimulus.colors.red = 254/255; stimulus.colors.green = 255/255;
+stimulus.colors.nReserved = 2; % this is /2 the true number, because it's duplicated
+stimulus.colors.nUnreserved = 256-(2*stimulus.colors.nReserved);
 
+stimulus.colors.mrmax = stimulus.colors.nReserved - 1 + stimulus.colors.nUnreserved;
+stimulus.colors.mrmin = stimulus.colors.nReserved;
+
+% The idea here is that when we adjust the gamma table, we will ALWAYS keep
+% 0.5 at gray, we will just adjust the edges of the gamma table. The idea
+% being that the alpha channels will always return to the center of the
+% gamma table and our alpha texture (see stimulus.mask) will work
+% correctly.
+
+%% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
 stimulus.dots.dotsize = 2;
@@ -98,15 +114,26 @@ stimulus.mask = 1;
 stimulus.pedestals.pedOpts = {'flow','contrast'};
 stimulus.pedestals.flow = [.25 .5 .75];
 stimulus.pedestals.initThresh.flow = .2;
-stimulus.pedestals.contrast = [.075 .15 .3]; % for now...
-stimulus.pedestals.initThresh.contrast = .2; 
-mglClose
+stimulus.pedestals.contrast = [.25 .5 .75]; % for now...
+stimulus.pedestals.initThresh.contrast = .2;
 
 stimulus.dotsR = initDotsOpticflow(stimulus.dotsR,myscreen);
 stimulus.dotsL = initDotsOpticflow(stimulus.dotsL,myscreen);
 
+%% Gamma Table Initialization
+
+% get gamma table
+if ~isfield(myscreen,'gammaTable')
+  stimulus.linearizedGammaTable = mglGetGammaTable;
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+  disp(sprintf('(cuecon:initGratings) No gamma table found in myscreen. Contrast displays like this'));
+  disp(sprintf('         should be run with a valid calibration made by moncalib for this monitor.'));
+  disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
+end
+stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
+
 %% MGL Parameters
-mglTextSet('Helvetica',32,1,0,0,0,0,0,0,0);
+mglTextSet('Helvetica',32,stimulus.colors.white,0,0,0,0,0,0,0);
     
 %% Additional Dots Params
 
@@ -174,7 +201,7 @@ task{1}{1}.segmax = [1 1 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
-task{1}{1}.parameter.conPedestal = [1 2 3]; % target contrast
+task{1}{1}.parameter.conPedestal = [1]; % target contrast
 task{1}{1}.parameter.floPedestal = [1 2 3]; % target flow coherence
 task{1}{1}.random = 1;
 task{1}{1}.numBlocks = 6;
@@ -217,7 +244,7 @@ for phaseNum = 1:length(task{1})
     [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],@startBlockCallback);
 end
 
-mglClearScreen(stimulus.colors.rmed/stimulus.colors.mrmax);
+mglClearScreen(0.5);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % init staircase
@@ -240,7 +267,7 @@ end
 
 %% Get Ready...
 % clear screen
-mglClearScreen(stimulus.colors.rmed/stimulus.colors.mrmax);
+mglClearScreen(0.5);
 mglTextDraw(stimulus.runs.taskOptsText{stimulus.runs.curTask},[0 0]);
 mglFlush
 
@@ -261,7 +288,7 @@ while (phaseNum <= length(task{1})) && ~myscreen.userHitEsc
 end
 
 % task ended
-mglClearScreen(stimulus.colors.rmed/stimulus.colors.mrmax);
+mglClearScreen(0.5);
 mglTextDraw('Run complete... please wait.',[0 0]);
 mglFlush
 myscreen.flushMode = 1;
@@ -342,6 +369,9 @@ else
     disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f Contrast %.02f + %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast,stimulus.live.conDelta));
 end
 
+% set the gammaTable for this trial
+setGammaTable_flowMax(task.thistrial.contrast + stimulus.live.conDelta);
+
 function ped = curPedValue(task,stimulus)
 if stimulus.runs.curTask==1
     ped = task.thistrial.floPedestal;
@@ -361,16 +391,16 @@ global stimulus
 switch task.thistrial.thisseg
     case stimulus.seg.ITI
         stimulus.live.dots = 0;
-        stimulus.live.fixColor = 0;
+        stimulus.live.fixColor = stimulus.colors.black;
     case stimulus.seg.stim
         stimulus.live.dots = 1;
-        stimulus.live.fixColor = 0;
+        stimulus.live.fixColor = stimulus.colors.black;
     case stimulus.seg.ISI
         stimulus.live.dots = 0;
-        stimulus.live.fixColor = 0;
+        stimulus.live.fixColor = stimulus.colors.black;
     case stimulus.seg.resp
         stimulus.live.dots = 0;
-        stimulus.live.fixColor = 1;
+        stimulus.live.fixColor = stimulus.colors.white;
 end
 if task.thistrial.thisseg == stimulus.seg.stim
     stimulus.live.dots = 1;
@@ -386,7 +416,7 @@ end
 function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
-mglClearScreen(stimulus.colors.rmed/stimulus.colors.mrmax);
+mglClearScreen(0.5);
 
 if stimulus.live.dots==1, stimulus = upDots(task,stimulus,myscreen); end;
 upFix(stimulus);
@@ -416,22 +446,34 @@ else
     rConDelta = stimulus.live.conDelta;
 end
 
+% Correct values for gamma table adjustments
+% disp(sprintf('Requested contrast %.02f + %.02f (left) + %.02f (right) with max %.02f',task.thistrial.contrast,lConDelta,rConDelta,stimulus.curMaxContrast));
+correctCon = task.thistrial.contrast / stimulus.curMaxContrast;
+rConDelta = rConDelta / stimulus.curMaxContrast;
+lConDelta = lConDelta / stimulus.curMaxContrast;
+% disp(sprintf('Got contrast       %.02f + %.02f (left) + %.02f (right) with max %.02f',correctCon,lConDelta,rConDelta,stimulus.curMaxContrast));
+
+% Correct values for size of gamma table
+
 % dotsR
 % update +contrast
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==1),stimulus.dotsR.y(stimulus.dotsR.con==1),...
-    stimulus.dotsR.dotsize,[.5 .5 .5] - (task.thistrial.contrast + rConDelta)/2);
+    stimulus.dotsR.dotsize,[.5 .5 .5] - adjustConToTable(correctCon + rConDelta,stimulus)/2);
 % update - contrast
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==2),stimulus.dotsR.y(stimulus.dotsR.con==2),...
-    stimulus.dotsR.dotsize,[.5 .5 .5] + (task.thistrial.contrast + rConDelta)/2);
+    stimulus.dotsR.dotsize,[.5 .5 .5] + adjustConToTable(correctCon + rConDelta,stimulus)/2);
 % dotsL
 % update +contrast
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==1),stimulus.dotsL.y(stimulus.dotsL.con==1),...
-    stimulus.dotsL.dotsize,[.5 .5 .5] - (task.thistrial.contrast + lConDelta)/2);
+    stimulus.dotsL.dotsize,[.5 .5 .5] - adjustConToTable(correctCon + lConDelta,stimulus)/2);
 % update - contrast
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==2),stimulus.dotsL.y(stimulus.dotsL.con==2),...
-    stimulus.dotsL.dotsize,[.5 .5 .5] + (task.thistrial.contrast + lConDelta)/2);
+    stimulus.dotsL.dotsize,[.5 .5 .5] + adjustConToTable(correctCon + lConDelta,stimulus)/2);
 
 mglBltTexture(stimulus.maskTex,[0 0 myscreen.imageWidth myscreen.imageHeight]);
+
+function conValue = adjustConToTable(conValue,stimulus)
+conValue = conValue * stimulus.colors.nUnreserved / 256;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%% Called When a Response Occurs %%%%%%%%%%%%%%%%%%%%
@@ -442,7 +484,7 @@ function [task, myscreen] = getResponseCallback(task, myscreen)
 global stimulus
 
 responseText = {'Incorrect','Correct'};
-fixColors = {[1 0 0],[0 1 0]};
+fixColors = {stimulus.colors.red,stimulus.colors.green};
 
 if any(task.thistrial.whichButton == stimulus.responseKeys)
     if task.thistrial.gotResponse == 0
