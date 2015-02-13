@@ -98,8 +98,9 @@ stimulus.mask = 1;
 stimulus.pedestals.pedOpts = {'flow','contrast'};
 stimulus.pedestals.flow = [.25 .5 .75];
 stimulus.pedestals.initThresh.flow = .2;
-stimulus.pedestals.contrast = [.25 .5 .75]; % for now...
+stimulus.pedestals.contrast = [.075 .15 .3]; % for now...
 stimulus.pedestals.initThresh.contrast = .2; 
+mglClose
 
 stimulus.dotsR = initDotsOpticflow(stimulus.dotsR,myscreen);
 stimulus.dotsL = initDotsOpticflow(stimulus.dotsL,myscreen);
@@ -131,8 +132,8 @@ if stimulus.mask
     % blank out the center
     centerX = myscreen.screenWidth/2; centerY = myscreen.screenHeight/2; % note these are pixel positions
     % blank out the 'wedges'
-    maxWedgeAng = deg2rad(15);
-    maxCenterDist = 150; % pixel distance from center to gray out
+    maxWedgeAng = deg2rad(20);
+    maxCenterDist = 200; % pixel distance from center to gray out
     for i = 1:size(trans,1)
         for j = 1:size(trans,2)
             value = 1; % 100% transparent by default
@@ -418,14 +419,14 @@ end
 % dotsR
 % update +contrast
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==1),stimulus.dotsR.y(stimulus.dotsR.con==1),...
-    stimulus.dotsR.dotsize,[.5 .5 .5] - (task.thistrial.contrast - rConDelta)/2);
+    stimulus.dotsR.dotsize,[.5 .5 .5] - (task.thistrial.contrast + rConDelta)/2);
 % update - contrast
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==2),stimulus.dotsR.y(stimulus.dotsR.con==2),...
     stimulus.dotsR.dotsize,[.5 .5 .5] + (task.thistrial.contrast + rConDelta)/2);
 % dotsL
 % update +contrast
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==1),stimulus.dotsL.y(stimulus.dotsL.con==1),...
-    stimulus.dotsL.dotsize,[.5 .5 .5] - (task.thistrial.contrast - lConDelta)/2);
+    stimulus.dotsL.dotsize,[.5 .5 .5] - (task.thistrial.contrast + lConDelta)/2);
 % update - contrast
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==2),stimulus.dotsL.y(stimulus.dotsL.con==2),...
     stimulus.dotsL.dotsize,[.5 .5 .5] + (task.thistrial.contrast + lConDelta)/2);
