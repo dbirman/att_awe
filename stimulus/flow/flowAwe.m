@@ -418,17 +418,17 @@ end
 % dotsR
 % update +contrast
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==1),stimulus.dotsR.y(stimulus.dotsR.con==1),...
-    stimulus.dotsR.dotsize,[.5 .5 .5] - task.thistrial.contrast/2 - rConDelta);
+    stimulus.dotsR.dotsize,[.5 .5 .5] - (task.thistrial.contrast - rConDelta)/2);
 % update - contrast
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==2),stimulus.dotsR.y(stimulus.dotsR.con==2),...
-    stimulus.dotsR.dotsize,[.5 .5 .5] + task.thistrial.contrast/2 + rConDelta);
+    stimulus.dotsR.dotsize,[.5 .5 .5] + (task.thistrial.contrast + rConDelta)/2);
 % dotsL
 % update +contrast
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==1),stimulus.dotsL.y(stimulus.dotsL.con==1),...
-    stimulus.dotsL.dotsize,[.5 .5 .5] - task.thistrial.contrast/2 - lConDelta);
+    stimulus.dotsL.dotsize,[.5 .5 .5] - (task.thistrial.contrast - lConDelta)/2);
 % update - contrast
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==2),stimulus.dotsL.y(stimulus.dotsL.con==2),...
-    stimulus.dotsL.dotsize,[.5 .5 .5] + task.thistrial.contrast/2 + lConDelta);
+    stimulus.dotsL.dotsize,[.5 .5 .5] + (task.thistrial.contrast + lConDelta)/2);
 
 mglBltTexture(stimulus.maskTex,[0 0 myscreen.imageWidth myscreen.imageHeight]);
 
