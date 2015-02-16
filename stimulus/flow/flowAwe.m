@@ -5,7 +5,7 @@
 %       date: 11/10/14
 %    purpose: contrast change detection with cued selective attention.
 %
-%        use: call cue_fade() to initialize. The first
+%        use: call flowAwe() to initialize. The first
 %             run takes significantly longer due to loading stimuli.
 %
 %      flags: stimFileNum (-1/#) - Load a specific stimfile from a
@@ -55,6 +55,7 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/flowAwe/%s',mglGetSID))
         end
         s = load(sprintf('~/data/flowAwe/%s/%s',mglGetSID,fname));
         stimulus.staircase = s.stimulus.staircase;
+        stimulus.stairCatch = s.stimulus.stairCatch;
         stimulus.counter = s.stimulus.counter + 1;
 
         % load blocks too
@@ -88,19 +89,13 @@ stimulus.colors.nUnreserved = 256-(2*stimulus.colors.nReserved);
 stimulus.colors.mrmax = stimulus.colors.nReserved - 1 + stimulus.colors.nUnreserved;
 stimulus.colors.mrmin = stimulus.colors.nReserved;
 
-% The idea here is that when we adjust the gamma table, we will ALWAYS keep
-% 0.5 at gray, we will just adjust the edges of the gamma table. The idea
-% being that the alpha channels will always return to the center of the
-% gamma table and our alpha texture (see stimulus.mask) will work
-% correctly.
-
 %% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
 stimulus.dots.dotsize = 3;
 stimulus.dots.density = 8;
 stimulus.dots.coherence = 1;
-stimulus.dots.speed = 4;
+stimulus.dots.speed = 4.5;
 stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
 stimulus.dots.dir = 0;
 stimulus.dotsR = stimulus.dots;
@@ -131,9 +126,6 @@ if ~isfield(myscreen,'gammaTable')
   disp(sprintf('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'));
 end
 stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
-
-%% MGL Parameters
-mglTextSet('Helvetica',32,stimulus.colors.white,0,0,0,0,0,0,0);
     
 %% Additional Dots Params
 
@@ -141,9 +133,10 @@ mglTextSet('Helvetica',32,stimulus.colors.white,0,0,0,0,0,0,0);
 stimulus.dotsR.color = ones(stimulus.dotsR.n,1);
 stimulus.dotsL.color = ones(stimulus.dotsL.n,1);
 
-% create stencil
+%% create stencil
 if stimulus.mask
-    %% basic stencil
+    
+    % basic stencil
 %   mglStencilCreateBegin(1,1);
 %   % and draw that oval
 %   % now draw the wedge
@@ -152,7 +145,8 @@ if stimulus.mask
 %   mglGluPartialDisk(0,0,0,2,0,360,[1 1 1],60);
 %   mglStencilCreateEnd;
 %   mglClearScreen;
-    %% fancy transparent texture
+
+    % fancy transparent texture
     
     % build a transparency layer with 100%
     trans = ones(myscreen.screenWidth,myscreen.screenHeight);
@@ -188,6 +182,17 @@ if stimulus.mask
     stimulus.maskTex = mglCreateTexture(transImg);
 end
 
+%% Character textures
+mglTextSet('Helvetica',32,stimulus.colors.black,0,0,0,0,0,0,0);
+stimulus.text.mTexK = mglText('M');
+stimulus.text.cTexK = mglText('C');
+mglTextSet('Helvetica',32,stimulus.colors.white,0,0,0,0,0,0,0);
+stimulus.text.mTexW = mglText('M');
+stimulus.text.cTexW = mglText('C');
+
+%% MGL Text Parameters
+% mglTextSet('Helvetica',32,stimulus.colors.white,0,0,0,0,0,0,0);
+
 %% Setup Task
 
 % This is the contrast change detection task
@@ -203,8 +208,9 @@ task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
 task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
 task{1}{1}.parameter.floPedestal = [1 2 3 4]; % target flow coherence
+task{1}{1}.parameter.catch = [1 0 0 0 0 0 0 0 0 0]; % 10% chance of being a catch trial
 task{1}{1}.random = 1;
-task{1}{1}.numBlocks = 3;
+task{1}{1}.numTrials = 150;
 
 %% Run variables
 task{1}{1}.randVars.calculated.task = nan; % Current task (calc per run)
@@ -216,7 +222,6 @@ task{1}{1}.randVars.calculated.trialNum = nan;
 %% Tracking
 
 % these are variables that we want to track for later analysis.
-
 task{1}{1}.randVars.calculated.correct = nan;
 task{1}{1}.randVars.calculated.trialNum = nan;
 
@@ -253,7 +258,7 @@ end
 %% Full Setup
 % Initialize task (note phase == 1)
 for phaseNum = 1:length(task{1})
-    [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],@startBlockCallback);
+    [task{1}{phaseNum}, myscreen] = initTask(task{1}{phaseNum},myscreen,@startSegmentCallback,@screenUpdateCallback,@getResponseCallback,@startTrialCallback,[],[]);
 end
 
 mglClearScreen(0.5);
@@ -281,12 +286,11 @@ end
 % clear screen
 mglClearScreen(0.5);
 mglTextDraw(stimulus.runs.taskOptsText{stimulus.runs.curTask},[0 0]);
-mglFlush
-
-myscreen.flushMode = 1;
 
 % let the user know
 disp(sprintf('(flowAwe) Starting run number: %i',stimulus.counter));
+mglFlush
+myscreen.flushMode = 1;
 
 %% Main Task Loop
 
@@ -352,25 +356,34 @@ end
 
 function [task, myscreen] = startTrialCallback(task,myscreen)
 
-% We need to do a number of things here. First we need to set up the
-% missing thistrial parameters. Second, we will pre-calculate the textures
-% that will be displayed on this particular trial. 
-
 global stimulus
 
 stimulus.curTrial = stimulus.curTrial + 1;
 
+%  Set the current task
 if stimulus.unattended
     task.thistrial.task = 3;
 else
-    task.thistrial.task = stimulus.runs.curTask;
+    if task.thistrial.catch
+        switchTasks = [2 1];
+        task.thistrial.task = switchTasks(stimulus.runs.curTask);
+        % edit seglen
+        task.thistrial.seglen(stimulus.seg.ISI) = .5;
+        task.thistrial.seglen(stimulus.seg.resp) = 2;
+        disp('(flowAwe) Catch trial.');
+    else
+        task.thistrial.task = stimulus.runs.curTask;
+    end
 end
+
+% Set the missing thistrial vars
 task.thistrial.coherence = stimulus.pedestals.flow(task.thistrial.floPedestal);
 task.thistrial.contrast = stimulus.pedestals.contrast(task.thistrial.conPedestal);
 task.thistrial.trialNum = stimulus.curTrial;
-[task.thistrial.deltaPed, stimulus] = getDeltaPed(stimulus,stimulus.runs.curTask,curPedValue(task,stimulus));
+[task.thistrial.deltaPed, stimulus] = getDeltaPed(task,stimulus,task.thistrial.task,curPedValue(task));
 
-if stimulus.runs.curTask==1
+% Assign the deltaPed to the correct locations
+if task.thistrial.task==1
     % coherence
     stimulus.live.cohDelta = task.thistrial.deltaPed;
     if (task.thistrial.coherence + stimulus.live.cohDelta) > 1
@@ -378,7 +391,7 @@ if stimulus.runs.curTask==1
     end
     stimulus.live.conDelta = 0;
     disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
-elseif stimulus.runs.curTask==2
+elseif task.thistrial.task==2
     % contrast
     stimulus.live.cohDelta = 0;
     stimulus.live.conDelta = task.thistrial.deltaPed;
@@ -400,8 +413,8 @@ else
     setGammaTable_flowMax(1);
 end
 
-function ped = curPedValue(task,stimulus)
-if stimulus.runs.curTask==1
+function ped = curPedValue(task)
+if task.thistrial.task==1
     ped = task.thistrial.floPedestal;
 else
     ped = task.thistrial.conPedestal;
@@ -422,15 +435,19 @@ switch task.thistrial.thisseg
     case stimulus.seg.ITI
         stimulus.live.dots = 0;
         stimulus.live.fixColor = stimulus.colors.black;
+        stimulus.live.catchFix = 0;
     case stimulus.seg.stim
         stimulus.live.dots = 1;
         stimulus.live.fixColor = stimulus.colors.black;
+        stimulus.live.catchFix = 0;
     case stimulus.seg.ISI
         stimulus.live.dots = 0;
         stimulus.live.fixColor = stimulus.colors.black;
+        stimulus.live.catchFix = 1;
     case stimulus.seg.resp
         stimulus.live.dots = 0;
         stimulus.live.fixColor = stimulus.colors.white;
+        stimulus.live.catchFix = 1;
 end
 if task.thistrial.thisseg == stimulus.seg.stim
     stimulus.live.dots = 1;
@@ -449,12 +466,28 @@ global stimulus
 mglClearScreen(0.5);
 
 if stimulus.live.dots==1, stimulus = upDots(task,stimulus,myscreen); end
-if ~stimulus.unattended, upFix(stimulus); end
+if ~stimulus.unattended, upFix(task,stimulus); end
 
 %%
-function upFix(stimulus)
+function upFix(task,stimulus)
 
-mglFixationCross(1,1,stimulus.live.fixColor);
+if ~task.thistrial.catch || stimulus.live.catchFix == 0
+    mglFixationCross(1,1,stimulus.live.fixColor);
+else
+    if task.thistrial.task==1
+        if stimulus.live.fixColor==stimulus.colors.white
+            mglBltTexture(stimulus.text.mTexW,[0 0]);
+        else
+            mglBltTexture(stimulus.text.mTexK,[0 0]);
+        end
+    else
+        if stimulus.live.fixColor==stimulus.colors.white
+            mglBltTexture(stimulus.text.cTexW,[0 0]);
+        else
+            mglBltTexture(stimulus.text.cTexK,[0 0]);
+        end
+    end
+end
 
 function stimulus = upDots(task,stimulus,myscreen)
 
@@ -522,20 +555,19 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
         % Store whether this was correct
         stimulus.live.fixColor = fixColors{task.thistrial.correct+1};
         disp(sprintf('(flowAwe) Response %s',responseText{task.thistrial.correct+1}));
-%         if ~task.thistrial.catch
-            stimulus.staircase{stimulus.runs.curTask,curPedValue(task,stimulus)} = ...
-                doStaircase('update',stimulus.staircase{stimulus.runs.curTask,curPedValue(task,stimulus)},task.thistrial.correct);
-%         else
+        if ~task.thistrial.catch
+            stimulus.staircase{task.thistrial.task,curPedValue(task)} = ...
+                doStaircase('update',stimulus.staircase{task.thistrial.task,curPedValue(task)},task.thistrial.correct);
+        else
+            stimulus.live.fixColor = stimulus.colors.black; % we never show information about catch trials
+            stimulus.live.catchFix = 0;
+            stimulus.stairCatch{task.thistrial.task} = ...
+                doStaircase('update',stimulus.stairCatch{task.thistrial.task},task.thistrial.correct);
+        end
     else
         disp(sprintf('(flowAwe) Subject responded multiple times: %i',task.thistrial.gotResponse+1));
     end
 end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%% Block Call Back %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-function [task, myscreen] = startBlockCallback(task, myscreen)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                              HELPER FUNCTIONS                           %%
@@ -543,9 +575,12 @@ function [task, myscreen] = startBlockCallback(task, myscreen)
 
 %% getDeltaPed
 
-function [deltaPed, stimulus] = getDeltaPed(stimulus,taskNum,pedNum)
-
-[deltaPed, stimulus.staircase{taskNum,pedNum}] = doStaircase('testValue',stimulus.staircase{taskNum,pedNum});
+function [deltaPed, stimulus] = getDeltaPed(task,stimulus,taskNum,pedNum)
+if task.thistrial.catch
+    [deltaPed, stimulus.stairCatch{taskNum}] = doStaircase('testValue',stimulus.stairCatch{taskNum});
+else
+    [deltaPed, stimulus.staircase{taskNum,pedNum}] = doStaircase('testValue',stimulus.staircase{taskNum,pedNum});
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%
@@ -553,7 +588,12 @@ function [deltaPed, stimulus] = getDeltaPed(stimulus,taskNum,pedNum)
 %%%%%%%%%%%%%%%%%%%%%%%%
 function stimulus = initStaircase(stimulus)
 
+stimulus.stairCatch = cell(1,2);
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
+stimulus.stairCatch{1} = doStaircase('init','fixed',...
+    'fixedVals',[.05 .1 .15 .2 .25]);
+stimulus.stairCatch{2} = doStaircase('init','fixed',...
+    'fixedVals',[.025 .055 .085 .115 .14]);
 for task = 1:2
     stimulus.staircase{task,1} = doStaircase('init','upDown',...
         'initialThreshold',stimulus.pedestals.initThresh.(stimulus.pedestals.pedOpts{task}),...
@@ -763,11 +803,6 @@ dots.Y(offscreen) = dots.Y(offscreen)-2*dots.maxY;
 % project on to screen
 dots.xproj = dots.f*dots.X./dots.Z;
 dots.yproj = dots.f*dots.Y./dots.Z;
-% dots.ytheta = atan(dots.Y./dots.Z);
-% dots.xtheta = atan(dots.X./dots.Z);
-
-% dots.yproj = tan(dots.ytheta)*dots.maxZ;
-% dots.xproj = tan(dots.xtheta)*dots.maxZ;
 
 % stuff to compute median speed
 dots.oldx = dots.x;
