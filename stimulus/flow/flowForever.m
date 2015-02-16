@@ -671,8 +671,8 @@ dots.R = [0 0 0];
 
 % maximum depth of points
 dots.maxZ = 15;dots.minZ = dots.f;
-dots.maxX = 15;
-dots.maxY = 15;
+dots.maxX = 5;
+dots.maxY = 5;
 
 % make a brick of points
 dots.n = round(myscreen.imageWidth*myscreen.imageHeight*dots.density);
