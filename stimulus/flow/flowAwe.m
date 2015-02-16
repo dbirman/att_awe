@@ -95,7 +95,7 @@ stimulus.dots.ycenter = 0;
 stimulus.dots.dotsize = 3;
 stimulus.dots.density = 8;
 stimulus.dots.coherence = 1;
-stimulus.dots.speed = 4.5;
+stimulus.dots.speed = 6;
 stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
 stimulus.dots.dir = 0;
 stimulus.dotsR = stimulus.dots;
@@ -109,7 +109,7 @@ stimulus.mask = 1;
 stimulus.pedestals.pedOpts = {'flow','contrast'};
 stimulus.pedestals.flow = [.2 .4 .6 .8];
 stimulus.pedestals.initThresh.flow = .2;
-stimulus.pedestals.contrast = exp([-2 -1.41666 -.8333 -.25]);
+stimulus.pedestals.contrast = exp(-1.5:(1.25/3):-.25);
 stimulus.pedestals.initThresh.contrast = .2;
 
 stimulus.dotsR = initDotsOpticflow(stimulus.dotsR,myscreen);
