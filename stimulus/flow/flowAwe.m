@@ -289,7 +289,6 @@ mglTextDraw(stimulus.runs.taskOptsText{stimulus.runs.curTask},[0 0]);
 
 % let the user know
 disp(sprintf('(flowAwe) Starting run number: %i',stimulus.counter));
-mglFlush
 myscreen.flushMode = 1;
 
 %% Main Task Loop
