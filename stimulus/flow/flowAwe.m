@@ -93,10 +93,10 @@ stimulus.colors.mrmin = stimulus.colors.nReserved;
 %% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
-stimulus.dots.dotsize = 3;
-stimulus.dots.density = 12;
+stimulus.dots.dotsize = 2;
+stimulus.dots.density = 24;
 stimulus.dots.coherence = 1;
-stimulus.dots.speed = 6;
+stimulus.dots.speed = 10;
 stimulus.dots.centerOffset = 2;
 stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
 stimulus.dotsR = stimulus.dots;
@@ -647,7 +647,7 @@ dots.maxY = 20;
 % make a brick of points
 dots.n = round(myscreen.imageWidth*myscreen.imageHeight*dots.density);
 % make sure it's an even number
-dots.n = dots.n + mod(dots.n,2); 
+dots.n = dots.n + mod(dots.n,2);
 
 % set half to white and half to black
 dots.con = repmat([1 2],1,dots.n/2);
