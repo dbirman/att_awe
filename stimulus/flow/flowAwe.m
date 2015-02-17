@@ -93,8 +93,8 @@ stimulus.colors.mrmin = stimulus.colors.nReserved;
 %% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
-stimulus.dots.dotsize = 2;
-stimulus.dots.density = 24;
+stimulus.dots.dotsize = 3;
+stimulus.dots.density = 18;
 stimulus.dots.coherence = 1;
 stimulus.dots.speed = 10;
 stimulus.dots.centerOffset = 2;
