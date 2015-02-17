@@ -20,6 +20,7 @@
 function [myscreen] = flowAwe(varargin)
 
 global stimulus
+global fixStimulus
 %% Initialize Variables
 
 % add arguments later
@@ -95,9 +96,9 @@ stimulus.dots.ycenter = 0;
 stimulus.dots.dotsize = 3;
 stimulus.dots.density = 12;
 stimulus.dots.coherence = 1;
-stimulus.dots.speed = 4;
+stimulus.dots.speed = 6;
+stimulus.dots.centerOffset = 2;
 stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
-stimulus.dots.dir = 0;
 stimulus.dotsR = stimulus.dots;
 stimulus.dotsR.mult = 1;
 stimulus.dotsL = stimulus.dots;
@@ -155,6 +156,7 @@ task{1}{1}.segmax = [1 1 .5 1.2];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
+task{1}{1}.parameter.dir = [-1 1];
 task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
 task{1}{1}.parameter.floPedestal = [1 2 3 4]; % target flow coherence
 task{1}{1}.parameter.catch = [1 0 0 0 0 0 0 0 0 0]; % 10% chance of being a catch trial
@@ -194,7 +196,6 @@ stimulus.runs.curTask = stimulus.runs.taskList(stimulus.counter);
 
 %% Unattended Mode
 if stimulus.unattended
-    global fixStimulus
     fixStimulus.diskSize = 0;
     fixStimulus.stimColor = [.5 .5 .5];
     fixStimulus.responseColor = stimulus.colors.white;
@@ -336,6 +337,10 @@ else
     setGammaTable_flowMax(1);
 end
 
+% set directions
+stimulus.dotsL.dir = task.thistrial.dir;
+stimulus.dotsR.dir = task.thistrial.dir;
+
 function ped = curPedValue(task)
 if task.thistrial.task==1
     ped = task.thistrial.floPedestal;
@@ -456,7 +461,9 @@ mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==1),stimulus.dotsL.y(stimulus.dot
 mglPoints2(stimulus.dotsL.x(stimulus.dotsL.con==2),stimulus.dotsL.y(stimulus.dotsL.con==2),...
     stimulus.dotsL.dotsize,[.5 .5 .5] + adjustConToTable(correctCon + lConDelta,stimulus)/2);
 
-mglBltTexture(stimulus.maskTex,[0 0 myscreen.imageWidth myscreen.imageHeight]);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%% Adjust contrast to the gamma table %%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function conValue = adjustConToTable(conValue,stimulus)
 conValue = conValue * stimulus.colors.nUnreserved / 256;
@@ -633,9 +640,9 @@ dots.T = [0 0 dots.speed/myscreen.framesPerSecond];
 dots.R = [0 0 0];
 
 % maximum depth of points
-dots.maxZ = 15;dots.minZ = dots.f;
-dots.maxX = 15;
-dots.maxY = 15;
+dots.maxZ = 20;dots.minZ = dots.f;
+dots.maxX = 20;
+dots.maxY = 20;
 
 % make a brick of points
 dots.n = round(myscreen.imageWidth*myscreen.imageHeight*dots.density);
@@ -644,7 +651,7 @@ dots.n = round(myscreen.imageWidth*myscreen.imageHeight*dots.density);
 dots.con = randi(2,1,dots.n);
 
 % initial position of dots
-dots.X = dots.mult*abs(2*dots.maxX*rand(1,dots.n)-dots.maxX);
+dots.X = 25 + dots.mult*abs(2*dots.maxX*rand(1,dots.n)-dots.maxX);
 dots.Y = 2*dots.maxY*rand(1,dots.n)-dots.maxY;
 dots.Z = (dots.maxZ-dots.minZ)*rand(1,dots.n)+dots.minZ;
 
@@ -684,9 +691,9 @@ function dots = updateDotsOpticFlow(dots,coherence,myscreen)
 % end
 
 % update relative position of dots in 3-space to observer
-dots.X(dots.coherent) = dots.X(dots.coherent)-dots.T(1);
-dots.Y(dots.coherent) = dots.Y(dots.coherent)-dots.T(2);
-dots.Z(dots.coherent) = dots.Z(dots.coherent)-dots.T(3);
+dots.X(dots.coherent) = dots.X(dots.coherent)-dots.T(1)*dots.dir;
+dots.Y(dots.coherent) = dots.Y(dots.coherent)-dots.T(2)*dots.dir;
+dots.Z(dots.coherent) = dots.Z(dots.coherent)-dots.T(3)*dots.dir;
 
 % now move the incoherent points according to the random trasnformation
 dots.X(dots.incoherent) = dots.X(dots.incoherent)-dots.randT(1,:);
@@ -706,14 +713,14 @@ dots.Z(offscreen) = dots.minZ;
 
 % put points fallen off the X edge back
 if dots.mult > 0 % we are looking at RIGHT dots
-    offscreen = dots.X < 0;
+    offscreen = dots.X < dots.centerOffset * dots.mult;
     dots.X(offscreen) = dots.X(offscreen)+dots.maxX;
-    offscreen = dots.X > dots.maxX;
+    offscreen = dots.X > dots.maxX + dots.centerOffset*dots.mult;
     dots.X(offscreen) = dots.X(offscreen)-dots.maxX;
 else % LEFT dots
-    offscreen = dots.X < -dots.maxX;
+    offscreen = dots.X < -dots.maxX + dots.centerOffset * dots.mult;
     dots.X(offscreen) = dots.X(offscreen)+dots.maxX;
-    offscreen = dots.X > 0;
+    offscreen = dots.X > dots.centerOffset * dots.mult;
     dots.X(offscreen) = dots.X(offscreen)-dots.maxX;
 end
 
