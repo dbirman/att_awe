@@ -646,9 +646,11 @@ dots.maxY = 20;
 
 % make a brick of points
 dots.n = round(myscreen.imageWidth*myscreen.imageHeight*dots.density);
+% make sure it's an even number
+dots.n = dots.n + mod(dots.n,2); 
 
-% choose contrast for each point
-dots.con = randi(2,1,dots.n);
+% set half to white and half to black
+dots.con = repmat([1 2],1,dots.n/2);
 
 % initial position of dots
 dots.X = 25 + dots.mult*abs(2*dots.maxX*rand(1,dots.n)-dots.maxX);
