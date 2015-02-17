@@ -93,8 +93,8 @@ stimulus.colors.mrmin = stimulus.colors.nReserved;
 %% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
-stimulus.dots.dotsize = 3;
-stimulus.dots.density = 18;
+stimulus.dots.dotsize = 4;
+stimulus.dots.density = 10;
 stimulus.dots.coherence = 1;
 stimulus.dots.speed = 10;
 stimulus.dots.centerOffset = 2;
@@ -106,7 +106,7 @@ stimulus.dotsL.mult = -1;
 stimulus = rmfield(stimulus,'dots');
 
 stimulus.pedestals.pedOpts = {'flow','contrast'};
-stimulus.pedestals.flow = [.2 .4 .6 .8];
+stimulus.pedestals.flow = [.1 .3 .5 .7];
 stimulus.pedestals.initThresh.flow = .2;
 stimulus.pedestals.contrast = exp(-1.5:(1.25/3):-.25);
 stimulus.pedestals.initThresh.contrast = .2;
@@ -310,8 +310,8 @@ task.thistrial.trialNum = stimulus.curTrial;
 if task.thistrial.task==1
     % coherence
     stimulus.live.cohDelta = task.thistrial.deltaPed;
-    if (task.thistrial.coherence + stimulus.live.cohDelta) > 1
-        stimulus.live.cohDelta = 1 - task.thistrial.coherence;
+    if (task.thistrial.coherence + stimulus.live.cohDelta) > .95
+        stimulus.live.cohDelta = .95 - task.thistrial.coherence;
     end
     stimulus.live.conDelta = 0;
     disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
@@ -438,16 +438,15 @@ else
 end
 
 % Correct values for gamma table adjustments
-% disp(sprintf('Requested contrast %.02f + %.02f (left) + %.02f (right) with max %.02f',task.thistrial.contrast,lConDelta,rConDelta,stimulus.curMaxContrast));
 correctCon = task.thistrial.contrast / stimulus.curMaxContrast;
 rConDelta = rConDelta / stimulus.curMaxContrast;
 lConDelta = lConDelta / stimulus.curMaxContrast;
-% disp(sprintf('Got contrast       %.02f + %.02f (left) + %.02f (right) with max %.02f',correctCon,lConDelta,rConDelta,stimulus.curMaxContrast));
 
 % Correct values for size of gamma table
 
 % dotsR
 % update +contrast
+
 mglPoints2(stimulus.dotsR.x(stimulus.dotsR.con==1),stimulus.dotsR.y(stimulus.dotsR.con==1),...
     stimulus.dotsR.dotsize,[.5 .5 .5] - adjustConToTable(correctCon + rConDelta,stimulus)/2);
 % update - contrast
