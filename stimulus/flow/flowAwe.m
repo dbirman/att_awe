@@ -93,9 +93,9 @@ stimulus.colors.mrmin = stimulus.colors.nReserved;
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
 stimulus.dots.dotsize = 3;
-stimulus.dots.density = 8;
+stimulus.dots.density = 12;
 stimulus.dots.coherence = 1;
-stimulus.dots.speed = 6;
+stimulus.dots.speed = 4;
 stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
 stimulus.dots.dir = 0;
 stimulus.dotsR = stimulus.dots;
@@ -103,8 +103,6 @@ stimulus.dotsR.mult = 1;
 stimulus.dotsL = stimulus.dots;
 stimulus.dotsL.mult = -1;
 stimulus = rmfield(stimulus,'dots');
-
-stimulus.mask = 1;
 
 stimulus.pedestals.pedOpts = {'flow','contrast'};
 stimulus.pedestals.flow = [.2 .4 .6 .8];
@@ -132,55 +130,6 @@ stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
 % set color
 stimulus.dotsR.color = ones(stimulus.dotsR.n,1);
 stimulus.dotsL.color = ones(stimulus.dotsL.n,1);
-
-%% create stencil
-if stimulus.mask
-    
-    % basic stencil
-%   mglStencilCreateBegin(1,1);
-%   % and draw that oval
-%   % now draw the wedge
-%   mglGluPartialDisk(0,0,0,20,-stimulus.wedge.deg,2*stimulus.wedge.deg,[1 1 1],16);
-%   mglGluPartialDisk(0,0,0,20,180-stimulus.wedge.deg,2*stimulus.wedge.deg,[1 1 1],16);
-%   mglGluPartialDisk(0,0,0,2,0,360,[1 1 1],60);
-%   mglStencilCreateEnd;
-%   mglClearScreen;
-
-    % fancy transparent texture
-    
-    % build a transparency layer with 100%
-    trans = ones(myscreen.screenWidth,myscreen.screenHeight);
-    % blank out the center
-    centerX = myscreen.screenWidth/2; centerY = myscreen.screenHeight/2; % note these are pixel positions
-    % blank out the 'wedges'
-    maxWedgeAng = deg2rad(30);
-    maxCenterDist = 10/myscreen.imageWidth*myscreen.screenWidth; % pixel distance from center to gray out (5 degrees)
-    for i = 1:size(trans,1)
-        for j = 1:size(trans,2)
-            value = 1; % 100% transparent by default
-            dist = sqrt((i-centerX)^2+(j-centerY)^2); % my distance
-            if dist < maxCenterDist
-                % we are within maxCenterDist of the center
-                value = dist/maxCenterDist;
-            end
-            trans(i,j) = value;
-        end
-    end
-    for i = 1:size(trans,1)
-        for j = 1:size(trans,2)
-            ang = abs(atan((j-centerY)/(i-centerX)));
-            if ang < maxWedgeAng
-                trans(i,j) = trans(i,j) * ang/maxWedgeAng;
-            end
-        end
-    end
-    
-    %copy and generate texture
-    transImg(1:size(trans,1),1:size(trans,2),1:3) = stimulus.colors.rmed; % gray for the actual colors, we only deal with the transparency
-    transImg(:,:,4) = (1-trans)*255;
-    
-    stimulus.maskTex = mglCreateTexture(transImg);
-end
 
 %% Character textures
 mglTextSet('Helvetica',32,stimulus.colors.black,0,0,0,0,0,0,0);
@@ -318,33 +267,8 @@ if plots
     dispStaircase(stimulus);
 end
 
-% delete texture
-% if isfield(stimulus,'tex')
-%     for x = 1:size(stimulus.tex,1)
-%         for y = 1:size(stimulus.tex,2)
-%             mglDeleteTexture(stimulus.tex(x,y));
-%         end
-%     end
-% end
-% mglDeleteTexture(stimulus.mask);
-% stimulus = rmfield(stimulus,'tex');
-
-%% Save file (first file will always have full textures)
-if stimulus.counter > 1
-    % Temporarily remove raw files to limit stimfile size, then replace these
-    % so they can be used on the next run.
-    stimbackup = stimulus;
-    stimulus = rmfield(stimulus,'raw');
-    stimulus = rmfield(stimulus,'images');
-end
-
 % if we got here, we are at the end of the experiment
 myscreen = endTask(myscreen,task);
-
-if stimulus.counter > 1
-    stimulus = stimbackup;
-    clear stimbackup
-end
 
 %%%%%%%%%%%%%%%%%%%%%%%%% EXPERIMENT OVER: HELPER FUNCTIONS FOLLOW %%%%%%%%
 
@@ -654,9 +578,9 @@ end
 %% checkStaircaseStop
 function checkStaircaseStop(stimulus)
 % Check both staircases
-for cues = 1:2
-    for ped = 1:3
-        s = stimulus.staircase{cues,ped,stimulus.runs.curTask};
+for task = 1:2
+    for ped = 1:4
+        s = stimulus.staircase{task,ped};
         if doStaircase('stop',s)
             % this is a bit of a pain... you can't pass an initialThreshold
             % argument do doStaircase('init',s, ...), it ignores everything and
@@ -687,7 +611,7 @@ for cues = 1:2
                 case 'O'
             end
             disp('THIS CODE IS NOT CERTAIN TO WORK! CHECK THE OUTPUT!');
-            stimulus.staircase{cues,ped,stimulus.runs.curTask} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
+            stimulus.staircase{task,ped} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
         end
     end
 end
