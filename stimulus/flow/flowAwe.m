@@ -161,7 +161,7 @@ task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
 task{1}{1}.parameter.floPedestal = [1 2 3 4]; % target flow coherence
 task{1}{1}.parameter.catch = [1 0 0 0 0 0 0 0 0 0]; % 10% chance of being a catch trial
 task{1}{1}.random = 1;
-task{1}{1}.numTrials = 150;
+task{1}{1}.numTrials = 125;
 
 %% Run variables
 task{1}{1}.randVars.calculated.task = nan; % Current task (calc per run)
@@ -520,9 +520,9 @@ function stimulus = initStaircase(stimulus)
 stimulus.stairCatch = cell(1,2);
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
 stimulus.stairCatch{1} = doStaircase('init','fixed',...
-    'fixedVals',[.05 .1 .15 .2 .25]);
+    'fixedVals',[.12 .16 .2 .24 .28]);
 stimulus.stairCatch{2} = doStaircase('init','fixed',...
-    'fixedVals',[.025 .055 .085 .115 .14]);
+    'fixedVals',[.075 .1 .125 .15 .175]);
 for task = 1:2
     stimulus.staircase{task,1} = doStaircase('init','upDown',...
         'initialThreshold',stimulus.pedestals.initThresh.(stimulus.pedestals.pedOpts{task}),...
@@ -616,7 +616,6 @@ for task = 1:2
                     vals{stepPos} = val / 3;
                 case 'O'
             end
-            disp('THIS CODE IS NOT CERTAIN TO WORK! CHECK THE OUTPUT!');
             stimulus.staircase{task,ped} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
         end
     end
