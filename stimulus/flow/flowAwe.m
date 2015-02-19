@@ -27,8 +27,9 @@ global fixStimulus
 stimFileNum = [];
 unattended = [];
 plots = [];
+overrideTask = [];
 getArgs(varargin,{'stimFileNum=-1','unattended=0', ...
-    'dual=0','plots=1','practice=0'});
+    'dual=0','plots=1','practice=0','overrideTask=0'});
 
 stimulus.unattended = unattended;
 
@@ -97,6 +98,7 @@ stimulus.dots.dotsize = 4;
 stimulus.dots.density = 10;
 stimulus.dots.coherence = 1;
 stimulus.dots.speed = 10;
+stimulus.dots.speedmult = 1;
 stimulus.dots.centerOffset = 2;
 stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
 stimulus.dotsR = stimulus.dots;
@@ -109,7 +111,7 @@ stimulus.pedestals.pedOpts = {'flow','contrast'};
 stimulus.pedestals.flow = [.1 .3 .5 .7];
 stimulus.pedestals.initThresh.flow = .2;
 stimulus.pedestals.contrast = exp(-1.5:(1.25/3):-.25);
-stimulus.pedestals.initThresh.contrast = .2;
+stimulus.pedestals.initThresh.contrast = .05;
 
 stimulus.dotsR = initDotsOpticflow(stimulus.dotsR,myscreen);
 stimulus.dotsL = initDotsOpticflow(stimulus.dotsL,myscreen);
@@ -151,8 +153,8 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.stim = 2;
 stimulus.seg.ISI = 3;
 stimulus.seg.resp = 4;
-task{1}{1}.segmin = [1 1 .1 1.2];
-task{1}{1}.segmax = [1 1 .5 1.2];
+task{1}{1}.segmin = [.8 .8 .1 1.1];
+task{1}{1}.segmax = [.8 .8 .5 1.1];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
@@ -192,7 +194,11 @@ else
     stimulus.runs.taskOptsText = {'Flow','Contrast'};
     stimulus.runs.taskList = stimulus.runs.taskOpts(randperm(2));
 end
-stimulus.runs.curTask = stimulus.runs.taskList(stimulus.counter);
+if overrideTask > 0
+    stimulus.runs.curTask = overrideTask;
+else
+    stimulus.runs.curTask = stimulus.runs.taskList(stimulus.counter);
+end
 
 %% Unattended Mode
 if stimulus.unattended
@@ -341,6 +347,10 @@ end
 stimulus.dotsL.dir = task.thistrial.dir;
 stimulus.dotsR.dir = task.thistrial.dir;
 
+% randomize speeds
+stimulus.dotsL.speedmult = rand*1.5 + 0.5;
+stimulus.dotsR.speedmult = rand*1.5 + 0.5;
+
 function ped = curPedValue(task)
 if task.thistrial.task==1
     ped = task.thistrial.floPedestal;
@@ -485,8 +495,8 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
         stimulus.live.fixColor = fixColors{task.thistrial.correct+1};
         disp(sprintf('(flowAwe) Response %s',responseText{task.thistrial.correct+1}));
         if ~task.thistrial.catch
-            stimulus.staircase{task.thistrial.task,curPedValue(task)} = ...
-                doStaircase('update',stimulus.staircase{task.thistrial.task,curPedValue(task)},task.thistrial.correct);
+            stimulus.staircase{task.thistrial.task,task.thistrial.floPedestal,task.thistrial.conPedestal} = ...
+                doStaircase('update',stimulus.staircase{task.thistrial.task,task.thistrial.floPedestal,task.thistrial.conPedestal},task.thistrial.correct);
         else
             stimulus.live.fixColor = stimulus.colors.black; % we never show information about catch trials
             stimulus.live.catchFix = 0;
@@ -508,7 +518,7 @@ function [deltaPed, stimulus] = getDeltaPed(task,stimulus,taskNum,pedNum)
 if task.thistrial.catch
     [deltaPed, stimulus.stairCatch{taskNum}] = doStaircase('testValue',stimulus.stairCatch{taskNum});
 else
-    [deltaPed, stimulus.staircase{taskNum,pedNum}] = doStaircase('testValue',stimulus.staircase{taskNum,pedNum});
+    [deltaPed, stimulus.staircase{taskNum,task.thistrial.floPedestal,task.thistrial.conPedestal}] = doStaircase('testValue',stimulus.staircase{taskNum,task.thistrial.floPedestal,task.thistrial.conPedestal});
 end
 
 
@@ -520,20 +530,22 @@ function stimulus = initStaircase(stimulus)
 stimulus.stairCatch = cell(1,2);
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
 stimulus.stairCatch{1} = doStaircase('init','fixed',...
-    'fixedVals',[.12 .16 .2 .24 .28]);
+    'fixedVals',[.1 .14 .18 .22 .26]);
 stimulus.stairCatch{2} = doStaircase('init','fixed',...
-    'fixedVals',[.075 .1 .125 .15 .175]);
+    'fixedVals',[.05 .075 .1 .125 .15]);
 for task = 1:2
-    stimulus.staircase{task,1} = doStaircase('init','upDown',...
+    stimulus.staircase{task,1,1} = doStaircase('init','upDown',...
         'initialThreshold',stimulus.pedestals.initThresh.(stimulus.pedestals.pedOpts{task}),...
         'initialStepsize',stimulus.pedestals.initThresh.(stimulus.pedestals.pedOpts{task})/3,...
         'minThreshold=0.001','maxThreshold=0.5','stepRule','pest', ...
         'nTrials=50','maxStepsize=.2','minStepsize=.001');
 end
 
-for i = 2:length(stimulus.pedestals.contrast)
-    stimulus.staircase{1,i} = stimulus.staircase{1,1};
-    stimulus.staircase{2,i} = stimulus.staircase{2,1};
+for i = 1:length(stimulus.pedestals.flow)
+    for j = 1:length(stimulus.pedestals.contrast)
+        stimulus.staircase{1,i,j} = stimulus.staircase{1,1,1};
+        stimulus.staircase{2,i,j} = stimulus.staircase{2,1,1};
+    end
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%
@@ -550,32 +562,56 @@ try
         figure % this is the 'staircase' figure
         title(sprintf('%s, Staircase plot (R->G->B->Y high)',taskOpts{task}));
         hold on
-        for ped = 1:4
-            try
-                testV = [];
-                for i = 1:length(stimulus.staircase{task,ped})
-                    testV = [testV stimulus.staircase{task,ped}(i).testValues];
+        for fped = 1:4
+            for cped = 1:4
+                try
+                    testV = [];
+                    for i = 1:length(stimulus.staircase{task,fped,cped})
+                        testV = [testV stimulus.staircase{task,fped,cped}(i).testValues];
+                    end
+                    plot(testV,drawing{task,ped});
+                catch
                 end
-                plot(testV,drawing{task,ped});
-            catch
-            end
-            try
-                out = doStaircase('threshold',stimulus.staircase{task,ped},'type','weibull'); % noise, 1 cue, lowest
-                plotting(task,ped) = out.threshold;
-            catch
-                plotting(task,ped) = -1;
+                try
+                    out = doStaircase('threshold',stimulus.staircase{task,fped,cped},'type','weibull'); % noise, 1 cue, lowest
+                    plotting(task,fped,cped) = out.threshold;
+                catch
+                    plotting(task,fped,cped) = -1;
+                end
             end
         end
     end
     hold off
     figure
-    hold on
-    title(sprintf('%s, R->G->B High',taskOpts{task}));
-    plot(stimulus.pedestals.(taskOpts{task})(1:4),plotting(1,:),'-r');
-    plot(stimulus.pedestals.(taskOpts{task})(1:4),plotting(2,:),'--r');
-    legend(taskOpts);
-    axis([stimulus.pedestals.(taskOpts{task})(1) stimulus.pedestals.(taskOpts{task})(4) 0 .3]);
-    hold off
+    subplot(211)
+    imagesc(squeeze(plotting(1,:,:)));
+    colorbar
+    xlabel('Flow Pedestals');
+    ylabel('Contrast Pedestals');
+    ax = gca;
+    ax.XTick = 1:4;
+    ax.XTickLabel = stimulus.pedestals.flow;
+    ax.YTick = 1:4;
+    ax.YTickLabel = stimulus.pedestals.contrast;
+    title('Task: Flow')
+    subplot(212)
+    imagesc(squeeze(plotting(2,:,:)));
+    colorbar
+    xlabel('Flow Pedestals');
+    ylabel('Contrast Pedestals');
+    ax = gca;
+    ax.XTick = 1:4;
+    ax.XTickLabel = stimulus.pedestals.flow;
+    ax.YTick = 1:4;
+    ax.YTickLabel = stimulus.pedestals.contrast;
+    title('Task: Contrast')
+%     hold on
+%     title(sprintf('%s, R->G->B High',taskOpts{task}));
+%     plot(stimulus.pedestals.(taskOpts{task})(1:4),plotting(1,:),'-r');
+%     plot(stimulus.pedestals.(taskOpts{task})(1:4),plotting(2,:),'--r');
+%     legend(taskOpts);
+%     axis([stimulus.pedestals.(taskOpts{task})(1) stimulus.pedestals.(taskOpts{task})(4) 0 .3]);
+%     hold off
 
 catch
     disp('(flowAwe) Figures were not generated successfully.');
@@ -586,37 +622,39 @@ function checkStaircaseStop(stimulus)
 % Check both staircases
 for task = 1:2
     for ped = 1:4
-        s = stimulus.staircase{task,ped};
-        if doStaircase('stop',s)
-            % this is a bit of a pain... you can't pass an initialThreshold
-            % argument do doStaircase('init',s, ...), it ignores everything and
-            % resets using the calculated threshold. Because you can't override it
-            [args, vals, ~] = getArgs(s(1).initArgs);
-            threshPos = -1;
-            stepPos = -1;
-            for i = 1:length(args)
-                switch args{i}
-                    case 'initialThreshold'
-                        threshPos = i;
-                    case 'initialStepsize'
-                        stepPos = i;
+        for ped2 = 1:4
+            s = stimulus.staircase{task,ped,ped2};
+            if doStaircase('stop',s)
+                % this is a bit of a pain... you can't pass an initialThreshold
+                % argument do doStaircase('init',s, ...), it ignores everything and
+                % resets using the calculated threshold. Because you can't override it
+                [args, vals, ~] = getArgs(s(1).initArgs);
+                threshPos = -1;
+                stepPos = -1;
+                for i = 1:length(args)
+                    switch args{i}
+                        case 'initialThreshold'
+                            threshPos = i;
+                        case 'initialStepsize'
+                            stepPos = i;
+                    end
                 end
+                out = doStaircase('threshold',s);
+                in = input(sprintf('Resetting Staircase... Estimate is: %1.2f. Reset ([Y]/[C]ustom/[O]riginal): ',out.threshold),'s');
+                switch in
+                    case 'Y'
+                        vals{threshPos} = out.threshold;
+                        vals{stepPos} = out.threshold / 3;
+                    case 'C'
+                        disp('Original values:');
+                        disp(sprintf('%s: %0.2f',args{threshPos},num2str(vals{threshPos})));
+                        val = str2double(input('New threshold value: ','s'));
+                        vals{threshPos} = val;
+                        vals{stepPos} = val / 3;
+                    case 'O'
+                end
+                stimulus.staircase{task,ped,ped2} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
             end
-            out = doStaircase('threshold',s);
-            in = input(sprintf('Resetting Staircase... Estimate is: %1.2f. Reset ([Y]/[C]ustom/[O]riginal): ',out.threshold),'s');
-            switch in
-                case 'Y'
-                    vals{threshPos} = out.threshold;
-                    vals{stepPos} = out.threshold / 3;
-                case 'C'
-                    disp('Original values:');
-                    disp(sprintf('%s: %0.2f',args{threshPos},num2str(vals{threshPos})));
-                    val = str2double(input('New threshold value: ','s'));
-                    vals{threshPos} = val;
-                    vals{stepPos} = val / 3;
-                case 'O'
-            end
-            stimulus.staircase{task,ped} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
         end
     end
 end
@@ -693,7 +731,7 @@ function dots = updateDotsOpticFlow(dots,coherence,myscreen)
 % update relative position of dots in 3-space to observer
 dots.X(dots.coherent) = dots.X(dots.coherent)-dots.T(1)*dots.dir;
 dots.Y(dots.coherent) = dots.Y(dots.coherent)-dots.T(2)*dots.dir;
-dots.Z(dots.coherent) = dots.Z(dots.coherent)-dots.T(3)*dots.dir;
+dots.Z(dots.coherent) = dots.Z(dots.coherent)-dots.T(3)*dots.dir*dots.speedmult;
 
 % now move the incoherent points according to the random trasnformation
 dots.X(dots.incoherent) = dots.X(dots.incoherent)-dots.randT(1,:);
