@@ -17,7 +17,7 @@
 %             practice (def=0) - Displays on ten trials
 % 
 
-function [myscreen] = flowAwe(varargin)
+function [myscreen] = coherentContrast(varargin)
 
 global stimulus
 global fixStimulus
@@ -29,7 +29,7 @@ unattended = [];
 plots = [];
 overrideTask = [];
 getArgs(varargin,{'stimFileNum=-1','unattended=0', ...
-    'dual=0','plots=1','practice=0','overrideTask=0'});
+    'dual=0','plots=1','overrideTask=0'});
 
 stimulus.unattended = unattended;
 
@@ -94,21 +94,19 @@ stimulus.colors.mrmin = stimulus.colors.nReserved;
 %% Everything else
 stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
-stimulus.dots.dotsize = 4;
+stimulus.dots.dotsize = 3;
 stimulus.dots.density = 10;
-stimulus.dots.coherence = .8;
-stimulus.dots.speed = nan;
+stimulus.dots.speed = 10;
 stimulus.dots.centerOffset = 2;
-stimulus.dots.T = [0 0 stimulus.dots.speed/myscreen.framesPerSecond];
 stimulus.dotsR = stimulus.dots;
 stimulus.dotsR.mult = 1;
 stimulus.dotsL = stimulus.dots;
 stimulus.dotsL.mult = -1;
 stimulus = rmfield(stimulus,'dots');
 
-stimulus.pedestals.pedOpts = {'speed','contrast'};
-stimulus.pedestals.speed = [5 10 15 20];
-stimulus.pedestals.initThresh.speed = 5;
+stimulus.pedestals.pedOpts = {'coherence','contrast'};
+stimulus.pedestals.coherence = [.1 .3 .5 .7];
+stimulus.pedestals.initThresh.coherence = .2;
 stimulus.pedestals.contrast = exp(-1.5:(1.25/3):-.25);
 stimulus.pedestals.initThresh.contrast = .1;
 
@@ -127,12 +125,6 @@ if ~isfield(myscreen,'gammaTable')
 end
 stimulus.linearizedGammaTable = myscreen.initScreenGammaTable;
     
-%% Additional Dots Params
-
-% set color
-stimulus.dotsR.color = ones(stimulus.dotsR.n,1);
-stimulus.dotsL.color = ones(stimulus.dotsL.n,1);
-
 %% Character textures
 mglTextSet('Helvetica',32,stimulus.colors.black,0,0,0,0,0,0,0);
 stimulus.text.mTexK = mglText('M');
@@ -152,14 +144,14 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.stim = 2;
 stimulus.seg.ISI = 3;
 stimulus.seg.resp = 4;
-task{1}{1}.segmin = [.8 .8 .1 1.1];
-task{1}{1}.segmax = [.8 .8 .5 1.1];
+task{1}{1}.segmin = [.8 .6 .1 1];
+task{1}{1}.segmax = [.8 .6 .5 1];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
 task{1}{1}.parameter.dir = [-1 1];
 task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
-task{1}{1}.parameter.spdPedestal = [1 2 3 4]; % target flow coherence
+task{1}{1}.parameter.cohPedestal = [1 2 3 4]; % target flow coherence
 task{1}{1}.parameter.catch = [1 0 0 0 0 0 0 0 0 0]; % 10% chance of being a catch trial
 task{1}{1}.random = 1;
 task{1}{1}.numTrials = 125;
@@ -167,7 +159,7 @@ task{1}{1}.numTrials = 125;
 %% Run variables
 task{1}{1}.randVars.calculated.task = nan; % Current task (calc per run)
 task{1}{1}.randVars.calculated.deltaPed = nan; % Current task (calc per run)
-task{1}{1}.randVars.calculated.speed = nan;
+task{1}{1}.randVars.calculated.coherence = nan;
 task{1}{1}.randVars.calculated.contrast = nan;
 task{1}{1}.randVars.calculated.trialNum = nan;
 
@@ -190,7 +182,7 @@ else
     % This is the first run, build up the blocks.
     stimulus.runs = struct;
     stimulus.runs.taskOpts = [1 2];
-    stimulus.runs.taskOptsText = {'Speed','Contrast'};
+    stimulus.runs.taskOptsText = {'Coherence','Contrast'};
     stimulus.runs.taskList = stimulus.runs.taskOpts(randperm(2));
 end
 if overrideTask > 0
@@ -306,7 +298,7 @@ else
 end
 
 % Set the missing thistrial vars
-task.thistrial.speed = stimulus.pedestals.speed(task.thistrial.spdPedestal);
+task.thistrial.coherence = stimulus.pedestals.coherence(task.thistrial.cohPedestal);
 task.thistrial.contrast = stimulus.pedestals.contrast(task.thistrial.conPedestal);
 task.thistrial.trialNum = stimulus.curTrial;
 [task.thistrial.deltaPed, stimulus] = getDeltaPed(task,stimulus,task.thistrial.task,curPedValue(task));
@@ -314,12 +306,12 @@ task.thistrial.trialNum = stimulus.curTrial;
 % Assign the deltaPed to the correct locations
 if task.thistrial.task==1
     % speed
-    stimulus.live.spdDelta = task.thistrial.deltaPed;
+    stimulus.live.cohDelta = task.thistrial.deltaPed;
     stimulus.live.conDelta = 0;
-    disp(sprintf('(flowAwe) Trial %i starting. Speed: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.speed,stimulus.live.spdDelta,task.thistrial.contrast));
+    disp(sprintf('(flowAwe) Trial %i starting. Speed: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.speed,stimulus.live.cohDelta,task.thistrial.contrast));
 elseif task.thistrial.task==2
     % contrast
-    stimulus.live.spdDelta = 0;
+    stimulus.live.cohDelta = 0;
     stimulus.live.conDelta = task.thistrial.deltaPed;
     if (task.thistrial.contrast + stimulus.live.conDelta) > 1
         stimulus.live.conDelta = 1 - task.thistrial.contrast;
@@ -327,7 +319,7 @@ elseif task.thistrial.task==2
     disp(sprintf('(flowAwe) Trial %i starting. Speed: %.02f Contrast %.02f + %.02f',task.thistrial.trialNum,task.thistrial.speed,task.thistrial.contrast,stimulus.live.conDelta));
 else
     % unattended
-    stimulus.live.spdDelta = 0;
+    stimulus.live.cohDelta = 0;
     stimulus.live.conDelta = 0;
     disp(sprintf('(flowAwe) Trial %i starting. Speed: %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.speed,task.thistrial.contrast));
 end
@@ -345,7 +337,7 @@ stimulus.dotsR.dir = task.thistrial.dir;
 
 function ped = curPedValue(task)
 if task.thistrial.task==1
-    ped = task.thistrial.spdPedestal;
+    ped = task.thistrial.cohPedestal;
 else
     ped = task.thistrial.conPedestal;
 end
@@ -424,11 +416,11 @@ function stimulus = upDots(task,stimulus,myscreen)
 % update the dots
 
 if task.thistrial.side == 1
-    stimulus.dotsL = updateDotsOpticFlow(stimulus.dotsL,task.thistrial.speed+stimulus.live.spdDelta,myscreen);
+    stimulus.dotsL = updateDotsOpticFlow(stimulus.dotsL,task.thistrial.speed+stimulus.live.cohDelta,myscreen);
     stimulus.dotsR = updateDotsOpticFlow(stimulus.dotsR,task.thistrial.speed,myscreen);
 else
     stimulus.dotsL = updateDotsOpticFlow(stimulus.dotsL,task.thistrial.speed,myscreen);
-    stimulus.dotsR = updateDotsOpticFlow(stimulus.dotsR,task.thistrial.speed+stimulus.live.spdDelta,myscreen);
+    stimulus.dotsR = updateDotsOpticFlow(stimulus.dotsR,task.thistrial.speed+stimulus.live.cohDelta,myscreen);
 end
 
 if task.thistrial.side == 1
@@ -487,8 +479,8 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
         stimulus.live.fixColor = fixColors{task.thistrial.correct+1};
         disp(sprintf('(flowAwe) Response %s',responseText{task.thistrial.correct+1}));
         if ~task.thistrial.catch
-            stimulus.staircase{task.thistrial.task,task.thistrial.spdPedestal,task.thistrial.conPedestal} = ...
-                doStaircase('update',stimulus.staircase{task.thistrial.task,task.thistrial.spdPedestal,task.thistrial.conPedestal},task.thistrial.correct);
+            stimulus.staircase{task.thistrial.task,task.thistrial.cohPedestal,task.thistrial.conPedestal} = ...
+                doStaircase('update',stimulus.staircase{task.thistrial.task,task.thistrial.cohPedestal,task.thistrial.conPedestal},task.thistrial.correct);
         else
             stimulus.live.fixColor = stimulus.colors.black; % we never show information about catch trials
             stimulus.live.catchFix = 0;
@@ -510,7 +502,7 @@ function [deltaPed, stimulus] = getDeltaPed(task,stimulus,taskNum,pedNum)
 if task.thistrial.catch
     [deltaPed, stimulus.stairCatch{taskNum}] = doStaircase('testValue',stimulus.stairCatch{taskNum});
 else
-    [deltaPed, stimulus.staircase{taskNum,task.thistrial.spdPedestal,task.thistrial.conPedestal}] = doStaircase('testValue',stimulus.staircase{taskNum,task.thistrial.spdPedestal,task.thistrial.conPedestal});
+    [deltaPed, stimulus.staircase{taskNum,task.thistrial.cohPedestal,task.thistrial.conPedestal}] = doStaircase('testValue',stimulus.staircase{taskNum,task.thistrial.cohPedestal,task.thistrial.conPedestal});
 end
 
 
@@ -654,44 +646,27 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % create dots for optic flow
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dots = initDotsOpticflow(dots,myscreen)
-
-% focal length to projection plane
-% projection plane is defined to be 
-% 1 unit wide and high, so with 
-% this focal length, we are looking at
-% a view of the world with a 90 deg fov
-dots.f = .5;
-
-% translation and rotation matrices
-dots.T = [0 0 dots.speed/myscreen.framesPerSecond];
-dots.R = [0 0 0];
+function dots = initDotsOpticflow(dots)
 
 % maximum depth of points
-dots.maxZ = 20;dots.minZ = dots.f;
-dots.maxX = 20;
-dots.maxY = 20;
+dots.minTheta = deg2rad(15); % minimum angle from vertical
+dots.maxTheta = deg2rad(165);
+dots.maxMag = 10; % maximum distance from center
+dots.minMag = 2;
 
-% make a brick of points
-dots.n = round(myscreen.imageWidth*myscreen.imageHeight*dots.density);
+% make a some points
+dots.n = 500*dots.density;
 % make sure it's an even number
 dots.n = dots.n + mod(dots.n,2);
 
 % set half to white and half to black
 dots.con = repmat([1 2],1,dots.n/2);
 
-% initial position of dots
-dots.X = 25 + dots.mult*abs(2*dots.maxX*rand(1,dots.n)-dots.maxX);
-dots.Y = 2*dots.maxY*rand(1,dots.n)-dots.maxY;
-dots.Z = (dots.maxZ-dots.minZ)*rand(1,dots.n)+dots.minZ;
+dots.mag = rand(1,dots.n)*(dots.maxMag-dots.minMag)+dots.minMag;
+dots.theta = dots.mult*rand(1,dots.n)*(dots.maxTheta-dots.minTheta)+dots.minTheta;
 
-% get projection on to plane
-dots.xproj = dots.f*dots.X./dots.Z;
-dots.yproj = dots.f*dots.Y./dots.Z;
-
-% put into screen coordinates
-dots.x = dots.xproj*myscreen.imageWidth;
-dots.y = dots.yproj*myscreen.imageHeight;
+dots.xproj = cos(dots.theta)*dots.mag;
+dots.yproj = sin(dots.theta)*dots.mag;
 
 % set incoherent dots to 0
 dots.coherency = 1;
@@ -699,40 +674,32 @@ dots.incoherent = rand(1,dots.n) > dots.coherency;
 dots.incoherentn = sum(dots.incoherent);
 dots.coherent = ~dots.incoherent;
 
-dots.randT = zeros(3,dots.incoherentn);
-
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % step dots for opticflow
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function dots = updateDotsOpticFlow(dots,speed,myscreen)
+function dots = updateDotsOpticFlow(dots,coherence,myscreen)
 
 % get the coherent and incoherent dots
-if (dots.coherency ~= dots.coherence)
-  dots.incoherent = rand(1,dots.n) > dots.coherence;
+% if (dots.coherency ~= dots.coherence)
+  dots.incoherent = rand(1,dots.n) > coherence;
   dots.incoherentn = sum(dots.incoherent);
   dots.coherent = ~dots.incoherent;
-  dots.coherency = dots.coherence;
-  % generate a random transformation matrix for each incoherent point
-  dots.randT = rand(3,dots.incoherentn)-0.5;
-  % and normalize the transformation to have the same length
-  % (i.e. speed) as the real transformation matrix
-  dots.randT = sqrt(sum(dots.T.^2))*dots.randT./([1 1 1]'*sqrt(sum(dots.randT.^2)));
-end
+  dots.coherency = coherence;
+% end
 
-% update speed
-dots.T = [0 0 speed/myscreen.framesPerSecond];
-dots.speed = speed;
+% move coherent dots
+dots.mag(dots.coherent) = dots.mag(dots.coherent) + dots.speed/myscreen.framesPerSecond;
 
-% update relative position of dots in 3-space to observer
-dots.X(dots.coherent) = dots.X(dots.coherent)-dots.T(1)*dots.dir;
-dots.Y(dots.coherent) = dots.Y(dots.coherent)-dots.T(2)*dots.dir;
-dots.Z(dots.coherent) = dots.Z(dots.coherent)-dots.T(3)*dots.dir;
+% move incoherent dots
+% get random vectors
+dots.rThetas = rand(1,dots.incoherentn)*deg2rad(360);
+dots.rMag = dots.speed/myscreen.framesPerSecond * ones(1,dots.incoherentn);
+% add random vectors to real vectors
+dots.mag(dots.incoherent) = dots.mag(dots.incoherent).^2 + dots.rMag.^2 + dots.mag(dots.incoherent) .* dots.rMag .* cos(abs(dots.theta(dots.incoherent)-dots.rThetas));
+dots.theta(dots.incoherent) = 
 
-% now move the incoherent points according to the random trasnformation
-dots.X(dots.incoherent) = dots.X(dots.incoherent)-dots.randT(1,:);
-dots.Y(dots.incoherent) = dots.Y(dots.incoherent)-dots.randT(2,:);
-dots.Z(dots.incoherent) = dots.Z(dots.incoherent)-dots.randT(3,:);
+dots.xproj = cos(dots.theta).*dots.mag;
+dots.yproj = sin(dots.theta).*dots.mag;
 
 % get all points that have fallen off the screen
 offscreen = dots.Z<dots.minZ;
