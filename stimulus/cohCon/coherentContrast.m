@@ -42,9 +42,9 @@ myscreen = initScreen(screen);
 %% Open Old Stimfile
 stimulus.initStair = 1;
 
-if ~isempty(mglGetSID) && isdir(sprintf('~/data/cohCon/%s',mglGetSID))
+if ~isempty(mglGetSID) && isdir(sprintf('~/data/coherentContrast/%s',mglGetSID))
     % Directory exists, check for a stimefile
-    files = dir(sprintf('~/data/cohCon/%s/1*mat',mglGetSID));
+    files = dir(sprintf('~/data/coherentContrast/%s/1*mat',mglGetSID));
 
     if length(files) >= 1
         if stimFileNum == -1
@@ -55,7 +55,7 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cohCon/%s',mglGetSID))
         else
             fname = files(stimFileNum).name;
         end
-        s = load(sprintf('~/data/cohCon/%s/%s',mglGetSID,fname));
+        s = load(sprintf('~/data/coherentContrast/%s/%s',mglGetSID,fname));
         stimulus.staircase = s.stimulus.staircase;
         stimulus.stairCatch = s.stimulus.stairCatch;
         stimulus.counter = s.stimulus.counter + 1;
@@ -66,7 +66,7 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/cohCon/%s',mglGetSID))
 
         clear s;
         stimulus.initStair = 0;
-        disp(sprintf('(flowAwe) Data file: %s loaded, this is run #%i',fname,stimulus.counter));
+        disp(sprintf('(cohCon) Data file: %s loaded, this is run #%i',fname,stimulus.counter));
     end
 end
 
@@ -144,8 +144,8 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.stim = 2;
 stimulus.seg.ISI = 3;
 stimulus.seg.resp = 4;
-task{1}{1}.segmin = [.8 6 .1 1];
-task{1}{1}.segmax = [.8 6 .5 1];
+task{1}{1}.segmin = [.8 .6 .1 1];
+task{1}{1}.segmax = [.8 .6 .5 1];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
@@ -215,10 +215,10 @@ mglClearScreen(0.5);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if stimulus.initStair
     % We are starting our staircases from scratch
-    disp(sprintf('(flowAwe) Initializing staircases'));
+    disp(sprintf('(cohCon) Initializing staircases'));
     stimulus = initStaircase(stimulus);
 else
-    disp('(flowAwe) Re-using staircase from previous run...');
+    disp('(cohCon) Re-using staircase from previous run...');
     % Reset staircase if necessary
     checkStaircaseStop(stimulus);
 end
@@ -235,7 +235,7 @@ mglClearScreen(0.5);
 mglTextDraw(stimulus.runs.taskOptsText{stimulus.runs.curTask},[0 0]);
 
 % let the user know
-disp(sprintf('(flowAwe) Starting run number: %i',stimulus.counter));
+disp(sprintf('(cohCon) Starting run number: %i',stimulus.counter));
 myscreen.flushMode = 1;
 
 %% Main Task Loop
@@ -258,10 +258,10 @@ mglClearScreen(0.5);
 mglTextDraw('Run complete... please wait.',[0 0]);
 mglFlush
 myscreen.flushMode = 1;
-disp('(flowAwe) Run ending...');
+disp('(cohCon) Run ending...');
 
 if plots
-    disp('(flowAwe) Displaying plots');
+    disp('(cohCon) Displaying plots');
     dispStaircase(stimulus);
 end
 
@@ -291,7 +291,7 @@ else
         % edit seglen
         task.thistrial.seglen(stimulus.seg.ISI) = .5;
         task.thistrial.seglen(stimulus.seg.resp) = 2;
-        disp('(flowAwe) Catch trial.');
+        disp('(cohCon) Catch trial.');
     else
         task.thistrial.task = stimulus.runs.curTask;
     end
@@ -308,7 +308,7 @@ if task.thistrial.task==1
     % speed
     stimulus.live.cohDelta = task.thistrial.deltaPed;
     stimulus.live.conDelta = 0;
-    disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
+    disp(sprintf('(cohCon) Trial %i starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
 elseif task.thistrial.task==2
     % contrast
     stimulus.live.cohDelta = 0;
@@ -316,12 +316,12 @@ elseif task.thistrial.task==2
     if (task.thistrial.contrast + stimulus.live.conDelta) > 1
         stimulus.live.conDelta = 1 - task.thistrial.contrast;
     end
-    disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f Contrast %.02f + %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast,stimulus.live.conDelta));
+    disp(sprintf('(cohCon) Trial %i starting. Coherence: %.02f Contrast %.02f + %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast,stimulus.live.conDelta));
 else
     % unattended
     stimulus.live.cohDelta = 0;
     stimulus.live.conDelta = 0;
-    disp(sprintf('(flowAwe) Trial %i starting. Coherence: %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast));
+    disp(sprintf('(cohCon) Trial %i starting. Coherence: %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast));
 end
 
 % set the gammaTable for this trial
@@ -477,7 +477,7 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
         task.thistrial.correct = task.thistrial.whichButton == stimulus.responseKeys(task.thistrial.side);
         % Store whether this was correct
         stimulus.live.fixColor = fixColors{task.thistrial.correct+1};
-        disp(sprintf('(flowAwe) Response %s',responseText{task.thistrial.correct+1}));
+        disp(sprintf('(cohCon) Response %s',responseText{task.thistrial.correct+1}));
         if ~task.thistrial.catch
             stimulus.staircase{task.thistrial.task,task.thistrial.cohPedestal,task.thistrial.conPedestal} = ...
                 doStaircase('update',stimulus.staircase{task.thistrial.task,task.thistrial.cohPedestal,task.thistrial.conPedestal},task.thistrial.correct);
@@ -488,7 +488,7 @@ if any(task.thistrial.whichButton == stimulus.responseKeys)
                 doStaircase('update',stimulus.stairCatch{task.thistrial.task},task.thistrial.correct);
         end
     else
-        disp(sprintf('(flowAwe) Subject responded multiple times: %i',task.thistrial.gotResponse+1));
+        disp(sprintf('(cohCon) Subject responded multiple times: %i',task.thistrial.gotResponse+1));
     end
 end
 
@@ -598,7 +598,7 @@ try
 %     hold off
 
 catch
-    disp('(flowAwe) Figures were not generated successfully.');
+    disp('(cohCon) Figures were not generated successfully.');
 end
 
 %% checkStaircaseStop
