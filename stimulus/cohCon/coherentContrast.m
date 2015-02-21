@@ -544,7 +544,7 @@ try
         figure % this is the 'staircase' figure
         title(sprintf('%s, Staircase plot (R->G->B->Y high)',taskOpts{task}));
         hold on
-        for fped = 1:4
+        for ped = 1:4
             try
                 testV = [];
                 for i = 1:length(stimulus.staircase{task,ped})
