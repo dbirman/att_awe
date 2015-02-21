@@ -42,9 +42,9 @@ myscreen = initScreen(screen);
 %% Open Old Stimfile
 stimulus.initStair = 1;
 
-if ~isempty(mglGetSID) && isdir(sprintf('~/data/flowAwe/%s',mglGetSID))
+if ~isempty(mglGetSID) && isdir(sprintf('~/data/cohCon/%s',mglGetSID))
     % Directory exists, check for a stimefile
-    files = dir(sprintf('~/data/flowAwe/%s/1*mat',mglGetSID));
+    files = dir(sprintf('~/data/cohCon/%s/1*mat',mglGetSID));
 
     if length(files) >= 1
         if stimFileNum == -1
@@ -55,7 +55,7 @@ if ~isempty(mglGetSID) && isdir(sprintf('~/data/flowAwe/%s',mglGetSID))
         else
             fname = files(stimFileNum).name;
         end
-        s = load(sprintf('~/data/flowAwe/%s/%s',mglGetSID,fname));
+        s = load(sprintf('~/data/cohCon/%s/%s',mglGetSID,fname));
         stimulus.staircase = s.stimulus.staircase;
         stimulus.stairCatch = s.stimulus.stairCatch;
         stimulus.counter = s.stimulus.counter + 1;
@@ -96,7 +96,7 @@ stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
 stimulus.dots.dotsize = 3;
 stimulus.dots.density = 5;
-stimulus.dots.speed = 2;
+stimulus.dots.speed = 1;
 stimulus.dots.centerOffset = 2;
 stimulus.dotsR = stimulus.dots;
 stimulus.dotsR.mult = 1;
@@ -651,7 +651,7 @@ function dots = initDotsRadial(dots,myscreen)
 % maximum depth of points
 dots.thetaRange = 45*2;
 dots.minTheta = 360-dots.thetaRange/2;
-dots.maxMag = 8; % maximum distance from center
+dots.maxMag = 14; % maximum distance from center
 dots.minMag = 3;
 
 % make a some points
