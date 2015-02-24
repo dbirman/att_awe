@@ -653,9 +653,6 @@ dots.coherent = ~dots.incoherent;
 % step dots for Radial
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function dots = updateDotsRadial(dots,coherence,myscreen)
-
-coherence = 1;
-
 % stuff to compute median speed
 dots.oldx = dots.x;
 dots.oldy = dots.y;
@@ -667,10 +664,10 @@ dots.oldy = dots.y;
   dots.coherent = ~dots.incoherent;
   dots.coherency = coherence;
 % end
-freq_factor = sqrt(dots.speed/myscreen.framesPerSecond);
+freq_factor = dots.speed/myscreen.framesPerSecond;
 
 % move coherent dots
-dots.x(dots.coherent) = dots.x(dots.coherent) + dots.dir*dots.speed/myscreen.framesPerSecond;
+dots.x(dots.coherent) = dots.x(dots.coherent) + dots.dir*freq_factor;
 
 % these are for flipping into the other quadrants
 xmat = [1 1 -1 -1];
@@ -686,7 +683,7 @@ dots.rX = rand(1,dots.incoherentn); % get a random number -1 -> 1 for the x offs
 dots.rY = sqrt(1-dots.rX.^2); % solve for y
 dots.rX = dots.rX .* xmat;
 dots.rY = dots.rY .* ymat;
-dots.rX = dots.rX * freq_factor; % move -1 to 1
+dots.rX = dots.rX * freq_factor; % rescale to match the velocity
 dots.rY = dots.rY * freq_factor;
 dots.x(dots.incoherent) = dots.x(dots.incoherent) + dots.rX;
 dots.y(dots.incoherent) = dots.y(dots.incoherent) + dots.rY;
@@ -700,6 +697,7 @@ offscreen = dots.y > dots.maxY;
 dots.y(offscreen) = dots.y(offscreen) - abs(dots.maxY - dots.minY);
 offscreen = dots.y < dots.minY;
 dots.y(offscreen) = dots.y(offscreen) + abs(dots.maxY - dots.minY);
+
 
 dots.xdisp = dots.mult*dots.x;
 dots.ydisp = dots.y;
