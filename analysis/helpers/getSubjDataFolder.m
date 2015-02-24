@@ -9,6 +9,8 @@ switch experiment
         datFolder = fullfile(sprintf('~/data/cue_noisecon/%s',mglGetSID));
     case 'fade'
         datFolder = fullfile(sprintf('~/data/cue_fade/%s',mglGetSID));
+    case 'cohCon'
+        datFolder = fullfile(sprintf('~/data/coherentcontrast/%s',mglGetSID));
 end
         
 anFolder = fullfile(datFolder,'analysis');

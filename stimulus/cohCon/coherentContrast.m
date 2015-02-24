@@ -155,7 +155,7 @@ task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
 task{1}{1}.parameter.cohPedestal = [1 2 3 4]; % target flow coherence
 task{1}{1}.parameter.catch = [1 0 0 0 0 0 0 0 0 0]; % 10% chance of being a catch trial
 task{1}{1}.random = 1;
-task{1}{1}.numTrials = 140;
+task{1}{1}.numTrials = 150;
 
 %% Run variables
 task{1}{1}.randVars.calculated.task = nan; % Current task (calc per run)
