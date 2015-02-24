@@ -97,7 +97,7 @@ stimulus.dots.xcenter = 0;
 stimulus.dots.ycenter = 0;
 stimulus.dots.dotsize = 3;
 stimulus.dots.density = 5;
-stimulus.dots.speed = .4;
+stimulus.dots.speed = 2;
 stimulus.dots.centerOffset = 2;
 stimulus.dotsR = stimulus.dots;
 stimulus.dotsR.mult = 1;
@@ -539,6 +539,8 @@ function dispStaircase(stimulus)
 try
     taskOpts = {'coherence','contrast'};
     
+    plotting = zeros(2,4);
+    
     drawing = {'-r' '-g' '-b' '-y'
                 '--r' '--g' '--b' '--y'};
     for task = 1:2
@@ -622,10 +624,10 @@ end
 function dots = initDotsRadial(dots,~)
 
 % maximum depth of points
-dots.thetaRange = 45*2;
-dots.minTheta = 360-dots.thetaRange/2;
-dots.maxMag = 14; % maximum distance from center
-dots.minMag = 3;
+dots.minX = 3;
+dots.maxX = 13;
+dots.minY = -5;
+dots.maxY = 5;
 
 % make a some points
 dots.n = 500*dots.density;
@@ -635,12 +637,10 @@ dots.n = dots.n + mod(dots.n,2);
 % set half to white and half to black
 dots.con = repmat([1 2],1,dots.n/2);
 
-dots.mag = rand(1,dots.n)*(dots.maxMag-dots.minMag)+dots.minMag;
-dots.theta = deg2rad(mod(rand(1,dots.n)*dots.thetaRange+dots.minTheta,360));
+dots.x = rand(1,dots.n)*(dots.maxX-dots.minX)+dots.minX;
+dots.y = rand(1,dots.n)*abs(dots.maxY-dots.minY)+dots.minY;
 
-dots.x = dots.mult*cos(dots.theta).*dots.mag;
-dots.y = sin(dots.theta).*dots.mag;
-dots.xdisp = dots.x;
+dots.xdisp = dots.mult*dots.x;
 dots.ydisp = dots.y;
 
 % set incoherent dots to 0
@@ -654,6 +654,12 @@ dots.coherent = ~dots.incoherent;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function dots = updateDotsRadial(dots,coherence,myscreen)
 
+coherence = 1;
+
+% stuff to compute median speed
+dots.oldx = dots.x;
+dots.oldy = dots.y;
+
 % get the coherent and incoherent dots
 % if (dots.coherency ~= dots.coherence)
   dots.incoherent = rand(1,dots.n) > coherence;
@@ -662,8 +668,9 @@ function dots = updateDotsRadial(dots,coherence,myscreen)
   dots.coherency = coherence;
 % end
 freq_factor = sqrt(dots.speed/myscreen.framesPerSecond);
+
 % move coherent dots
-dots.mag(dots.coherent) = dots.mag(dots.coherent) + dots.dir*freq_factor;
+dots.x(dots.coherent) = dots.x(dots.coherent) + dots.dir*dots.speed/myscreen.framesPerSecond;
 
 % these are for flipping into the other quadrants
 xmat = [1 1 -1 -1];
@@ -684,30 +691,15 @@ dots.rY = dots.rY * freq_factor;
 dots.x(dots.incoherent) = dots.x(dots.incoherent) + dots.rX;
 dots.y(dots.incoherent) = dots.y(dots.incoherent) + dots.rY;
 
-% now move all of this back into vectors
-dots.mag(dots.incoherent) = sqrt(dots.x(dots.incoherent).^2 + dots.y(dots.incoherent).^2);
-dots.theta(dots.incoherent) = atan(dots.y(dots.incoherent)./dots.x(dots.incoherent));
+offscreen = dots.x > dots.maxX;
+dots.x(offscreen) = dots.x(offscreen) - abs(dots.maxX - dots.minX);
+offscreen = dots.x < dots.minX;
+dots.x(offscreen) = dots.x(offscreen) + abs(dots.maxX - dots.minX);
 
-% all dots are vectors
-dots.theta = mod(dots.theta,pi*2);
+offscreen = dots.y > dots.maxY;
+dots.y(offscreen) = dots.y(offscreen) - abs(dots.maxY - dots.minY);
+offscreen = dots.y < dots.minY;
+dots.y(offscreen) = dots.y(offscreen) + abs(dots.maxY - dots.minY);
 
-% put points fallen off the X edge back
-offscreen = dots.mag>dots.maxMag;
-dots.mag(offscreen) = dots.mag(offscreen) - (dots.maxMag-dots.minMag);
-offscreen = dots.mag<dots.minMag;
-dots.mag(offscreen) = dots.mag(offscreen) + (dots.maxMag-dots.minMag);
-% put points fallen off the angles
-offscreen = logical((dots.theta>deg2rad(dots.thetaRange/2)) .* (dots.theta < pi/2));
-dots.theta(offscreen) = mod(dots.theta(offscreen) - deg2rad(dots.thetaRange),pi*2);
-offscreen = logical((dots.theta < deg2rad(dots.minTheta)) .* (dots.theta > pi*1.5));
-dots.theta(offscreen) = mod(dots.theta(offscreen) + deg2rad(dots.thetaRange),pi*2);
-
-% stuff to compute median speed
-dots.oldx = dots.x;
-dots.oldy = dots.y;
-% project on to screen
-dots.x = dots.mult*cos(dots.theta).*dots.mag;
-dots.y = sin(dots.theta).*dots.mag;
-
-dots.xdisp = dots.x;
+dots.xdisp = dots.mult*dots.x;
 dots.ydisp = dots.y;

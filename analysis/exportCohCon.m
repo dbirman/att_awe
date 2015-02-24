@@ -38,9 +38,9 @@ load(fullfile(analysis.datFolder,files(end).name));
 % staircaseplots(stimulus);
 
 %% Send main to CSV file
-plotting = fade_discFuncs(stimulus,0);
-fade_plo2csv(plotting);
+plotting = cohCon_discFuncs(stimulus,0);
+cohCon_plo2csv(plotting);
 
 %% Send catch to CSV file
-cat = fade_catPerf(stimulus);
+cat = cohCon_catPerf(stimulus);
 per2csv(peripheral);
