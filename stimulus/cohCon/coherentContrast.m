@@ -1,3 +1,4 @@
+
 % flowAwe
 %
 %      usage: myscreen=flowAwe()
@@ -144,8 +145,8 @@ stimulus.seg.ITI = 1; % the ITI is either 20s (first time) or 1s
 stimulus.seg.stim = 2;
 stimulus.seg.ISI = 3;
 stimulus.seg.resp = 4;
-task{1}{1}.segmin = [.8 .6 .1 1];
-task{1}{1}.segmax = [.8 .6 .5 1];
+task{1}{1}.segmin = [.4 .6 .1 1];
+task{1}{1}.segmax = [.8 .6 .4 1];
 task{1}{1}.synchToVol = [0 0 0 0];
 task{1}{1}.getResponse = [0 0 0 1];
 task{1}{1}.parameter.side = [1 2]; % 1 = left, 2 = right, the side will be the one with con/flow + delta (From staircase)
@@ -154,7 +155,7 @@ task{1}{1}.parameter.conPedestal = [1 2 3 4]; % target contrast
 task{1}{1}.parameter.cohPedestal = [1 2 3 4]; % target flow coherence
 task{1}{1}.parameter.catch = [1 0 0 0 0 0 0 0 0 0]; % 10% chance of being a catch trial
 task{1}{1}.random = 1;
-task{1}{1}.numTrials = 125;
+task{1}{1}.numTrials = 140;
 
 %% Run variables
 task{1}{1}.randVars.calculated.task = nan; % Current task (calc per run)
@@ -182,7 +183,7 @@ else
     % This is the first run, build up the blocks.
     stimulus.runs = struct;
     stimulus.runs.taskOpts = [1 2];
-    stimulus.runs.taskOptsText = {'Coherence','Contrast'};
+    stimulus.runs.taskOptsText = {'Motion','Contrast'};
     stimulus.runs.taskList = stimulus.runs.taskOpts(randperm(2));
 end
 if overrideTask > 0
