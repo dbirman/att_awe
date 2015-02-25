@@ -221,7 +221,7 @@ if stimulus.initStair
 else
     disp('(cohCon) Re-using staircase from previous run...');
     % Reset staircase if necessary
-    checkStaircaseStop(stimulus);
+    checkStaircaseStop();
 end
 
 %% EYE CALIB
@@ -579,7 +579,8 @@ catch
 end
 
 %% checkStaircaseStop
-function checkStaircaseStop(stimulus)
+function checkStaircaseStop()
+global stimulus
 % Check both staircases
 for task = 1:2
     for ped = 1:4
