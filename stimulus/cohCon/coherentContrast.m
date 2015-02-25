@@ -613,7 +613,7 @@ for task = 1:2
                     vals{stepPos} = val / 3;
                 case 'O'
             end
-            stimulus.staircase{task,ped} = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
+            stimulus.staircase{task,ped}(end+1) = doStaircase('init',s,'initialThreshold',vals{threshPos},'initialStepsize',vals{stepPos});
         end
     end
 end
