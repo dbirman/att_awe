@@ -2,3 +2,4 @@
 *.m~
 *.pdf
 .Rproj.user
+analysis/.Rhistory
