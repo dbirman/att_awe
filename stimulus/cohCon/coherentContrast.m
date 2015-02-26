@@ -663,17 +663,18 @@ dots.coherent = ~dots.incoherent;
 % step dots for Radial
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function dots = updateDotsRadial(dots,coherence,myscreen)
+
 % stuff to compute median speed
 dots.oldx = dots.x;
 dots.oldy = dots.y;
 
 % get the coherent and incoherent dots
-% if (dots.coherency ~= dots.coherence)
+if (dots.coherency ~= coherence)
   dots.incoherent = rand(1,dots.n) > coherence;
   dots.incoherentn = sum(dots.incoherent);
   dots.coherent = ~dots.incoherent;
   dots.coherency = coherence;
-% end
+end
 freq_factor = dots.speed/myscreen.framesPerSecond;
 
 % move coherent dots
