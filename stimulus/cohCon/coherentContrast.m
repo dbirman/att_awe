@@ -309,7 +309,6 @@ if task.thistrial.task==1
     % speed
     stimulus.live.cohDelta = task.thistrial.deltaPed;
     stimulus.live.conDelta = 0;
-    disp(sprintf('(cohCon) Trial %i starting. Coherence: %.02f + %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,stimulus.live.cohDelta,task.thistrial.contrast));
 elseif task.thistrial.task==2
     % contrast
     stimulus.live.cohDelta = 0;
@@ -317,12 +316,22 @@ elseif task.thistrial.task==2
     if (task.thistrial.contrast + stimulus.live.conDelta) > 1
         stimulus.live.conDelta = 1 - task.thistrial.contrast;
     end
-    disp(sprintf('(cohCon) Trial %i starting. Coherence: %.02f Contrast %.02f + %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast,stimulus.live.conDelta));
 else
     % unattended
     stimulus.live.cohDelta = 0;
     stimulus.live.conDelta = 0;
-    disp(sprintf('(cohCon) Trial %i starting. Coherence: %.02f Contrast %.02f',task.thistrial.trialNum,task.thistrial.coherence,task.thistrial.contrast));
+end
+
+if task.thistrial.side==1
+    % left
+    disp(sprintf('(cohCon) Trial %i starting. Coherence: L %.02f; R %.02f Contrast: L %.02f; R %.02f',task.thistrial.trialNum,...
+        task.thistrial.coherence+stimulus.live.cohDelta,task.thistrial.coherence,...
+        task.thistrial.contrast+stimulus.live.conDelta,task.thistrial.contrast));
+else
+    % right
+    disp(sprintf('(cohCon) Trial %i starting. Coherence: L %.02f; R %.02f Contrast: L %.02f; R %.02f',task.thistrial.trialNum,...
+        task.thistrial.coherence,task.thistrial.coherence+stimulus.live.cohDelta,...
+        task.thistrial.contrast,task.thistrial.contrast+stimulus.live.conDelta));
 end
 
 % set the gammaTable for this trial
