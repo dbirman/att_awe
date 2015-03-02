@@ -110,7 +110,7 @@ stimulus = rmfield(stimulus,'dots');
 
 stimulus.pedestals.pedOpts = {'coherence','contrast'};
 stimulus.pedestals.coherence = [.05 .25 .45 .65];
-stimulus.pedestals.initThresh.coherence = .2;
+stimulus.pedestals.initThresh.coherence = .3;
 stimulus.pedestals.contrast = exp(-1.5:(1.25/3):-.25);
 stimulus.pedestals.initThresh.contrast = .1;
 
