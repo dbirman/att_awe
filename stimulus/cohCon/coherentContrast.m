@@ -29,16 +29,19 @@ stimFileNum = [];
 unattended = [];
 plots = [];
 overrideTask = [];
+projector = [];
 getArgs(varargin,{'stimFileNum=-1','unattended=0', ...
-    'dual=0','plots=1','overrideTask=0'});
+    'dual=0','plots=1','overrideTask=0','projector=0'});
+stimulus.projector = projector;
 
 stimulus.unattended = unattended;
 
 stimulus.counter = 1; % This keeps track of what "run" we are on.
 %% Setup Screen
 
-screen.screenNumber = 2;
-myscreen = initScreen(screen);
+myscreen = initScreen();
+
+if projector, stimulus.stencil = mglProjStencil(); end
 
 %% Open Old Stimfile
 stimulus.initStair = 1;
@@ -106,7 +109,7 @@ stimulus.dotsL.mult = -1;
 stimulus = rmfield(stimulus,'dots');
 
 stimulus.pedestals.pedOpts = {'coherence','contrast'};
-stimulus.pedestals.coherence = [.1 .3 .5 .7];
+stimulus.pedestals.coherence = [.05 .25 .45 .65];
 stimulus.pedestals.initThresh.coherence = .2;
 stimulus.pedestals.contrast = exp(-1.5:(1.25/3):-.25);
 stimulus.pedestals.initThresh.contrast = .1;
@@ -395,10 +398,18 @@ end
 function [task, myscreen] = screenUpdateCallback(task, myscreen)
 global stimulus
 
-mglClearScreen(0.5);
+if stimulus.projector
+    mglClearScreen(1/255);
+    mglStencilSelect(stimulus.stencil);
+    mglFillRect(0,0,[30 30],[.5 .5 .5]);
+else
+    mglClearScreen(0.5);
+end
 
 if stimulus.live.dots==1, stimulus = upDots(task,stimulus,myscreen); end
 if ~stimulus.unattended, upFix(task,stimulus); end
+
+if stimulus.projector, mglStencilSelect(0); end
 
 %%
 function upFix(task,stimulus)
@@ -524,7 +535,7 @@ function stimulus = initStaircase(stimulus)
 stimulus.stairCatch = cell(1,2);
 stimulus.staircase = cell(2,length(stimulus.pedestals.contrast));
 stimulus.stairCatch{1} = doStaircase('init','fixed',...
-    'fixedVals',[.1 .14 .18 .22 .26]);
+    'fixedVals',[.125 .155 .185 .215 .245]);
 stimulus.stairCatch{2} = doStaircase('init','fixed',...
     'fixedVals',[.025 .04 .06 .085 .115]);
 for task = 1:2
