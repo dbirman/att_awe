@@ -312,6 +312,9 @@ if task.thistrial.task==1
     % speed
     stimulus.live.cohDelta = task.thistrial.deltaPed;
     stimulus.live.conDelta = 0;
+    if (task.thistrial.coherence + stimulus.live.cohDelta) > 0.95
+        stimulus.live.cohDelta = .95 - task.thistrial.coherence;
+    end
 elseif task.thistrial.task==2
     % contrast
     stimulus.live.cohDelta = 0;
@@ -415,7 +418,7 @@ if stimulus.projector, mglStencilSelect(0); end
 function upFix(task,stimulus)
 
 if ~task.thistrial.catch || stimulus.live.catchFix == 0
-    mglFixationCross(1,1,stimulus.live.fixColor);
+    mglFixationCross(1.5,1.5,stimulus.live.fixColor);
 else
     if task.thistrial.task==1
         if stimulus.live.fixColor==stimulus.colors.white
@@ -646,7 +649,7 @@ function dots = initDotsRadial(dots,~)
 
 % maximum depth of points
 dots.minX = 3;
-dots.maxX = 13;
+dots.maxX = 10;
 dots.minY = -5;
 dots.maxY = 5;
 
@@ -719,7 +722,6 @@ offscreen = dots.y > dots.maxY;
 dots.y(offscreen) = dots.y(offscreen) - abs(dots.maxY - dots.minY);
 offscreen = dots.y < dots.minY;
 dots.y(offscreen) = dots.y(offscreen) + abs(dots.maxY - dots.minY);
-
 
 dots.xdisp = dots.mult*dots.x;
 dots.ydisp = dots.y;
