@@ -404,7 +404,7 @@ global stimulus
 if stimulus.projector
     mglClearScreen(1/255);
     mglStencilSelect(stimulus.stencil);
-    mglFillRect(0,0,[30 30],[.5 .5 .5]);
+    mglFillRect(0,0,[50 50],[.5 .5 .5]);
 else
     mglClearScreen(0.5);
 end
