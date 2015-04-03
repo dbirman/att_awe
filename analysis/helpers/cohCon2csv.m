@@ -67,19 +67,22 @@ if ~exist(mainFile,'file')
     
     % First re-organize into a matrix, tracking the headers
     mainHeader = { 'RT', 'trial', ...
-        'task', 'deltaPed', 'coherence', 'contrast', 'trialNum', 'correct', ... % rand items
+        'run', ... % runVars
+        'task', 'deltaPed', 'coherence', 'contrast', 'trialNum', 'correct','lAvgCon','rAvgCon','lAvgCoh','rAvgCoh', ... % rand items
         'side','direction','conPedestal','cohPedestal','isCatch'}; % parameter items
     
     
     % For each item in the header (re-named) what is the corresponding data?
     corrData = {'reactionTime', 'blockTrialNum'};
     % These come AFTER all the corrData items. They are pulled from
+    % 'main.runVars'
+    runData = {'runNum'};
     % 'main.randVars'
-    randData = {'task', 'deltaPed', 'coherence', 'contrast', 'trialNum', 'correct'};
-    
+    randData = {'task', 'deltaPed', 'coherence', 'contrast', 'trialNum', 'correct','avgConL','avgConR','avgCohL','avgCohR'};
+    % these are pulled from main.parameter
     pedData = {'side','dir','conPedestal','cohPedestal','catch'};
     
-    if length(randData)+length(corrData)+length(pedData) ~= length(mainHeader)
+    if length(randData)+length(runData)+length(corrData)+length(pedData) ~= length(mainHeader)
         error('Lengths are incorrect! Check your variables');
     end
     
@@ -90,12 +93,20 @@ if ~exist(mainFile,'file')
         mainData(:,end+1) = main.(corrData{i});
     end
     
+    for i = 1:length(runData)
+        mainData(:,end+1) = repmat(main.runVars.runNum,size(mainData,1),1);
+    end
+    
     for j = 1:length(randData)
         mainData(:,end+1) = main.randVars.(randData{j});
     end
     
     for k = 1:length(pedData)
         mainData(:,end+1) = main.parameter.(pedData{k});
+    end
+    
+    if size(mainData,2)~=length(mainHeader)
+        error('Lengths are incorrect! Check your variables');
     end
     
     % Now write to mainFile
@@ -109,7 +120,7 @@ end
 %% Write run
 
 if ~exist(runFile,'file')
-    runHeader = {'pedC1','pedC2','pedC3','pedC4','pedM1','pedM2','pedM3','pedM4'};
+    runHeader = {'pedC1','pedC2','pedC3','pedC4','pedM1','pedM2','pedM3','pedM4','cPedC1','cPedC2','cPedC3','cPedC4','cPedC5','cPedM1','cPedM2','cPedM3','cPedM4','cPedM5'};
     runData = [main.runVars.pedestals.contrast(1),...
         main.runVars.pedestals.contrast(2),...
         main.runVars.pedestals.contrast(3),...
@@ -117,7 +128,17 @@ if ~exist(runFile,'file')
         main.runVars.pedestals.coherence(1),...
         main.runVars.pedestals.coherence(2),...
         main.runVars.pedestals.coherence(3),...
-        main.runVars.pedestals.coherence(4),];
+        main.runVars.pedestals.coherence(4),...
+        main.runVars.pedestals.catch.contrast(1),...
+        main.runVars.pedestals.catch.contrast(2),...
+        main.runVars.pedestals.catch.contrast(3),...
+        main.runVars.pedestals.catch.contrast(4),...
+        main.runVars.pedestals.catch.contrast(5),...
+        main.runVars.pedestals.catch.coherence(1),...
+        main.runVars.pedestals.catch.coherence(2),...
+        main.runVars.pedestals.catch.coherence(3),...
+        main.runVars.pedestals.catch.coherence(4),...
+        main.runVars.pedestals.catch.coherence(5)];
     
     disp(sprintf('(fade2csv) Writing run file... %s',runFile));
     csvwriteh(runFile,runData,runHeader);

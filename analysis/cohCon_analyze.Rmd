@@ -1,0 +1,109 @@
+---
+title: "cohCon_analyze"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(lme4)
+library(effects)
+library(MASS)
+```
+
+
+```{r}
+anFolder = '/Users/dan/data/coherentContrast/s301/analysis/csv/'
+```
+
+```{r}
+filesToLoad = 1:4
+
+for (fi in filesToLoad) {
+  # Dealing with run # fi
+  main = read.csv(sprintf('%s/main%02.f.csv',anFolder,fi))  
+  # Switch to determine what kind of analysis we do
+  main = main %>% 
+    mutate(rTrial=(run-1)*150+trial)
+  
+  if (fi==1) {
+    mdata = main
+  } else {
+    mdata = rbind(mdata,main)
+  }
+}
+
+cdata = mdata %>%
+  filter(isCatch==1)
+
+```
+
+```{r}
+for (fi in filesToLoad) {
+  # Dealing with run # fi
+  eye = read.csv(sprintf('%s/eye%02.f.csv',anFolder,fi))
+  
+  if (fi==1) {
+    edata = eye
+  } else {
+    edata = rbind(edata,eye)
+  }
+}
+```
+
+```{r}
+mdata = mdata %>%
+  mutate(correctF=factor(correct,levels=c(0,1),labels=c('Inc','Cor')),side=factor(side,levels=c(1,2),labels=c('Left','Right')),task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),conPedestal=factor(conPedestal),cohPedestal=factor(cohPedestal),isCatch=factor(isCatch,levels=c(0,1),labels=c('Reg','Catch')))
+```
+
+```{r}
+mainTh = read.csv(sprintf('%s/mainThresholds.csv',anFolder))
+catTh = read.csv(sprintf('%s/catThresholds.csv',anFolder))
+run = read.csv(sprintf('%s/run04.csv',anFolder))
+```
+
+```{r}
+mainTh = mainTh %>%
+  mutate(.,task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),
+         pedF = factor(pedestal),
+         ped=c(run$pedM1,run$pedM2,run$pedM3,run$pedM4,run$pedC1,run$pedC2,run$pedC3,run$pedC4))
+mainTh = mainTh %>%
+  group_by(.,task,pedF) %>%
+  mutate(.,mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
+catTh = catTh %>%
+  mutate(.,task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),
+         pedF = factor(pedestal),
+         ped=c(run$cPedM1,run$cPedM2,run$cPedM3,run$cPedM4,run$cPedM5,run$cPedC1,run$cPedC2,run$cPedC3,run$cPedC4,run$cPedC5))
+catTh = catTh %>%
+  group_by(.,task,pedF) %>%
+  mutate(.,mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
+```
+
+```{r}
+ggplot(mainTh,aes(ped,mu,color=task)) +
+  geom_line() +
+  geom_errorbar(aes(ymin=mu-ci,ymax=mu+ci))
+```
+
+```{r}
+ggplot(catTh,aes(ped,mu,color=task)) +
+  geom_line() +
+  geom_errorbar(aes(ymin=mu-ci,ymax=mu+ci))
+```
+
+```{r}
+## Here we're going to calculate from cdata the proportion at each deltaPed, for each pedestal, correct
+cdata %>%
+  group_by(contrast,coherence,deltaPed) %>%
+  summarise(perc=mean(correct)) %>%
+  ggplot(.,aes(contrast,perc,color=deltaPed)) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
+
+```{r}
+ggplot(mdata,aes(as.factor(task),RT)) +
+  geom_point()
+```
+
