@@ -1,6 +1,6 @@
 %% To start off, let's get files
 
-mglSetSID('s301')
+mglSetSID('s300')
 
 global analysis
 
