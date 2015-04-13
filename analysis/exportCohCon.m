@@ -79,6 +79,6 @@ for i = 1:4
     vals{i} = num2str(stimulus.pedestals.contrast(i));
 end
 legend(vals);
-axis([0 .5 .475 1.025]);
+axis([0 .15 .475 1.025]);
 set(gca,'fontsize',24);
 set(gca,'LineWidth',3);

@@ -36,16 +36,18 @@ allT = allThresh %>%
 figFolder = '/Users/dan/proj/att_awe/analysis/figures/scan/'
 pdf(file=sprintf('%s/thresholdPlot_Across.pdf',figFolder))
 allT %>%
-  filter(subj==300) %>%
+  filter(catch=='Cued') %>%
   ggplot(data=.,aes(pedVal,muAcross,color=task,linetype=catch)) +
-    geom_line() +
+    geom_line(size=3) +
     #geom_line(aes(pedVal,mu,fill=subj,color=task,linetype=catch),alpha=.25) +
-    geom_errorbar(aes(ymin=muAcross-ciAcross,ymax=muAcross+ciAcross)) +
+    geom_errorbar(aes(ymin=muAcross-ciAcross,ymax=muAcross+ciAcross),size=2,width=0) +
     theme_bw() +
     ylab('Threshold') +
     xlab('Pedestal (%)') +
     xlim(0,.7) +
-    ylim(-.1,.5)
+    ylim(-.1,.5) +
+    theme(text = element_text(size=20)) +
+    scale_color_brewer(palette='Dark2')
 #     coord_trans(xtrans = 'log10',ytrans = 'log10') +
 #     annotation_logticks(scaled=FALSE)
 dev.off()
