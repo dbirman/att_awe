@@ -9,16 +9,28 @@ try
 
         for ped = 1:4
             if check
-            end
-            try
-                for i = 1:length(stimulus.staircase{task,ped})
-                    if stimulus.staircase{task,ped}(i).trialNum>0
-                        out = doStaircase('threshold',stimulus.staircase{task,ped}(i),'type','weibull'); % noise, 1 cue, lowest
-                        plotting{task,ped} = [plotting{task,ped} out.threshold];
+                try
+                    for i = 1:length(stimulus.staircase{task,ped})
+                        if stimulus.staircase{task,ped}(i).trialNum>0
+                            out = doStaircase('threshold',stimulus.staircase{task,ped}(i),'type','weibull','dispFig=1'); % noise, 1 cue, lowest
+                            plotting{task,ped} = [plotting{task,ped} out.threshold];
+                            keyboard
+                        end
                     end
+                catch
+                    plotting{task,ped} = -1;
                 end
-            catch
-                plotting{task,ped} = -1;
+            else
+                try
+                    for i = 1:length(stimulus.staircase{task,ped})
+                        if stimulus.staircase{task,ped}(i).trialNum>0
+                            out = doStaircase('threshold',stimulus.staircase{task,ped}(i),'type','weibull'); % noise, 1 cue, lowest
+                            plotting{task,ped} = [plotting{task,ped} out.threshold];
+                        end
+                    end
+                catch
+                    plotting{task,ped} = -1;
+                end
             end
         end
     end

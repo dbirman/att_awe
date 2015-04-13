@@ -14,11 +14,46 @@ library(MASS)
 
 
 ```{r}
-anFolder = '/Users/dan/data/coherentContrast/s301/analysis/csv/'
+
+allThresh25 = getSubjThresholdPlot('behav','s025')
+allThresh300 = getSubjThresholdPlot('behav','s300')
+
+aT25 = cbind(allThresh25,subj='25')
+aT300 = cbind(allThresh300,subj='300')
+
+allThresh = rbind(aT25,aT300)
+
+allT = allThresh %>%
+  group_by(task,pedestal,catch) %>%
+  mutate(muAcross = mean(mu),ciAcross = sd(mu)/sqrt(n())*1.96) %>%
+  ungroup() %>%
+  mutate(catch=factor(catch,levels=c(0,1),labels=c('Cued','Catch')))
+
 ```
 
 ```{r}
-filesToLoad = 1:4
+
+figFolder = '/Users/dan/proj/att_awe/analysis/figures/scan/'
+pdf(file=sprintf('%s/thresholdPlot_Across.pdf',figFolder))
+allT %>%
+  filter(subj==300) %>%
+  ggplot(data=.,aes(pedVal,muAcross,color=task,linetype=catch)) +
+    geom_line() +
+    #geom_line(aes(pedVal,mu,fill=subj,color=task,linetype=catch),alpha=.25) +
+    geom_errorbar(aes(ymin=muAcross-ciAcross,ymax=muAcross+ciAcross)) +
+    theme_bw() +
+    ylab('Threshold') +
+    xlab('Pedestal (%)') +
+    xlim(0,.7) +
+    ylim(-.1,.5)
+#     coord_trans(xtrans = 'log10',ytrans = 'log10') +
+#     annotation_logticks(scaled=FALSE)
+dev.off()
+```
+
+
+```{r}
+filesToLoad = 1:8
 
 for (fi in filesToLoad) {
   # Dealing with run # fi
@@ -42,7 +77,7 @@ cdata = mdata %>%
 ```{r}
 for (fi in filesToLoad) {
   # Dealing with run # fi
-  eye = read.csv(sprintf('%s/eye%02.f.csv',anFolder,fi))
+  eye = read.csv(sprintf('%s/eye%02.f.csv',csvFolder,fi))
   
   if (fi==1) {
     edata = eye
@@ -58,32 +93,68 @@ mdata = mdata %>%
 ```
 
 ```{r}
-mainTh = read.csv(sprintf('%s/mainThresholds.csv',anFolder))
-catTh = read.csv(sprintf('%s/catThresholds.csv',anFolder))
-run = read.csv(sprintf('%s/run04.csv',anFolder))
+rs = lm(data=mdata,RT~correct+isCatch)
+mdata %>%
+  ggplot(data=.,aes(correct,RT,color=isCatch)) +
+  geom_point() +
+  geom_smooth(method="lm")
+```
+
+
+```{r}
+getSubjThresholdPlot = function(type,subj) {
+  if (type=='behav') {
+    anFolder = sprintf('/Users/dan/data/coherentContrast/%s/analysis/',subj)
+    csvFolder = paste(anFolder,'csv/',sep="")
+  } else {
+    anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
+    csvFolder = paste(anFolder,'csv/',sep="")
+  }
+  figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
+  mainTh = read.csv(sprintf('%smainThresholds.csv',csvFolder))
+  catTh = read.csv(sprintf('%scatThresholds.csv',csvFolder))
+  run = read.csv(sprintf('%srun04.csv',csvFolder))
+  mainTh = mainTh %>%
+    group_by(task,pedestal) %>%
+    summarise(mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
+  main = left_join(mainTh,run)
+  main = main %>%
+    ungroup() %>%
+    mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')))
+  
+  catTh = catTh %>%
+    group_by(task,pedestal) %>%
+    summarise(mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
+  cat = left_join(catTh,run)
+  cat = cat %>%
+    ungroup() %>%
+    mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')))
+  cat = cat %>%
+    filter(mu < 1, mu > 0)
+  fname=sprintf('%s/thresholdPlot_%s.pdf',figFolder,subj)
+  g = ggplot() +
+    geom_line(data=main,aes(pedVal,mu,color=task),size=3) +
+    geom_errorbar(data=main,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci)) +
+    geom_line(data=cat,aes(pedVal,mu,color=task),linetype='dashed',size=2) +
+    geom_errorbar(data=cat,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci)) +
+    theme_bw() +
+    scale_color_brewer(palette='Dark2') +
+    scale_x_continuous(limits = c(0, .65)) +
+    scale_y_continuous(limits = c(0, .5))+
+    theme(text = element_text(size=20))
+    #geom_errorbar(data=cat,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci))
+  ggsave(filename=fname,plot=g)
+  main = cbind(main,catch=0)
+  cat = cbind(cat,catch=1)
+  allThresh = rbind(main,cat)
+  return(allThresh)
+}
 ```
 
 ```{r}
-mainTh = mainTh %>%
-  mutate(.,task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),
-         pedF = factor(pedestal),
-         ped=c(run$pedM1,run$pedM2,run$pedM3,run$pedM4,run$pedC1,run$pedC2,run$pedC3,run$pedC4))
-mainTh = mainTh %>%
-  group_by(.,task,pedF) %>%
-  mutate(.,mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
-catTh = catTh %>%
-  mutate(.,task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),
-         pedF = factor(pedestal),
-         ped=c(run$cPedM1,run$cPedM2,run$cPedM3,run$cPedM4,run$cPedM5,run$cPedC1,run$cPedC2,run$cPedC3,run$cPedC4,run$cPedC5))
-catTh = catTh %>%
-  group_by(.,task,pedF) %>%
-  mutate(.,mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
 ```
 
 ```{r}
-ggplot(mainTh,aes(ped,mu,color=task)) +
-  geom_line() +
-  geom_errorbar(aes(ymin=mu-ci,ymax=mu+ci))
 ```
 
 ```{r}
@@ -91,19 +162,3 @@ ggplot(catTh,aes(ped,mu,color=task)) +
   geom_line() +
   geom_errorbar(aes(ymin=mu-ci,ymax=mu+ci))
 ```
-
-```{r}
-## Here we're going to calculate from cdata the proportion at each deltaPed, for each pedestal, correct
-cdata %>%
-  group_by(contrast,coherence,deltaPed) %>%
-  summarise(perc=mean(correct)) %>%
-  ggplot(.,aes(contrast,perc,color=deltaPed)) +
-  geom_point() +
-  geom_smooth(method="lm")
-```
-
-```{r}
-ggplot(mdata,aes(as.factor(task),RT)) +
-  geom_point()
-```
-

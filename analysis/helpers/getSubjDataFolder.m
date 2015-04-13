@@ -1,4 +1,4 @@
-function [datFolder, anFolder] = getSubjDataFolder( experiment )
+function [datFolder, anFolder] = getSubjDataFolder( experiment, scan )
 
 if isempty(mglGetSID)
     error('Please set subject ID first.');
@@ -9,8 +9,12 @@ switch experiment
         datFolder = fullfile(sprintf('~/data/cue_noisecon/%s',mglGetSID));
     case 'fade'
         datFolder = fullfile(sprintf('~/data/cue_fade/%s',mglGetSID));
-    case 'cohCon'
-        datFolder = fullfile(sprintf('~/data/coherentcontrast/%s',mglGetSID));
+    case 'cohcon'
+        if scan
+            datFolder = fullfile(sprintf('~/data/cohcon/scan2/%s',mglGetSID));
+        else
+            datFolder = fullfile(sprintf('~/data/coherentcontrast/%s',mglGetSID));
+        end
 end
         
 anFolder = fullfile(datFolder,'analysis');

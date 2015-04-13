@@ -1,9 +1,9 @@
 function plotting = cohCon_catPerf(stimulus,check)
 
-plotting = cell(2,5);
+plotting = cell(2,4);
 try
     for task = 1:2
-        for ped = 1:5
+        for ped = 1:4
             if check
             end
             try
