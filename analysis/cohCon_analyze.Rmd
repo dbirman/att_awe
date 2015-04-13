@@ -15,8 +15,8 @@ library(MASS)
 
 ```{r}
 
-allThresh25 = getSubjThresholdPlot('behav','s025')
-allThresh300 = getSubjThresholdPlot('behav','s300')
+allThresh25 = getSubjThresholdPlot('scan','s025')
+allThresh300 = getSubjThresholdPlot('scan','s300')
 
 aT25 = cbind(allThresh25,subj='25')
 aT300 = cbind(allThresh300,subj='300')
