@@ -136,7 +136,7 @@ getSubjThresholdPlot = function(type,subj) {
     filter(mu < 5, mu > 0)
   fname=sprintf('%s/thresholdPlot_%s.pdf',figFolder,subj)
   g = ggplot() +
-    geom_point(size=4) +
+    geom_point(data=main,aes(pedVal,mu,color=task),size=4) +
     geom_line(data=main,aes(pedVal,mu,color=task),size=.5) +
     geom_errorbar(data=main,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci)) +
     geom_point(data=cat,aes(pedVal,mu,color=task),size=4) +
@@ -146,7 +146,9 @@ getSubjThresholdPlot = function(type,subj) {
     scale_color_brewer(palette='Dark2') +
     scale_x_continuous(limits = c(0, .65)) +
     scale_y_continuous(limits = c(0, .5))+
-    theme(text = element_text(size=20))
+    theme(text = element_text(size=20)) +
+    xlab('Pedestal Value (%)') +
+    ylab('Discrimination Threshold')
     #geom_errorbar(data=cat,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci))
   ggsave(filename=fname,plot=g)
   main = cbind(main,catch=0)
