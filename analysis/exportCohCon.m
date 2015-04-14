@@ -67,7 +67,7 @@ if isempty(low)
 end
 low
 
-%%
+%% Plotting a figure with weibull fits across a range of values
 
 f = figure
 hold on
@@ -82,3 +82,36 @@ legend(vals);
 axis([0 .15 .475 1.025]);
 set(gca,'fontsize',24);
 set(gca,'LineWidth',3);
+
+%% Plotting the %correct for the weibull fit
+
+figure
+set(gcf,'renderer','painters')
+hold on
+plot(out.fit.signal,out.fit.pcorrect,'*b');
+plot(out.fit.x,out.fit.y)
+a = axis();
+axis([a(1) a(2) .48 1.02]);
+set(gca,'fontsize',24);
+set(gca,'LineWidth',3);
+set(gca,'XTick',[0 .1 .2]);
+set(gca,'YTick',0:.1:1);
+
+%% Plotting both attention condition's weibull fits
+
+for i = 1:1
+    figure
+    hold on    
+    out = doStaircase('threshold',stimulus.staircase{2,i},'type','weibull');
+    outc = doStaircase('threshold',stimulus.stairCatch{2,i},'type','weibull');
+    
+    plot(out.fit.signal,out.fit.pcorrect,'ob','LineWidth',3,'MarkerFaceColor','b');
+    plot(out.fit.x,out.fit.y,'-b');
+    
+    plot(outc.fit.signal,outc.fit.pcorrect,'or','LineWidth',3,'MarkerFaceColor','r');
+    plot(outc.fit.x,outc.fit.y,'-r');
+    hold off
+    axis([0 .2 .48 1.02]);
+set(gca,'fontsize',24);
+set(gca,'LineWidth',3);
+end
