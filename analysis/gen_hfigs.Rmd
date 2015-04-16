@@ -1,0 +1,78 @@
+---
+title: "gen_talkfigs"
+output: html_document
+---
+
+```{r}
+x = c(.0202,.0322,.0343,.0427,.0456,.0570)
+y = c(.4375,.6875,.8750,.8,.7333,1)
+ySE = c(.0615,.0537,.0273,.0413,.0505,0)
+
+d = data.frame(x=x*100,y=y*100,se=ySE/sqrt(2)*100*1.96)
+
+
+ggplot(d,aes(x,y)) +
+  geom_point(size=5,color="Orange") +
+  geom_errorbar(aes(ymin=y-se,ymax=y+se),width=0,color="orange") +
+  geom_hline(aes(yintercept=50),linetype="dashed",color="red") +
+  theme_bw() + 
+  theme(text = element_text(size=20)) + 
+  xlab("Difference in Patch Strengths (%)") + ylab("Performance (%)")
+```
+
+```{r}
+xf = c(.001,.009,.017,.025,.033,.041,.049,.057,.0647,.073)
+yf = c(.5,.5022,.52,.5748,.676,.8033,.913,.9749,.996,1)
+dfit = data.frame(x=xf*100,y=yf*100)
+ggplot(d,aes(x,y)) +
+  geom_point(size=5,color="Orange") +
+  geom_errorbar(aes(ymin=y-se,ymax=y+se),width=0,color="orange") +
+  geom_hline(aes(yintercept=50),linetype="dashed",color="red") +
+  geom_line(data=dfit,aes(x,y),size=1,color="darkred") +
+  theme_bw() + 
+  theme(text = element_text(size=20)) + 
+  xlab("Difference in Patch Strengths (%)") + ylab("Performance (%)")
+```
+
+
+```{r}
+xf = c(.001,.009,.017,.025,.033,.041,.049,.057,.0647,.073)
+yf = c(.5,.5022,.52,.5748,.676,.8033,.913,.9749,.996,1)
+dfit = data.frame(x=xf*100,y=yf*100)
+ggplot(d,aes(x,y)) +
+  geom_point(size=5,color="Orange") +
+  geom_errorbar(aes(ymin=y-se,ymax=y+se),width=0,color="orange") +
+  geom_hline(aes(yintercept=50),linetype="dashed",color="red") +
+  geom_line(data=dfit,aes(x,y),size=1,color="darkred") +
+  geom_hline(aes(yintercept=80),color="black") +
+  geom_vline(aes(xintercept=4.09),color="black") +
+  theme_bw() + 
+  theme(text = element_text(size=20)) + 
+  xlab("Difference in Patch Strengths (%)") + ylab("Performance (%)")
+```
+
+
+```{r}
+cx = c(.0498,.0672,.0907,.1225)
+cy = c(.5,.6667,.5,1)
+cys = c(.1768,.1283,.1768,0)
+
+d2 = data.frame(x=cx*100,y=cy*100,se=cys*100/sqrt(2)*1.96)
+
+cfx = c(.0498,.0571,.0643,.0716,.0789,.0861,.0934,.1007,.1079,.1152)
+cfy = c(.5,.5,.5,.5,.5,.5,.5,.5017,.9982,1.00)
+
+dfit2 = data.frame(x=cfx*100,y=cfy*100)
+
+ggplot(d,aes(x,y)) +
+  geom_point(size=5,color="Orange") +
+  geom_errorbar(aes(ymin=y-se,ymax=y+se),width=0,color="orange") +
+  geom_hline(aes(yintercept=50),linetype="dashed",color="red") +
+  geom_line(data=dfit,aes(x,y),size=1,color="darkred") +
+  geom_point(data=d2,aes(x,y),size=5,color="Purple") +
+  geom_errorbar(data=d2,aes(ymin=y-se,ymax=y+se),width=0,color="purple") +
+  geom_line(data=dfit2,aes(x,y),size=1,color="darkred",linetype="dashed") +
+  theme_bw() + 
+  theme(text = element_text(size=20)) + 
+  xlab("Difference in Patch Strengths (%)") + ylab("Performance (%)")
+```

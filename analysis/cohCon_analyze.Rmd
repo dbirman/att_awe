@@ -34,25 +34,21 @@ allT = allThresh %>%
 ```{r}
 # 
 figFolder = '/Users/dan/proj/att_awe/analysis/figures/behav/'
-pdf(file=sprintf('%s/thresholdPlot_all.pdf',figFolder))
+# pdf(file=sprintf('%s/thresholdPlot_all.pdf',figFolder))
 allT %>%
-  filter(catch=='Cued') %>%
+  filter(subj==300) %>%
   ggplot(data=.) +
-    geom_point(aes(pedVal,muAcross,color=task,linetype=catch),size=4) +
-    geom_line(aes(pedVal,muAcross,color=task,linetype=catch),size=.5) +
-    geom_errorbar(aes(pedVal,muAcross,color=task,linetype=catch,ymin=muAcross-ciAcross,ymax=muAcross+ciAcross),size=1,width=0) +
-#     geom_point(data=sel,aes(pedVal,mu),size=4) +
-#     geom_line(data=sel,aes(pedVal,mu,color=task,linetype=catch),size=.5) +
+    geom_point(aes(pedVal,mu,color=task,linetype=catch),size=4) +
+    geom_line(aes(pedVal,mu,color=task,linetype=catch),size=.5) +
+    geom_errorbar(aes(pedVal,mu,color=task,linetype=catch,ymin=mu-ci,ymax=muAcross+ci),size=.5,width=0) +
     theme_bw() +
-    ylab('Diff at 80% Performance') +
+    ylab('80% Threshold') +
     xlab('Stimulus Contrast (%)') +
     xlim(0,.65) +
-    ylim(0,.55) +
+#     ylim(0,1) +
     theme(text = element_text(size=20)) +
     scale_color_brewer(palette='Paired')
-#     coord_trans(xtrans = 'log10',ytrans = 'log10') +
-#     annotation_logticks(scaled=FALSE)
-dev.off()
+# dev.off()
 ```
 
 ```{r}

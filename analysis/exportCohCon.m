@@ -74,7 +74,7 @@ hold on
 colors = {'-r','-g','-b','-c'}; vals = {};
 for i = 1:4
     figure(f)
-    out = doStaircase('threshold',stimulus.staircase{2,i},'type','weibull');
+    out = doStaircase('threshold',stimulus.stairCatch{2,i},'type','weibull','dispFig=1');
     plot(out.fit.x,out.fit.y,colors{i},'LineWidth',3);
     vals{i} = num2str(stimulus.pedestals.contrast(i));
 end
