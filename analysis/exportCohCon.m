@@ -38,7 +38,7 @@ load(fullfile(analysis.datFolder,files(end).name));
 % staircaseplots(stimulus);
 
 %% Send main to CSV file
-plotting = cohCon_discFuncs(stimulus,1);
+plotting = cohCon_discFuncs(stimulus,0);
 cohCon_plo2csv(plotting);
 
 %% Send catch to CSV file
@@ -74,7 +74,7 @@ hold on
 colors = {'-r','-g','-b','-c'}; vals = {};
 for i = 1:4
     figure(f)
-    out = doStaircase('threshold',stimulus.stairCatch{2,i},'type','weibull','dispFig=1');
+    out = doStaircase('threshold',stimulus.stairCatch{2,1},'type','weibull','dispFig=1');
     plot(out.fit.x,out.fit.y,colors{i},'LineWidth',3);
     vals{i} = num2str(stimulus.pedestals.contrast(i));
 end

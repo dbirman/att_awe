@@ -27,7 +27,7 @@ allT = allThresh %>%
   group_by(task,pedestal,catch) %>%
   mutate(muAcross = mean(mu),ciAcross = sd(mu)/sqrt(n())*1.96) %>%
   ungroup() %>%
-  mutate(catch=factor(catch,levels=c(0,1),labels=c('Cued','Catch')))
+  mutate(catch=factor(catch,levels=c(0,1),labels=c('Response Cued','Response Un-Cued')))
 
 ```
 
@@ -36,17 +36,19 @@ allT = allThresh %>%
 figFolder = '/Users/dan/proj/att_awe/analysis/figures/behav/'
 # pdf(file=sprintf('%s/thresholdPlot_all.pdf',figFolder))
 allT %>%
+  mutate(pedVal=pedVal*100,mu=mu*100,ci=ci*100) %>%
   filter(subj==300) %>%
   ggplot(data=.) +
     geom_point(aes(pedVal,mu,color=task,linetype=catch),size=4) +
     geom_line(aes(pedVal,mu,color=task,linetype=catch),size=.5) +
-    geom_errorbar(aes(pedVal,mu,color=task,linetype=catch,ymin=mu-ci,ymax=muAcross+ci),size=.5,width=0) +
+    geom_errorbar(aes(pedVal,mu,color=task,linetype=catch,ymin=mu-ci,ymax=mu+ci),size=.5,width=0) +
     theme_bw() +
     ylab('80% Threshold') +
     xlab('Stimulus Contrast (%)') +
-    xlim(0,.65) +
-#     ylim(0,1) +
-    theme(text = element_text(size=20)) +
+    scale_y_log10(breaks = trans_breaks("log10", function(x) round(10^x,0))) +
+    scale_x_log10(breaks = trans_breaks("log10", function(x) round(10^x,0))) +
+    annotation_logticks(scaled=T) +
+    theme(text = element_text(size=15)) +
     scale_color_brewer(palette='Paired')
 # dev.off()
 ```
