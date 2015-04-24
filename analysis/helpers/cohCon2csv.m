@@ -68,8 +68,8 @@ if ~exist(mainFile,'file')
     % First re-organize into a matrix, tracking the headers
     mainHeader = { 'RT', 'trial', ...
         'run', ... % runVars
-        'task', 'deltaPed', 'coherence', 'contrast', 'trialNum', 'correct','lAvgCon','rAvgCon','lAvgCoh','rAvgCoh', ... % rand items
-        'side','direction','conPedestal','cohPedestal','isCatch'}; % parameter items
+        'task', 'conDelta','cohDelta','coherence', 'contrast', 'trialNum', 'correct','lAvgCon','rAvgCon','lAvgCoh','rAvgCoh', ... % rand items
+        'conSide','cohSide','direction','conPedestal','cohPedestal','isCatch'}; % parameter items
     
     
     % For each item in the header (re-named) what is the corresponding data?
@@ -78,9 +78,9 @@ if ~exist(mainFile,'file')
     % 'main.runVars'
     runData = {'runNum'};
     % 'main.randVars'
-    randData = {'task', 'deltaPed', 'coherence', 'contrast', 'trialNum', 'correct','avgConL','avgConR','avgCohL','avgCohR'};
+    randData = {'task', 'conDelta','cohDelta','coherence', 'contrast', 'trialNum', 'correct','avgConL','avgConR','avgCohL','avgCohR'};
     % these are pulled from main.parameter
-    pedData = {'side','dir','conPedestal','cohPedestal','catch'};
+    pedData = {'conSide','cohSide','dir','conPedestal','cohPedestal','catch'};
     
     if length(randData)+length(runData)+length(corrData)+length(pedData) ~= length(mainHeader)
         error('Lengths are incorrect! Check your variables');
@@ -121,21 +121,23 @@ end
 
 if ~exist(runFile,'file')
     runHeader = {'task','pedestal','pedVal'};
+%     rData = [main.runVars.pedestals.contrast(1),...
+%         main.runVars.pedestals.contrast(2),...
+%         main.runVars.pedestals.contrast(3),...
+%         main.runVars.pedestals.contrast(4),...
+%         main.runVars.pedestals.coherence(1),...
+%         main.runVars.pedestals.coherence(2),...
+%         main.runVars.pedestals.coherence(3),...
+%         main.runVars.pedestals.coherence(4)];
     rData = [main.runVars.pedestals.contrast(1),...
-        main.runVars.pedestals.contrast(2),...
-        main.runVars.pedestals.contrast(3),...
-        main.runVars.pedestals.contrast(4),...
-        main.runVars.pedestals.coherence(1),...
-        main.runVars.pedestals.coherence(2),...
-        main.runVars.pedestals.coherence(3),...
-        main.runVars.pedestals.coherence(4)];
+        main.runVars.pedestals.coherence(1)];
     counter = 1;
     runData = [];
     taskOpts = [1 2];
     taskNames = {'coherence', 'contrast'};
     for j = 1:2
         ct = taskOpts(j);
-        for pedNum = 1:4
+        for pedNum = 1
             runData(end+1,:) = [ct pedNum main.runVars.pedestals.(taskNames{ct})(pedNum)];
             counter = counter+1;
         end

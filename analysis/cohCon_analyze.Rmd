@@ -26,9 +26,7 @@ allThresh = rbind(aT25,aT300)
 allT = allThresh %>%
   group_by(task,pedestal,catch) %>%
   mutate(muAcross = mean(mu),ciAcross = sd(mu)/sqrt(n())*1.96) %>%
-  ungroup() %>%
-  mutate(catch=factor(catch,levels=c(0,1),labels=c('Response Cued','Response Un-Cued')))
-
+  ungroup()
 ```
 
 ```{r}
@@ -54,37 +52,19 @@ allT %>%
 ```
 
 ```{r}
-# Jsut some temp stuff to generate plots of fake normal data
-x = seq(0,12.5,.01)
-y = dnorm(x,3,1)
-y2 = dnorm(x,9,1)
-ctheme = theme(axis.line=element_blank(),
-      axis.text.x=element_blank(),
-      axis.text.y=element_blank(),
-      axis.ticks=element_blank(),
-      axis.title.x=element_blank(),
-      axis.title.y=element_blank(),
-      legend.position="none",
-      panel.background=element_blank(),
-      panel.border=element_blank(),
-      panel.grid.major=element_blank(),
-      panel.grid.minor=element_blank(),
-      plot.background=element_blank())
-d = data.frame(x=x,y=y,y2=y2)
-ggplot(d) +
-  geom_line(aes(x,y),size=2,color='orange') +
-  geom_line(aes(x,y2),size=2,color='purple') +
-  ctheme +
-  xlab('') + ylab('')
-```
+# Reaction time analysis
+filesToLoad = 1:4
 
-
-```{r}
-filesToLoad = 1:8
-
+if (type=='behav') {
+  anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
+  csvFolder = paste(anFolder,'csv/',sep="")
+} else {
+  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
+  csvFolder = paste(anFolder,'csv/',sep="")
+}
 for (fi in filesToLoad) {
   # Dealing with run # fi
-  main = read.csv(sprintf('%s/main%02.f.csv',anFolder,fi))  
+  main = read.csv(sprintf('%s/main%02.f.csv',csvFolder,fi))  
   # Switch to determine what kind of analysis we do
   main = main %>% 
     mutate(rTrial=(run-1)*150+trial)
@@ -99,6 +79,10 @@ for (fi in filesToLoad) {
 cdata = mdata %>%
   filter(isCatch==1)
 
+mdata = mdata %>%
+  mutate(congruent=(cohSide==conSide),correctF=factor(correct,levels=c(0,1),labels=c('Incorrect','Correct')),conSide=factor(conSide,levels=c(1,2),labels=c('Left','Right')),cohSide=factor(cohSide,levels=c(1,2),labels=c('Left','Right')),taskF=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),conPedestal=factor(conPedestal),cohPedestal=factor(cohPedestal),isCatch=factor(isCatch,levels=c(0,1),labels=c('Cued','Miscued')))
+
+rs = lm(data=mdata,RT ~ correct + isCatch*congruent + task*conSide + task*cohSide)
 ```
 
 ```{r}
@@ -115,8 +99,6 @@ for (fi in filesToLoad) {
 ```
 
 ```{r}
-mdata = mdata %>%
-  mutate(correctF=factor(correct,levels=c(0,1),labels=c('Inc','Cor')),side=factor(side,levels=c(1,2),labels=c('Left','Right')),task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),conPedestal=factor(conPedestal),cohPedestal=factor(cohPedestal),isCatch=factor(isCatch,levels=c(0,1),labels=c('Reg','Catch')))
 ```
 
 ```{r}
@@ -131,7 +113,7 @@ mdata %>%
 ```{r}
 getSubjThresholdPlot = function(type,subj) {
   if (type=='behav') {
-    anFolder = sprintf('/Users/dan/data/coherentContrast/%s/analysis/',subj)
+    anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
     csvFolder = paste(anFolder,'csv/',sep="")
   } else {
     anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
@@ -158,38 +140,20 @@ getSubjThresholdPlot = function(type,subj) {
     mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')))
   cat = cat %>%
     filter(mu < 5, mu > 0)
-  fname=sprintf('%s/thresholdPlot_%s.pdf',figFolder,subj)
-  g = ggplot() +
-    geom_point(data=main,aes(pedVal,mu,color=task),size=4) +
-    geom_line(data=main,aes(pedVal,mu,color=task),size=.5) +
-    geom_errorbar(data=main,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci)) +
-    geom_point(data=cat,aes(pedVal,mu,color=task),size=4) +
-    geom_line(data=cat,aes(pedVal,mu,color=task),linetype='dashed',size=.5) +
-    geom_errorbar(data=cat,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci),size=1,width=0) +
-    theme_bw() +
-    scale_color_brewer(palette='Dark2') +
-    scale_x_continuous(limits = c(0, .65)) +
-    scale_y_continuous(limits = c(0, .6))+
-    theme(text = element_text(size=20)) +
-    xlab('Pedestal Value (%)') +
-    ylab('Discrimination Threshold')
-    #geom_errorbar(data=cat,aes(pedVal,mu,color=task,ymin=mu-ci,ymax=mu+ci))
-  ggsave(filename=fname,plot=g)
+  fname=sprintf('%s/%s_th_task_catch.pdf',figFolder,subj)
   main = cbind(main,catch=0)
   cat = cbind(cat,catch=1)
   allThresh = rbind(main,cat)
+  allThresh = mutate(allThresh,catch=factor(catch,levels=c(0,1),labels=c('Cued','Miscued')))
+  g = ggplot(data=allThresh,aes(task,mu,fill=catch)) +
+    geom_bar(position="dodge",width=.75,stat="identity") +
+    geom_errorbar(aes(ymin=mu-ci,ymax=mu+ci),position=position_dodge(width=.75),width=0) +
+    theme_bw() +
+    scale_fill_brewer() +
+    theme(text = element_text(size=20)) +
+    xlab('Pedestal Value (%)') +
+    ylab('Discrimination Threshold')
+  ggsave(filename=fname,plot=g)
   return(allThresh)
 }
-```
-
-```{r}
-```
-
-```{r}
-```
-
-```{r}
-ggplot(catTh,aes(ped,mu,color=task)) +
-  geom_line() +
-  geom_errorbar(aes(ymin=mu-ci,ymax=mu+ci))
 ```

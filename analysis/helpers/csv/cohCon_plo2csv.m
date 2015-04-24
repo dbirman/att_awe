@@ -22,7 +22,7 @@ header = {'task','pedestal','threshold'};
 data = [];
 
 for t = 1:2
-    for p = 1:4
+    for p = 1
         threshs = plotting{t,p};
         for i = 1:length(threshs)
             data(end+1,:) = [t p threshs(i)];

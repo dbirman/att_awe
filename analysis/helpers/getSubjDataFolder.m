@@ -13,7 +13,7 @@ switch experiment
         if scan
             datFolder = fullfile(sprintf('~/data/cohcon/scan2/%s',mglGetSID));
         else
-            datFolder = fullfile(sprintf('~/data/coherentcontrast/%s',mglGetSID));
+            datFolder = fullfile(sprintf('~/data/cohcon/%s',mglGetSID));
         end
 end
         

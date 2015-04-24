@@ -1,6 +1,7 @@
 %% To start off, let's get files
 
 mglSetSID('s300')
+addpath(genpath('~/proj/att_awe/analysis/'));
 
 global analysis
 
@@ -45,6 +46,7 @@ cohCon_plo2csv(plotting);
 cat = cohCon_catPerf(stimulus,0);
 per2csv(cat);
 
+keyboard
 %%
 high = out.fit.x(find(out.fit.y>.99,1,'first'));
 if isempty(high)
@@ -74,7 +76,7 @@ hold on
 colors = {'-r','-g','-b','-c'}; vals = {};
 for i = 1:4
     figure(f)
-    out = doStaircase('threshold',stimulus.stairCatch{2,1},'type','weibull','dispFig=1');
+    out = doStaircase('threshold',stimulus.staircase{2,1},'type','weibull','dispFig=1');
     plot(out.fit.x,out.fit.y,colors{i},'LineWidth',3);
     vals{i} = num2str(stimulus.pedestals.contrast(i));
 end
