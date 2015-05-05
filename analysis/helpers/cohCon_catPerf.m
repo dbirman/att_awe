@@ -10,7 +10,13 @@ try
                 for i = 1:length(stimulus.stairCatch{task,ped})
                     if stimulus.stairCatch{task,ped}(i).trialNum>0
                         out = doStaircase('threshold',stimulus.stairCatch{task,ped}(i),'type','weibull'); % noise, 1 cue, lowest
-                        plotting{task,ped} = [plotting{task,ped} out.threshold];
+                        if out.threshold > 1
+                            out = doStaircase('threshold',stimulus.stairCatch{task,ped}(i));
+                            t = out.meanOfAllReversals;
+                        else
+                            t = out.threshold;
+                        end
+                        plotting{task,ped} = [plotting{task,ped} t];
                     end
                 end
             catch

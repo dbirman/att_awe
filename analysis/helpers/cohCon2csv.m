@@ -68,7 +68,7 @@ if ~exist(mainFile,'file')
     % First re-organize into a matrix, tracking the headers
     mainHeader = { 'RT', 'trial', ...
         'run', ... % runVars
-        'task', 'conDelta','cohDelta','coherence', 'contrast', 'trialNum', 'correct','lAvgCon','rAvgCon','lAvgCoh','rAvgCoh', ... % rand items
+        'task', 'conDelta','cohDelta','coherence', 'contrast', 'trialNum', 'correct', ... % rand items
         'conSide','cohSide','direction','conPedestal','cohPedestal','isCatch'}; % parameter items
     
     
@@ -78,7 +78,7 @@ if ~exist(mainFile,'file')
     % 'main.runVars'
     runData = {'runNum'};
     % 'main.randVars'
-    randData = {'task', 'conDelta','cohDelta','coherence', 'contrast', 'trialNum', 'correct','avgConL','avgConR','avgCohL','avgCohR'};
+    randData = {'task', 'conDelta','cohDelta','coherence', 'contrast', 'trialNum', 'correct'};
     % these are pulled from main.parameter
     pedData = {'conSide','cohSide','dir','conPedestal','cohPedestal','catch'};
     

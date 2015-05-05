@@ -4,7 +4,7 @@ output: html_document
 ---
 
 ```{r}
-library(ggplot2)
+library(ggplot2)    
 library(dplyr)
 library(tidyr)
 library(lme4)
@@ -12,22 +12,159 @@ library(effects)
 library(MASS)
 ```
 
+```{r}
+## Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
+##   data: a data frame.
+##   measurevar: the name of a column that contains the variable to be summariezed
+##   groupvars: a vector containing names of columns that contain grouping variables
+##   na.rm: a boolean that indicates whether to ignore NA's
+##   conf.interval: the percent range of the confidence interval (default is 95%)
+summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
+                      conf.interval=.95, .drop=TRUE) {
+  detach(package:dplyr)
+  library(plyr)
+
+
+    # New version of length which can handle NA's: if na.rm==T, don't count them
+    length2 <- function (x, na.rm=FALSE) {
+        if (na.rm) sum(!is.na(x))
+        else       length(x)
+    }
+
+    # This does the summary. For each group's data frame, return a vector with
+    # N, mean, and sd
+    datac <- ddply(data, groupvars, .drop=.drop,
+      .fun = function(xx, col) {
+        c(N    = length2(xx[[col]], na.rm=na.rm),
+          mean = mean   (xx[[col]], na.rm=na.rm),
+          sd   = sd     (xx[[col]], na.rm=na.rm)
+        )
+      },
+      measurevar
+    )
+
+    # Rename the "mean" column    
+    datac <- rename(datac, c("mean" = measurevar))
+
+    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
+
+    # Confidence interval multiplier for standard error
+    # Calculate t-statistic for confidence interval: 
+    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
+#     ciMult <- qt(conf.interval/2 + .5, datac$N-1)
+    ciMult <- qnorm(conf.interval/2+.5)
+    datac$ci <- datac$se * ciMult
+
+detach(package:plyr)
+    return(datac)
+}
+
+
+```
 
 ```{r}
+getSubjThresholdPlot = function(type,snum) {
+library(dplyr)
+subj = sprintf('s%03.0f',snum)
+if (type=='behav') {
+  anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
+  csvFolder = paste(anFolder,'csv/',sep="")
+} else {
+  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
+  csvFolder = paste(anFolder,'csv/',sep="")
+}
+figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
+mainTh = read.csv(sprintf('%smainThresholds.csv',csvFolder))
+catTh = read.csv(sprintf('%scatThresholds.csv',csvFolder))
+nocatTh = read.csv(sprintf('%snocatThresholds.csv',csvFolder))
+mainTh = cbind(mainTh,catch=0)
+catTh = cbind(catTh,catch=1)
+nocatTh = cbind(nocatTh,catch=-1)
+run = read.csv(sprintf('%srun04.csv',csvFolder))
 
-allThresh25 = getSubjThresholdPlot('behav','s025')
-allThresh300 = getSubjThresholdPlot('behav','s300')
+# Setup variables
+all = rbind(mainTh,catTh,nocatTh) %>%
+  mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(-1,0,1),labels=c('Nocatch','Cued','Miscued')),threshold=threshold*100)
+all_ = all %>%
+  group_by(task,catch) %>%
+  summarise(sd=sd(threshold),n=n(),threshold=mean(threshold)) %>%
+  mutate(se = sd/sqrt(n)) %>%
+  mutate(ci = se*1.96)
 
-aT25 = cbind(allThresh25,subj='25')
-aT300 = cbind(allThresh300,subj='300')
+# Calculate pooled variance
+if (all(all_$n>2)) {
+ES = all_ %>% ungroup() %>%
+  filter(catch!='Nocatch') %>%
+  group_by(task) %>%
+  mutate(pooled = sqrt(sum(sd^2*(n-1))/sum(n-1))) %>%
+  summarise(t=mean(threshold),effect = diff(threshold,lag=1)/mean(pooled))
+}
 
-allThresh = rbind(aT25,aT300)
+ # Individual plot,
+fname=sprintf('%s/%s_th_task_catch.pdf',figFolder,subj)
+g = ggplot() +
+  geom_errorbar(data=all_,aes(task,threshold,fill=catch,ymin=threshold-ci,ymax=threshold+ci),position=position_dodge(width=.75),width=0) +
+  geom_point(data=all,aes(task,threshold,color=catch,group=catch),position=position_dodge(width=.75),size=4) +
+  geom_point(data=all_,aes(task,threshold,color=catch),position=position_dodge(width=.75),size=24,shape='-') +
+  theme_bw() +
+  scale_fill_brewer() +  
+  scale_color_brewer() +
+  theme(text = element_text(size=20)) +
+  xlab('Pedestal Value (%)') +
+  ylab('Discrimination Threshold (%)') #+
+#   geom_text(data=ES,aes(x=task,y=t+.05,label=round(effect,2)))
+ggsave(filename=fname,plot=g)
 
-allT = allThresh %>%
-  group_by(task,pedestal,catch) %>%
-  mutate(muAcross = mean(mu),ciAcross = sd(mu)/sqrt(n())*1.96) %>%
-  ungroup()
+# LM
+contrasts(all$catch) = cbind(c(-1,-1,2),c(-1,0,1))
+rs = lm(data=all,threshold ~ task*catch)
+# plot(allEffects(rs))
+
+all = cbind(all,subj=snum)
+
+return(all)
+}
 ```
+
+```{r}
+subjs = c(300,25,21)
+
+allT = data.frame()
+for (snum in subjs) {
+  all = getSubjThresholdPlot('behav',snum)
+  allT = rbind(allT,all)
+}
+```
+
+```{r}
+contrasts(allT$catch) = cbind(c(-1,-1,2),c(-1,0,1))
+rs = lmer(data=allT,threshold ~ task*catch + (1|subj))
+rs2 = lmer(data=allT,threshold~task*catch + (task|subj))
+plot(allEffects(rs2))
+```
+
+Plot the across subject data with curve estiamtes
+```{r}
+ggplot(data=allT,aes(catch,threshold,color=factor(subj),)) +
+  geom_point(size=4) +
+  facet_grid(.~task) +
+  scale_color_brewer(palette='Dark2') +
+  scale_fill_brewer(palette='Dark2') +
+  theme_bw() +
+  geom_smooth(aes(group=factor(subj),fill=factor(subj)),method="loess")
+```
+
+Now calculate the effect size, and average effect size across subjects
+```{r}
+ES = allT %>%
+  group_by(task,subj,catch) %>%
+  summarise(sd=sd(threshold),n=n(),threshold=mean(threshold)) %>%
+  filter(n>1,subj==300,catch!='Nocatch') %>%
+  mutate(pooled=sqrt(sum(sd^2*(n-1)/sum(n-1)))) %>%
+  summarise(effect = diff(threshold,lag=1)/mean(pooled),t=mean(threshold)) %>%
+  summarise(ci=sd(effect)/sqrt(n())*1.96,average_eff = mean(effect))
+```
+
 
 ```{r}
 # 
@@ -53,8 +190,9 @@ allT %>%
 
 ```{r}
 # Reaction time analysis
-filesToLoad = 1:4
-
+filesToLoad = c(1,2,3,4,7,8,9)
+subj = 's300'
+type = 'behav'
 if (type=='behav') {
   anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
   csvFolder = paste(anFolder,'csv/',sep="")
@@ -67,7 +205,7 @@ for (fi in filesToLoad) {
   main = read.csv(sprintf('%s/main%02.f.csv',csvFolder,fi))  
   # Switch to determine what kind of analysis we do
   main = main %>% 
-    mutate(rTrial=(run-1)*150+trial)
+    mutate(rTrial=(run-1)*100+trialNum)
   
   if (fi==1) {
     mdata = main
@@ -80,80 +218,15 @@ cdata = mdata %>%
   filter(isCatch==1)
 
 mdata = mdata %>%
-  mutate(congruent=(cohSide==conSide),correctF=factor(correct,levels=c(0,1),labels=c('Incorrect','Correct')),conSide=factor(conSide,levels=c(1,2),labels=c('Left','Right')),cohSide=factor(cohSide,levels=c(1,2),labels=c('Left','Right')),taskF=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),conPedestal=factor(conPedestal),cohPedestal=factor(cohPedestal),isCatch=factor(isCatch,levels=c(0,1),labels=c('Cued','Miscued')))
+  mutate(congruent=factor(cohSide==conSide),correctF=factor(correct,levels=c(0,1),labels=c('Incorrect','Correct')),conSide=factor(conSide,levels=c(1,2),labels=c('Left','Right')),cohSide=factor(cohSide,levels=c(1,2),labels=c('Left','Right')),taskF=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),conPedestal=factor(conPedestal),cohPedestal=factor(cohPedestal),isCatch=factor(isCatch,levels=c(0,1),labels=c('Cued','Miscued')))
 
-rs = lm(data=mdata,RT ~ correct + isCatch*congruent + task*conSide + task*cohSide)
-```
+rs = lm(data=mdata,RT ~ correctF + taskF*cohDelta + taskF*conDelta + isCatch*congruent + taskF*conSide + taskF*cohSide + rTrial)
+rs = lm(data=mdata,RT ~ correctF*isCatch*congruent*taskF)
+plot(allEffects(rs))
 
-```{r}
-for (fi in filesToLoad) {
-  # Dealing with run # fi
-  eye = read.csv(sprintf('%s/eye%02.f.csv',csvFolder,fi))
-  
-  if (fi==1) {
-    edata = eye
-  } else {
-    edata = rbind(edata,eye)
-  }
-}
-```
-
-```{r}
-```
-
-```{r}
-rs = lm(data=mdata,RT~correct+isCatch)
-mdata %>%
-  ggplot(data=.,aes(correct,RT,color=isCatch)) +
-  geom_point() +
-  geom_smooth(method="lm")
-```
-
-
-```{r}
-getSubjThresholdPlot = function(type,subj) {
-  if (type=='behav') {
-    anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
-    csvFolder = paste(anFolder,'csv/',sep="")
-  } else {
-    anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
-    csvFolder = paste(anFolder,'csv/',sep="")
-  }
-  figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
-  mainTh = read.csv(sprintf('%smainThresholds.csv',csvFolder))
-  catTh = read.csv(sprintf('%scatThresholds.csv',csvFolder))
-  run = read.csv(sprintf('%srun04.csv',csvFolder))
-  mainTh = mainTh %>%
-    group_by(task,pedestal) %>%
-    summarise(mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
-  main = left_join(mainTh,run)
-  main = main %>%
-    ungroup() %>%
-    mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')))
-  
-  catTh = catTh %>%
-    group_by(task,pedestal) %>%
-    summarise(mu=mean(threshold),ci=sd(threshold)/sqrt(n())*1.96)
-  cat = left_join(catTh,run)
-  cat = cat %>%
-    ungroup() %>%
-    mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')))
-  cat = cat %>%
-    filter(mu < 5, mu > 0)
-  fname=sprintf('%s/%s_th_task_catch.pdf',figFolder,subj)
-  main = cbind(main,catch=0)
-  cat = cbind(cat,catch=1)
-  allThresh = rbind(main,cat)
-  allThresh = mutate(allThresh,catch=factor(catch,levels=c(0,1),labels=c('Cued','Miscued')))
-  g = ggplot(data=allThresh,aes(task,mu,fill=catch)) +
-    geom_bar(position="dodge",width=.75,stat="identity") +
-    geom_errorbar(aes(ymin=mu-ci,ymax=mu+ci),position=position_dodge(width=.75),width=0) +
-    theme_bw() +
-    scale_fill_brewer() +
-    theme(text = element_text(size=20)) +
-    xlab('Pedestal Value (%)') +
-    ylab('Discrimination Threshold')
-  ggsave(filename=fname,plot=g)
-  return(allThresh)
-}
+ggplot(mdata,aes(taskF,RT,linetype=congruent,color=correctF)) +
+  geom_point(size=3) +
+  geom_smooth(method="lm",formula=y~x^2) +
+  scale_color_brewer(palette='Dark2') +
+  facet_grid(.~isCatch)
 ```
