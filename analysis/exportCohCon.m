@@ -1,6 +1,6 @@
 %% To start off, let's get files
 
-mglSetSID('s025')
+mglSetSID('s300')
 addpath(genpath('~/proj/att_awe/analysis/'));
 
 global analysis
@@ -23,11 +23,11 @@ expHolder = loadExp(files);
 %% Loop over exp files and export them to csv
 
 for ei = 1:length(expHolder)
-%     try                        %EYE SKIP
-        cohCon2csv(expHolder{ei},true);
-%     catch
-%         disp(sprintf('Experiment file %i not generated...',ei));
-%     end
+    %     try                        %EYE SKIP
+    cohCon2csv(expHolder{ei},true);
+    %     catch
+    %         disp(sprintf('Experiment file %i not generated...',ei));
+    %     end
 end
 
 %% The following functions use the most recent stimulus file
@@ -39,13 +39,36 @@ load(fullfile(analysis.datFolder,files(end).name));
 % staircaseplots(stimulus);
 
 %% Send main to CSV file
-plotting = cohCon_discFuncs(stimulus,0);
+[plotting, mfits] = cohCon_discFuncs(stimulus,0);
 cohCon_plo2csv(plotting);
 
 %% Send catch to CSV file
-cat = cohCon_catPerf(stimulus,0);
+[cat, cfits] = cohCon_catPerf(stimulus,0);
 per2csv(cat);
 
 %% Send nocatch to CSV file
-nocat = cohCon_nocatPerf(stimulus,0);
+[nocat, nfits] = cohCon_nocatPerf(stimulus,0);
 nocat2csv(nocat);
+
+%% Send fits to CSV file
+cohCon_fits2csv(nfits,mfits,cfits);
+
+%%
+x = 0:.01:3
+figure, hold on
+color = {{'k','g','k','k'},{'r','b','r','r'}};
+for t = 1:2
+    dat = mfits{t,1};
+    dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
+    y = weibull(x,mean(dat,1));
+    plot(x,y,color{t}{1});
+end
+for t = 1:2
+    dat = cfits{t,1};
+    dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
+    y = weibull(x,mean(dat,1));
+    plot(x,y,color{t}{2});
+end
+axis([0 5 .5 1])
+
+%% normalize

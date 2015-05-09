@@ -127,19 +127,112 @@ return(all)
 ```
 
 ```{r}
-subjs = c(300,25,21)
-
-allT = data.frame()
-for (snum in subjs) {
-  all = getSubjThresholdPlot('behav',snum)
-  allT = rbind(allT,all)
+getSubjFits = function(type,snum) {
+subj = sprintf('s%03.0f',snum)
+if (type=='behav') {
+  anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
+  csvFolder = paste(anFolder,'csv/',sep="")
+} else {
+  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
+  csvFolder = paste(anFolder,'csv/',sep="")
+}
+figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
+fits = read.csv(sprintf('%smodelFits.csv',csvFolder))
+fits = fits %>%
+  mutate(subj=snum,task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(-1,0,1),labels=c('Nocatch','Cued','Miscued')))
+return(fits)
 }
 ```
 
 ```{r}
+subjs = c(300,25,21,302)
+
+allT = data.frame()
+allF = data.frame()
+for (snum in subjs) {
+  all = getSubjThresholdPlot('behav',snum)
+  fit = getSubjFits('behav',snum)
+  allF = rbind(allF,fit)
+  allT = rbind(allT,all)
+}
+```
+
+Now let's normalize the weibull fits and see if they vary consistently across subjects.
+```{r}
+norms = allF %>%
+  group_by(task,subj,catch) %>%
+  filter(catch=='Nocatch') %>%
+  summarise(normT = mean(T)) %>%
+  select(-catch)
+allF = left_join(allF,norms)
+```
+
+Okay that's done. Now we can mutate with the normalized Ts
+
+```{r}
+allF_ = allF %>%
+  mutate(T = T / normT) %>%
+  select(-normT) %>%
+  group_by(task,catch,subj) %>%
+  summarise(T=mean(T),beta=mean(beta)) %>%
+  summarise(ciT=sd(T)/sqrt(n())*1.96,T=mean(T),cibeta=sd(beta)/sqrt(n())*1.96,beta=mean(beta))
+ 
+```
+
+```{r}
+x = seq(0,5,.01)
+
+weib = data.frame(x=x)
+
+weib2 = data.frame(x=c())
+
+for (i in seq(1,nrow(allF_))) {
+  t = allF_[i,]$T
+  b = allF_[i,]$beta
+  for (xval in x) {
+    weib2 = rbind(weib2,c(xval,1-(exp(-(xval/t)^b)),allF_[i,]$task,allF_[i,]$catch))
+  }
+  name = paste('y_',allF_[i,]$task,'_',allF_[i,]$catch,sep="")
+  weib[[name]] = 1-(exp(-(x/t)^b))
+}
+names(weib2) = c('x','y','task','catch')
+weib2 = weib2 %>%
+  mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(1,2,3),labels=c('Nocatch','Cued','Miscued')))
+```
+
+```{r}
+ggplot(weib2,aes(x,y,color=catch)) +
+  geom_line(size=3) +
+  scale_color_brewer() +
+  facet_grid(.~task) +
+  theme_bw() +
+  ggtitle('Discrimination Functions--Parameter Averages Across Subjects (n=4)') +
+  xlab('Threshold Normalized to Nocatch Runs (au)') +
+  ylab('Performance (% Correct)') +
+  theme(text = element_text(size=20))
+```
+
+
+```{r}
+ggplot(weib) +
+  geom_line(aes(x,y_Coherence_Nocatch),color='darkorange4',size=2) +
+  geom_line(aes(x,y_Coherence_Cued),color='darkorange3',size=2) +
+  geom_line(aes(x,y_Coherence_Miscued),color='darkorange1',size=2) +
+  geom_line(aes(x,y_Contrast_Nocatch),color='turquoise4',size=2) +
+  geom_line(aes(x,y_Contrast_Cued),color='turquoise3',size=2) +
+  geom_line(aes(x,y_Contrast_Miscued),color='turquoise1',size=2) +
+  theme_bw()
+```
+
+
+
+```{r}
 contrasts(allT$catch) = cbind(c(-1,-1,2),c(-1,0,1))
 rs = lmer(data=allT,threshold ~ task*catch + (1|subj))
-rs2 = lmer(data=allT,threshold~task*catch + (task|subj))
+rs2 = lmer(data=allT,threshold~task*catch + (1+task|subj))
+# rs3 = lmer(data=allT,threshold~task*catch + (task+catch|subj))
+# rs4 = lmer(data=allT,threshold~task*catch + (task*catch|subj))
+anova(rs,rs2,rs3,rs4)
 plot(allEffects(rs2))
 ```
 
