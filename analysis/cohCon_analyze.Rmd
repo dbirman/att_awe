@@ -13,64 +13,14 @@ library(MASS)
 ```
 
 ```{r}
-## Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
-##   data: a data frame.
-##   measurevar: the name of a column that contains the variable to be summariezed
-##   groupvars: a vector containing names of columns that contain grouping variables
-##   na.rm: a boolean that indicates whether to ignore NA's
-##   conf.interval: the percent range of the confidence interval (default is 95%)
-summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
-                      conf.interval=.95, .drop=TRUE) {
-  detach(package:dplyr)
-  library(plyr)
-
-
-    # New version of length which can handle NA's: if na.rm==T, don't count them
-    length2 <- function (x, na.rm=FALSE) {
-        if (na.rm) sum(!is.na(x))
-        else       length(x)
-    }
-
-    # This does the summary. For each group's data frame, return a vector with
-    # N, mean, and sd
-    datac <- ddply(data, groupvars, .drop=.drop,
-      .fun = function(xx, col) {
-        c(N    = length2(xx[[col]], na.rm=na.rm),
-          mean = mean   (xx[[col]], na.rm=na.rm),
-          sd   = sd     (xx[[col]], na.rm=na.rm)
-        )
-      },
-      measurevar
-    )
-
-    # Rename the "mean" column    
-    datac <- rename(datac, c("mean" = measurevar))
-
-    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
-
-    # Confidence interval multiplier for standard error
-    # Calculate t-statistic for confidence interval: 
-    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
-#     ciMult <- qt(conf.interval/2 + .5, datac$N-1)
-    ciMult <- qnorm(conf.interval/2+.5)
-    datac$ci <- datac$se * ciMult
-
-detach(package:plyr)
-    return(datac)
-}
-
-
-```
-
-```{r}
 getSubjThresholdPlot = function(type,snum) {
 library(dplyr)
 subj = sprintf('s%03.0f',snum)
 if (type=='behav') {
-  anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
+  anFolder = sprintf('/Users/dan/data/cohcon/%s/behav/analysis/',subj)
   csvFolder = paste(anFolder,'csv/',sep="")
 } else {
-  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
+  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/behav/analysis/',subj)
   csvFolder = paste(anFolder,'csv/',sep="")
 }
 figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
@@ -130,10 +80,10 @@ return(all)
 getSubjFits = function(type,snum) {
 subj = sprintf('s%03.0f',snum)
 if (type=='behav') {
-  anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
+  anFolder = sprintf('/Users/dan/data/cohcon/%s/behav/analysis/',subj)
   csvFolder = paste(anFolder,'csv/',sep="")
 } else {
-  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
+  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/behav/analysis/',subj)
   csvFolder = paste(anFolder,'csv/',sep="")
 }
 figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
@@ -174,36 +124,51 @@ allF_ = allF %>%
   mutate(T = T / normT) %>%
   select(-normT) %>%
   group_by(task,catch,subj) %>%
-  summarise(T=mean(T),beta=mean(beta)) %>%
+  summarise(T=mean(T),beta=mean(beta))
+
+allF_mu = allF_ %>%
+  group_by(task,catch) %>%
   summarise(ciT=sd(T)/sqrt(n())*1.96,T=mean(T),cibeta=sd(beta)/sqrt(n())*1.96,beta=mean(beta))
- 
 ```
 
+
 ```{r}
-x = seq(0,5,.01)
+x = seq(0,4,.01)
 
-weib = data.frame(x=x)
-
-weib2 = data.frame(x=c())
+weib = data.frame(x=c())
 
 for (i in seq(1,nrow(allF_))) {
   t = allF_[i,]$T
   b = allF_[i,]$beta
   for (xval in x) {
-    weib2 = rbind(weib2,c(xval,1-(exp(-(xval/t)^b)),allF_[i,]$task,allF_[i,]$catch))
+    weib = rbind(weib,c(xval,1-(exp(-(xval/t)^b)),allF_[i,]$subj,allF_[i,]$task,allF_[i,]$catch))
   }
-  name = paste('y_',allF_[i,]$task,'_',allF_[i,]$catch,sep="")
-  weib[[name]] = 1-(exp(-(x/t)^b))
 }
-names(weib2) = c('x','y','task','catch')
-weib2 = weib2 %>%
-  mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(1,2,3),labels=c('Nocatch','Cued','Miscued')))
+
+names(weib) = c('x','y','subj','task','catch')
+weib = weib %>%
+  mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(1,2,3),labels=c('Control','Task Cued','Task Miscued')))
 ```
 
 ```{r}
-ggplot(weib2,aes(x,y,color=catch)) +
-  geom_line(size=3) +
-  scale_color_brewer() +
+weib2 = data.frame(x=c())
+for (i in seq(1,nrow(allF_mu))) {
+  t = allF_mu[i,]$T
+  b = allF_mu[i,]$beta
+  for (xval in x) {
+    weib2 = rbind(weib2,c(xval,1-(exp(-(xval/t)^b)),allF_mu[i,]$task,allF_mu[i,]$catch))
+  }
+}
+names(weib2) = c('x','y','task','catch')
+weib2 = weib2 %>%
+  mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(1,2,3),labels=c('Control','Task Cued','Task Miscued')))
+```
+
+```{r}
+ggplot() +
+  geom_line(data=weib2,aes(x,y,color=catch),size=3) +
+  geom_line(data=weib,aes(x,y,color=catch),size=1,alpha=.2) +
+  scale_color_brewer(palette='Dark2') +
   facet_grid(.~task) +
   theme_bw() +
   ggtitle('Discrimination Functions--Parameter Averages Across Subjects (n=4)') +
