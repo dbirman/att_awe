@@ -1,6 +1,6 @@
 dbstop('if','error');
 
-pathNames = {'~/proj/matlab','~/proj/mrTools','~/proj/mgl','~/proj/gru','~/proj/grustim','~/proj/matlab/plugins'};
+pathNames = {'~/proj/matlab','~/proj/mrTools','~/proj/mgl','~/proj/gru','~/proj/grustim','~/proj/matlab/plugins','~/proj/att_awe'};
 
 for i = 1:length(pathNames)
   if isdir(pathNames{i})
@@ -48,5 +48,4 @@ end
 %   disp(sprintf('(startup) No user specific startup scrip found. If you need to, create one called: %s',userStartup));
 % end  
 
-addpath(genpath('~/proj/'))
 cd('~/proj/')

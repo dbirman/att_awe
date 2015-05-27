@@ -5,25 +5,19 @@ output: html_document
 
 ```{r}
 library(ggplot2)    
+library(MASS)
 library(dplyr)
 library(tidyr)
 library(lme4)
 library(effects)
-library(MASS)
 ```
 
 ```{r}
 getSubjThresholdPlot = function(type,snum) {
-library(dplyr)
 subj = sprintf('s%03.0f',snum)
-if (type=='behav') {
-  anFolder = sprintf('/Users/dan/data/cohcon/%s/behav/analysis/',subj)
-  csvFolder = paste(anFolder,'csv/',sep="")
-} else {
-  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/behav/analysis/',subj)
-  csvFolder = paste(anFolder,'csv/',sep="")
-}
-figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
+anFolder = sprintf('/Users/dan/data/cohcon/%s/%s/analysis/',subj,type)
+csvFolder = paste(anFolder,'csv/',sep="")
+figFolder = paste('/Users/dan/proj/att_awe/analysis/figures/',type,sep="")
 mainTh = read.csv(sprintf('%smainThresholds.csv',csvFolder))
 catTh = read.csv(sprintf('%scatThresholds.csv',csvFolder))
 nocatTh = read.csv(sprintf('%snocatThresholds.csv',csvFolder))
@@ -34,7 +28,7 @@ run = read.csv(sprintf('%srun04.csv',csvFolder))
 
 # Setup variables
 all = rbind(mainTh,catTh,nocatTh) %>%
-  mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(-1,0,1),labels=c('Nocatch','Cued','Miscued')),threshold=threshold*100)
+  mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(-1,0,1),labels=c('Control','Task Cued','Task Miscued')),threshold=threshold*100)
 all_ = all %>%
   group_by(task,catch) %>%
   summarise(sd=sd(threshold),n=n(),threshold=mean(threshold)) %>%
@@ -53,22 +47,16 @@ ES = all_ %>% ungroup() %>%
  # Individual plot,
 fname=sprintf('%s/%s_th_task_catch.pdf',figFolder,subj)
 g = ggplot() +
-  geom_errorbar(data=all_,aes(task,threshold,fill=catch,ymin=threshold-ci,ymax=threshold+ci),position=position_dodge(width=.75),width=0) +
-  geom_point(data=all,aes(task,threshold,color=catch,group=catch),position=position_dodge(width=.75),size=4) +
-  geom_point(data=all_,aes(task,threshold,color=catch),position=position_dodge(width=.75),size=24,shape='-') +
+  geom_bar(data=all_,aes(task,threshold,fill=catch),position=position_dodge(width=.75),stat='identity',width=.75) +
+  geom_errorbar(data=all_,aes(task,threshold,fill=catch,ymin=threshold-ci,ymax=threshold+ci),position=position_dodge(width=.75),width=0,color='black') +
+  geom_point(data=all,aes(task,threshold,group=catch),position=position_dodge(width=.75),size=3,color='black') +
   theme_bw() +
-  scale_fill_brewer() +  
-  scale_color_brewer() +
+  scale_fill_brewer(palette='Accent') +  
+  scale_color_brewer(palette='Accent') +
   theme(text = element_text(size=20)) +
   xlab('Pedestal Value (%)') +
   ylab('Discrimination Threshold (%)') #+
-#   geom_text(data=ES,aes(x=task,y=t+.05,label=round(effect,2)))
 ggsave(filename=fname,plot=g)
-
-# LM
-contrasts(all$catch) = cbind(c(-1,-1,2),c(-1,0,1))
-rs = lm(data=all,threshold ~ task*catch)
-# plot(allEffects(rs))
 
 all = cbind(all,subj=snum)
 
@@ -79,18 +67,22 @@ return(all)
 ```{r}
 getSubjFits = function(type,snum) {
 subj = sprintf('s%03.0f',snum)
-if (type=='behav') {
-  anFolder = sprintf('/Users/dan/data/cohcon/%s/behav/analysis/',subj)
-  csvFolder = paste(anFolder,'csv/',sep="")
-} else {
-  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/behav/analysis/',subj)
-  csvFolder = paste(anFolder,'csv/',sep="")
-}
-figFolder = paste('/Users/dan/proj/att_awe/analysis/','figures/',type,sep="")
+anFolder = sprintf('/Users/dan/data/cohcon/%s/%s/analysis/',subj,type)
+csvFolder = paste(anFolder,'csv/',sep="")
+figFolder = paste('/Users/dan/proj/att_awe/analysis/figures/',type,sep="")
 fits = read.csv(sprintf('%smodelFits.csv',csvFolder))
 fits = fits %>%
   mutate(subj=snum,task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(-1,0,1),labels=c('Nocatch','Cued','Miscued')))
 return(fits)
+}
+```
+
+```{r}
+getFolders = function(snum) {
+  anFolder = sprintf('/Users/dan/data/cohcon/%s/%s/analysis/',subj,type)
+  csvFolder = paste(anFolder,'csv/',sep="")
+  figFolder = paste('/Users/dan/proj/att_awe/analysis/figures/',type,sep="")
+  
 }
 ```
 
@@ -106,6 +98,23 @@ for (snum in subjs) {
   allT = rbind(allT,all)
 }
 ```
+
+```{r}
+subjs = c(300)
+
+sc_allT = data.frame()
+sc_allF = data.frame()
+for (snum in subjs) {
+  sc_all = getSubjThresholdPlot('scan',snum)
+  sc_fit = getSubjFits('scan',snum)
+  sc_allT = rbind(sc_allT,sc_all)
+  sc_allF = rbind(sc_allF,sc_fit)
+}
+
+allT = sc_allT
+allF = sc_allF
+```
+
 
 Now let's normalize the weibull fits and see if they vary consistently across subjects.
 ```{r}
@@ -133,7 +142,7 @@ allF_mu = allF_ %>%
 
 
 ```{r}
-x = seq(0,4,.01)
+x = seq(0,6,.01)
 
 weib = data.frame(x=c())
 
@@ -148,6 +157,27 @@ for (i in seq(1,nrow(allF_))) {
 names(weib) = c('x','y','subj','task','catch')
 weib = weib %>%
   mutate(task=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),catch=factor(catch,levels=c(1,2,3),labels=c('Control','Task Cued','Task Miscued')))
+```
+
+Individual subject plots
+```{r}
+
+figFolder = paste('/Users/dan/proj/att_awe/analysis/figures/behav')
+for (snum in subjs) {
+  sweib = weib %>%
+    filter(subj==snum)
+  fname=sprintf('%s/%s_task_norm.pdf',figFolder,snum)
+  g = ggplot() +
+    geom_line(data=sweib,aes(x,y,color=catch),size=1) +
+    scale_color_brewer(palette='Accent') +
+    facet_grid(.~task) +
+    theme_bw() +
+    ggtitle('Normalized Discrimination Functions') +
+    xlab('Threshold Normalized to Nocatch Runs (au)') +
+    ylab('Performance (% Correct)') +
+    theme(text = element_text(size=20))
+  ggsave(fname,g)
+}
 ```
 
 ```{r}
@@ -165,30 +195,20 @@ weib2 = weib2 %>%
 ```
 
 ```{r}
-ggplot() +
+figFolder = paste('/Users/dan/proj/att_awe/analysis/figures/behav')
+fname=sprintf('%s/across_subj.pdf',figFolder)
+g = ggplot() +
   geom_line(data=weib2,aes(x,y,color=catch),size=3) +
   geom_line(data=weib,aes(x,y,color=catch),size=1,alpha=.2) +
-  scale_color_brewer(palette='Dark2') +
+  scale_color_brewer(palette='Accent') +
   facet_grid(.~task) +
   theme_bw() +
   ggtitle('Discrimination Functions--Parameter Averages Across Subjects (n=4)') +
   xlab('Threshold Normalized to Nocatch Runs (au)') +
   ylab('Performance (% Correct)') +
   theme(text = element_text(size=20))
+ggsave(fname,g)
 ```
-
-
-```{r}
-ggplot(weib) +
-  geom_line(aes(x,y_Coherence_Nocatch),color='darkorange4',size=2) +
-  geom_line(aes(x,y_Coherence_Cued),color='darkorange3',size=2) +
-  geom_line(aes(x,y_Coherence_Miscued),color='darkorange1',size=2) +
-  geom_line(aes(x,y_Contrast_Nocatch),color='turquoise4',size=2) +
-  geom_line(aes(x,y_Contrast_Cued),color='turquoise3',size=2) +
-  geom_line(aes(x,y_Contrast_Miscued),color='turquoise1',size=2) +
-  theme_bw()
-```
-
 
 
 ```{r}
@@ -246,18 +266,23 @@ allT %>%
 # dev.off()
 ```
 
+
+
+
+
+
+Reaction time Analysis follows
+
+
+
 ```{r}
 # Reaction time analysis
-filesToLoad = c(1,2,3,4,7,8,9)
+filesToLoad = c(1,2,3,4,5,6,7,8,9)
 subj = 's300'
 type = 'behav'
-if (type=='behav') {
-  anFolder = sprintf('/Users/dan/data/cohcon/%s/analysis/',subj)
-  csvFolder = paste(anFolder,'csv/',sep="")
-} else {
-  anFolder = sprintf('/Users/dan/data/cohcon/scan2/%s/analysis/',subj)
-  csvFolder = paste(anFolder,'csv/',sep="")
-}
+anFolder = sprintf('/Users/dan/data/cohcon/%s/%s/analysis/',subj,type)
+csvFolder = paste(anFolder,'csv/',sep="")
+figFolder = paste('/Users/dan/proj/att_awe/analysis/figures/',type,sep="")
 for (fi in filesToLoad) {
   # Dealing with run # fi
   main = read.csv(sprintf('%s/main%02.f.csv',csvFolder,fi))  
@@ -274,6 +299,8 @@ for (fi in filesToLoad) {
 
 cdata = mdata %>%
   filter(isCatch==1)
+mdata = mdata %>%
+  filter(isCatch==0)
 
 mdata = mdata %>%
   mutate(congruent=factor(cohSide==conSide),correctF=factor(correct,levels=c(0,1),labels=c('Incorrect','Correct')),conSide=factor(conSide,levels=c(1,2),labels=c('Left','Right')),cohSide=factor(cohSide,levels=c(1,2),labels=c('Left','Right')),taskF=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),conPedestal=factor(conPedestal),cohPedestal=factor(cohPedestal),isCatch=factor(isCatch,levels=c(0,1),labels=c('Cued','Miscued')))
@@ -284,7 +311,6 @@ plot(allEffects(rs))
 
 ggplot(mdata,aes(taskF,RT,linetype=congruent,color=correctF)) +
   geom_point(size=3) +
-  geom_smooth(method="lm",formula=y~x^2) +
   scale_color_brewer(palette='Dark2') +
   facet_grid(.~isCatch)
 ```

@@ -5,7 +5,7 @@ addpath(genpath('~/proj/att_awe/analysis/'));
 
 global analysis
 
-[analysis.datFolder, analysis.anFolder] = getSubjDataFolder('cohcon',false);
+[analysis.datFolder, analysis.anFolder] = getSubjDataFolder('cohcon',true);
 
 year = date;
 year = year(end-1:end);
@@ -34,9 +34,26 @@ end
 
 load(fullfile(analysis.datFolder,files(end).name));
 
-%% Generate staircase graphs
-
-% staircaseplots(stimulus);
+%% If Scan: Concatenate across stimulus runs
+if ~isempty(strfind(analysis.anFolder,'scan'))
+    taskCued = {};
+    taskMiscued = {};
+    control = {};
+    for i = 1:length(expHolder)
+        expi = expHolder{i}{1};
+        for j = 1:2
+            taskCued{i,j} = expi.stimulus.staircase{j};
+            taskMiscued{i,j} = expi.stimulus.stairCatch{j};
+            for k = 1:size(expi.stimulus.nocatchs.staircase,2)
+                
+%                 try
+                control{i,j,k} = expi.stimulus.nocatchs.staircase{j,k};
+%                 catch
+%                 end
+            end
+        end
+    end
+end
 
 %% Send main to CSV file
 [plotting, mfits] = cohCon_discFuncs(stimulus,0);
@@ -53,22 +70,22 @@ nocat2csv(nocat);
 %% Send fits to CSV file
 cohCon_fits2csv(nfits,mfits,cfits);
 
-%%
-x = 0:.01:3
-figure, hold on
-color = {{'k','g','k','k'},{'r','b','r','r'}};
-for t = 1:2
-    dat = mfits{t,1};
-    dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
-    y = weibull(x,mean(dat,1));
-    plot(x,y,color{t}{1});
-end
-for t = 1:2
-    dat = cfits{t,1};
-    dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
-    y = weibull(x,mean(dat,1));
-    plot(x,y,color{t}{2});
-end
-axis([0 5 .5 1])
+% %%
+% x = 0:.01:3
+% figure, hold on
+% color = {{'k','g','k','k'},{'r','b','r','r'}};
+% for t = 1:2
+%     dat = mfits{t,1};
+%     dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
+%     y = weibull(x,mean(dat,1));
+%     plot(x,y,color{t}{1});
+% end
+% for t = 1:2
+%     dat = cfits{t,1};
+%     dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
+%     y = weibull(x,mean(dat,1));
+%     plot(x,y,color{t}{2});
+% end
+% axis([0 5 .5 1])
 
 %% normalize

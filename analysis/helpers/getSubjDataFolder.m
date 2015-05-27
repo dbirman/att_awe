@@ -11,9 +11,9 @@ switch experiment
         datFolder = fullfile(sprintf('~/data/cue_fade/%s',mglGetSID));
     case 'cohcon'
         if scan
-            datFolder = fullfile(sprintf('~/data/cohcon/scan2/%s',mglGetSID));
+            datFolder = fullfile(sprintf('~/data/cohcon/%s/scan',mglGetSID));
         else
-            datFolder = fullfile(sprintf('~/data/cohcon/%s',mglGetSID));
+            datFolder = fullfile(sprintf('~/data/cohcon/%s/behav',mglGetSID));
         end
 end
         
