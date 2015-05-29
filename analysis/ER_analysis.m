@@ -6,7 +6,25 @@ cd ~/data/cohcon/s0300_pilot/s030020150509/
 allData = eventRelatedPedestalPlot();
 cd(cdir);
 
-function [tSeries, stimVol, concatInfo] = loadERAnalysis(name)
+function [tSeries, stimVol, concatInfo] = loadERAnalysis(name,roi)
+%%
+cdir = pwd;
+cd(name);
+
+%%
+view = newView();
+view = viewSet(view,'curGroup','Concatenation');
+scans = viewGet(view,'nScans');
+view = viewSet(view,'curScan',scans);
+view = loadAnalysis(view,'erAnal/left_ER');
+analysis = viewGet(view,'analysis');
+d = analysis.d{1};
+d = loadroi(d,roi);
+d.r2 = analysis.overlays(1).data{1};
+
+%%
+
+cd(cdir);
 
 function allData = eventRelatedPedestalPlot(aName)
 
