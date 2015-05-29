@@ -12,7 +12,10 @@ end
 
 %% Run for each
 for i = 1:length(files)
+    try
     modifyStim(fullfile(folder,'Etc',files(i).name),fullfile(folder,'Etc','Orig',files(i).name));
+    catch
+    end
 end
 
 function modifyStim(file,backup)
