@@ -1,12 +1,13 @@
 %% Script to test naka-rushton output...
 
 sides = {'left'};
-ROIs = {'v1','mt'};
+ROIs = {'l_v1','l_hmt'};
 
 cueds = {'uncued','cued'};
 values = {'contrast','coherence'};
 
 %%
+linetypes = {'-','--'};
 
 for si = 1:length(sides)
     for ri = 1:length(ROIs)
@@ -26,9 +27,12 @@ for si = 1:length(sides)
                 n = n(r>0);
                 r = r(r>0);
                 
-                plot(c,r,'*','color',rand(1,3));
+                curCol = rand(1,3);
+                
+                plot(c,r,'*','color',curCol);
                 
                 try
+%                     fit = fitNakaRushton(c,r);
                 fit = fitNakaRushtonWeighted(c,r,n);
                 k = fit.Rmax;
                 n = fit.n;
@@ -37,7 +41,7 @@ for si = 1:length(sides)
                 
                 y = k*(c.^n./(cn.^n+c50.^n))+fit.offset;
                 
-                plot(c,y,'color',rand(1,3));
+                plot(c,y,linetypes{vi},'color',curCol);
                 legVals{end+1} = sprintf('%s.%s.fit',values{vi},cueds{cui});
                 catch
                 end

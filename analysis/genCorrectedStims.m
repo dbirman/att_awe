@@ -44,8 +44,16 @@ param = task{1}{1}.block.parameter;
 baseCoh = randVars.coherence(1:trials);
 baseCon = randVars.contrast(1:trials);
 
+nTask = [];
+
 lCon = []; lCoh = [];
 rCon = []; rCoh = [];
+
+if any(param.catch(1:trials)>0)
+    nTask = randVars.task(1:trials) + param.catch(1:trials) .* 2;
+else
+    nTask = randVars.task(1:trials);
+end
 
 for t = 1:trials
     if param.conSide(t) == 1
@@ -67,10 +75,11 @@ end
 lCon = nearestFive(lCon); rCon = nearestFive(rCon);
 lCoh = nearestFive(lCoh); rCoh = nearestFive(rCoh);
 
-addCalculatedVar('lCon',lCon,file);
-addCalculatedVar('lCoh',lCoh,file);
-addCalculatedVar('rCon',rCon,file);
-addCalculatedVar('rCoh',rCoh,file);
+if ~isfield(randVars,'lCon'), addCalculatedVar('lCon',lCon,file,'backup=0'); end
+if ~isfield(randVars,'lCoh'), addCalculatedVar('lCoh',lCoh,file,'backup=0'); end
+if ~isfield(randVars,'rCon'), addCalculatedVar('rCon',rCon,file,'backup=0'); end
+if ~isfield(randVars,'rCoh'), addCalculatedVar('rCoh',rCoh,file,'backup=0'); end
+if ~isfield(randVars,'nTask'), addCalculatedVar('nTask',nTask,file,'backup=0'); end
 
 %% Save
 

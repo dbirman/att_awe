@@ -159,8 +159,18 @@ for (snum in subjs) {
 Multiplot code: (don't run except for multiplot)
 ```{r}
 all = getSubjThresholdData('behav',300)
-g300 = getSubjThresholdPlot(all,300,'behav')
+g300 = getSubjThresholdPlot(all,300,'behav') + ggtitle('S0300') 
 
+all = getSubjThresholdData('behav',25)
+g25 = getSubjThresholdPlot(all,25,'behav') + ggtitle('S0025') + ylab('')
+
+all = getSubjThresholdData('behav',21)
+g21 = getSubjThresholdPlot(all,21,'behav') + ggtitle('S0021')+ ylab('')
+
+all = getSubjThresholdData('behav',302)
+g302 = getSubjThresholdPlot(all,302,'behav') + ggtitle('S0302') + ylab('')
+
+m = multiplot(g300,g25,g21,g302,layout=matrix(c(1,2,3,4), nrow=2, byrow=TRUE))
 ```
 
 
@@ -342,8 +352,8 @@ Reaction time Analysis follows
 
 ```{r}
 # Reaction time analysis
-filesToLoad = c(1,2,3,4,5,6,7,8,9)
-subj = 's300'
+filesToLoad = seq(1,14)
+subj = 's021'
 type = 'behav'
 anFolder = sprintf('/Users/dan/data/cohcon/%s/%s/analysis/',subj,type)
 csvFolder = paste(anFolder,'csv/',sep="")
@@ -370,12 +380,12 @@ mdata = mdata %>%
 mdata = mdata %>%
   mutate(congruent=factor(cohSide==conSide),correctF=factor(correct,levels=c(0,1),labels=c('Incorrect','Correct')),conSide=factor(conSide,levels=c(1,2),labels=c('Left','Right')),cohSide=factor(cohSide,levels=c(1,2),labels=c('Left','Right')),taskF=factor(task,levels=c(1,2),labels=c('Coherence','Contrast')),conPedestal=factor(conPedestal),cohPedestal=factor(cohPedestal),isCatch=factor(isCatch,levels=c(0,1),labels=c('Cued','Miscued')))
 
-rs = lm(data=mdata,RT ~ correctF + taskF*cohDelta + taskF*conDelta + isCatch*congruent + taskF*conSide + taskF*cohSide + rTrial)
-rs = lm(data=mdata,RT ~ correctF*isCatch*congruent*taskF)
-plot(allEffects(rs))
+#rs = lm(data=mdata,RT ~ correctF + taskF*cohDelta + taskF*conDelta + isCatch*congruent + taskF*conSide + taskF*cohSide + rTrial)
+#rs = lm(data=mdata,RT ~ correctF*isCatch*congruent*taskF)
+#plot(allEffects(rs))
 
-ggplot(mdata,aes(taskF,RT,linetype=congruent,color=correctF)) +
-  geom_point(size=3) +
-  scale_color_brewer(palette='Dark2') +
-  facet_grid(.~isCatch)
+#ggplot(mdata,aes(taskF,RT,linetype=congruent,color=correctF)) +
+#  geom_point(size=3) +
+#  scale_color_brewer(palette='Dark2') +
+#  facet_grid(.~isCatch)
 ```
