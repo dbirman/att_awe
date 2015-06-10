@@ -1,0 +1,75 @@
+---
+title: "cohCon_eye"
+output: html_document
+---
+
+```{r}
+library(ggplot2)    
+library(MASS)
+library(dplyr)
+library(tidyr)
+library(lme4)
+library(effects)
+library(scales)
+```
+
+
+```{r}
+# Reaction time analysis
+filesToLoad = seq(1)
+subj = 's021'
+type = 'behav'
+anFolder = sprintf('/Users/dan/data/cohcon/%s/%s/analysis/',subj,type)
+csvFolder = paste(anFolder,'csv/',sep="")
+figFolder = paste('/Users/dan/proj/att_awe/analysis/figures/',type,sep="")
+for (fi in filesToLoad) {
+  # Dealing with run # fi
+  main = read.csv(sprintf('%s/main%02.f.csv',csvFolder,fi))
+  eye = read.csv(sprintf('%s/eye%02.f.csv',csvFolder,fi))  
+  # Switch to determine what kind of analysis we do
+  main = main %>%
+    select(-conDelta,-cohDelta,-coherence,-contrast,-conPedestal,-cohPedestal)
+  
+  eye = left_join(eye,main,by='trial')
+  
+  eye = eye %>%
+    filter(xPos != 0, yPos != 0, time !=0, !is.na(xPos), !is.na(yPos))
+  
+  if (fi==1) {
+    edata = eye
+  } else {
+    edata = rbind(edata,eye)
+  }
+}
+
+edata = edata %>%
+  select(-trial)
+```
+
+```{r}
+# scaling
+edata = edata %>%
+  mutate(xPos=rescale(xPos,to=c(-1,1)),yPos=rescale(yPos,to=c(-1,1)),pupil=rescale(pupil,to=c(-1,1)))
+```
+
+```{r}
+library(saccades)
+```
+```{r}
+edata_s = edata %>%
+  mutate(x=xPos,y=yPos,trial=trialNum,time=time*1000)
+stats = calculate.summary(edata_s)
+```
+
+```{r}
+rs = lm(data=edata, xPos ~ time + task + conSide + cohSide + direction)
+```
+
+```{r}
+ggplot(edata) +
+  geom_point(aes(xPos,yPos,color=time)) +
+  facet_grid(direction~.) +
+  coord_equal()
+```
+
+

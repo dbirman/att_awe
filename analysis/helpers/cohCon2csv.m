@@ -40,11 +40,13 @@ if ~noeye && ~skipeye
             
             eyeData = [];
             for t = 1:size(eye.xPos,1)
+                s = size(eyeData,1) + 1;
+                e = size(eyeData,1) + size(eye.xPos,2);
                 % trial t
-                eyeData(end+1:end+size(eye.xPos,2),1) = repmat(t,size(eye.xPos,2),1);
-                eyeData(end+1:end+size(eye.xPos,2),2) = eye.time;
+                eyeData(s:e,1) = repmat(t,size(eye.xPos,2),1);
+                eyeData(s:e,2) = eye.time;
                 for i = 3:length(eyeHeader)
-                    eyeData(end+1:end+size(eye.xPos,2),i) = eye.(eyeHeader{i})(t,:)*1000;
+                    eyeData(s:e,i) = eye.(eyeHeader{i})(t,:)*1000;
                 end
             end
             % Now write to eyeFile

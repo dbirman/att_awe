@@ -1,229 +1,277 @@
-function allData = ER_analysis()
+function allData = ER_analysis(redo_all, redo_ts, redo_sv)
 
-folders = {'~/data/cohcon/s0300_pilot/s030020150509/'};
-ROIs = {'l_v1','l_hmt'};
-curAnalysis = {'left_ER'};
-
-tSeries = {};
-stimVol = {};
-concatInfo = {};
-
-for fi = 1:length(folders)
-    [tSeries{end+1},stimVol{end+1},concatInfo{end+1},stimNames] = loadERAnalysis(folder{fi},ROIs,curAnalysis);
+if redo_all
+    redo_ts = 1;
+    redo_sv = 1;
 end
 
-% At this point each cell is for each folder, and each sub-cell in tSeries
-% is for the ROIs. So we can run the analysis by concatenating the
-% appropriate runs, and then pulling out of the de-convolution the relevant
-% information.
+pre = '~/data/cohcon/s0300_pilot/s0300';
+% folders = {'20150511'};
+folders = {'20150509','20150513'};
 
-allData = performAnalysis(tSeries,stimVol,concatInfo,stimNames);
+thresh = .06;
 
-function allData = performAnalysis(tSeries,stimVol,concatInfo,stimNames)
+curAnalysis = {'both_ER'};
+ROIs = {{'l_v1','l_hmt','r_v1','r_hmt'}};
+shortROIs = {{'v1','hmt'}};
 
-for z = 1:length(stimVol) % across folders
-    % do concatRuns
+total_analysis = sprintf('%s_%s.mat',strcat(folders{1}),strcat(curAnalysis{1}));
+
+tempFolder = '~/data/temp';
+
+tempSave = fullfile(tempFolder,total_analysis);
+
+if isfile(tempSave)
+    load(tempSave)
+else
+    data = struct;
+    data.ROIs = ROIs;
+    data.rROIs = shortROIs;
+    data.analyses = curAnalysis;
+    data.folders = folders;
+    data.pre = pre;
 end
 
-data = {};
+if redo_ts || redo_sv
+    for fi = 1:length(folders)
+        folder = fullfile(sprintf('%s%s',pre,folders{fi}));
+        fname = strcat('f',folders{fi});
+        for ai = 1:length(curAnalysis)
+            analysis = curAnalysis{ai};
+            rois = ROIs{ai};
+
+            mrQuit;
+
+            if redo_all
+                data.(fname) = struct;
+                data.(fname).(analysis) = struct;
+            end
+
+            [tSeries,stimVol,concatInfo,stimNames] = loadERAnalysis(folder,rois,analysis, redo_ts, redo_sv, thresh);
+
+            if redo_ts
+                data.(fname).(analysis).tSeries = tSeries;
+            end
+            if redo_sv
+                data.(fname).(analysis).stimVol = stimVol;
+                data.(fname).(analysis).stimNames = stimNames;
+            end
+            data.(fname).(analysis).concatInfo = concatInfo;
+        end
+    end
+
+    % At this point each cell is for each folder, and each sub-cell in tSeries
+    % is for the ROIs. So we can run the analysis by concatenating the
+    % appropriate runs, and then pulling out of the de-convolution the relevant
+    % information.
+
+
+    save(tempSave,'data');
+end
+
+data.rROIs = shortROIs;
+allData = performAnalysis(data);
+
+function allData = performAnalysis(data)
+
+% Start by concatenating, within each ROI, within each analysis
+
+% Note that the left/right hemisphere stimvols actually correspond to
+% opposite mappings (i.e. lCoh or rCoh) of stimuli. But we can combine them
+% by ignoring the prefix later on, so it's safe to concatenate everything
+% here as long as it's coming form the same ROI.
+
+for ai = 1:length(data.analyses)
+    analysis = data.analyses{ai};
+    rois = data.ROIs{ai};
+    
+    for ri = 1:length(rois)
+        croi = rois{ri};
+        % get the current ROI that we are in
+        [~, rNum] = parseROI(croi);
+        % get the ROI that this maps onto (we just ignore hemisphere)
+        rroi = data.rROIs{ai}{rNum};
+        
+        if isfield(data,'concat') && isfield(data.concat,analysis) && isfield(data.concat.(analysis),rroi)
+            % If the concat field already exists, we are going to add to it
+            roiTSeries = data.concat.(analysis).(rroi).tSeries;
+            roiStimVols = data.concat.(analysis).(rroi).stimvol;
+            roiConcat = data.concat.(analysis).(rroi).concatInfo;
+        else
+            % If not, we're just going to start from scratch
+            roiTSeries = [];
+            roiStimVols = [];
+            roiConcat = {};
+        end
+        
+        % Now we do the actual concatentations
+        for fi = 1:length(data.folders)
+            folder = data.folders{fi};
+            cdata = data.(strcat('f',folder)).(analysis);
+            
+            if isempty(roiTSeries)
+                % If this is the first timeseries we just save the data
+                roiTSeries = cdata.tSeries{ri};
+                roiStimVols = cdata.stimVol{ri};
+                roiConcat = cdata.concatInfo;
+                % note stimnames is the same across all folders for an ROI
+                % so this is okay. BUT: this only applies once prefixes
+                % have been ignored obviously...
+                data.concat.(analysis).(rroi).stimNames = cdata.stimNames{ri};
+            else
+                % Otherwise we concatenate to the previous data, we also
+                % concatenate the stimVols even though the prefixes may be
+                % different.
+                [roiTSeries, roiStimVols, roiConcat] = concatRuns({roiTSeries, cdata.tSeries{ri}},{roiStimVols, cdata.stimVol{ri}},{roiConcat, cdata.concatInfo});
+            end
+        end
+        % Save the data for the next run
+        data.concat.(analysis).(rroi).tSeries = roiTSeries;
+        data.concat.(analysis).(rroi).stimvol = roiStimVols;
+        data.concat.(analysis).(rroi).concatInfo = roiConcat;
+    end
+end
 
 allData = {};
-for ri = 1:length(tSeries)
-    data{ri} = fitTimecourse(tSeries{ri},stimVol,.5,'fitType=deconv','amplitudeType=fit2');    
-    
-    % setup info
-    [val, cuedTask, valueType] = parseNames(stimNames);
-    
-    sides = {'left','right'};
-    ROIs = {'l_v1','l_hmt'};
-    
-    [side, roi] = parseROI(ROIs{ri});
-    
-    %          cued  uncued
-    Ns.contrast.cued = [];
-    Ns.contrast.uncued = [];
-    Ns.coherence.cued = [];
-    Ns.coherence.uncued = [];
-    contrast.cued = [];
-    contrast.uncued = [];
-    contrastResp.cued = [];
-    contrastResp.uncued = [];
-    coherence.cued = [];
-    coherenceResp.cued = [];
-    coherence.uncued = [];
-    coherenceResp.uncued = [];
-    
-    cueds = {'uncued','cued'};
-    values = {'coherence','contrast'};
-    resps = {'coherenceResp','contrastResp'};
-    for z = 1:length(data{ri}.amplitude)
-        evalc(sprintf('%s.%s(end+1) = %f',values{valueType(z)},cueds{(cuedTask(z)==valueType(z))+1},val(z)));
-        evalc(sprintf('%s.%s(end+1) = %f',resps{valueType(z)},cueds{(cuedTask(z)==valueType(z))+1},data{ri}.amplitude(z)));
-        Ns.(values{valueType(z)}).(cueds{(cuedTask(z)==valueType(z))+1})(end+1) = length(stimVol{z});
-    end
-    
-    for vi = 1:length(values)
-        for ci = 1:length(cueds)
-            evalc(sprintf('[c,i] = sort(%s.%s)',values{vi},cueds{ci}));
-            evalc(sprintf('r = %s.%s(i)',resps{vi},cueds{ci}));
-            evalc('curN = Ns.(values{vi}).(cueds{ci})(i)');
-            evalc('allData.(sides{side}).(ROIs{roi}).(values{vi}).(cueds{ci}).c = c');
-            evalc('allData.(sides{side}).(ROIs{roi}).(values{vi}).(cueds{ci}).r = r');
-            evalc('allData.(sides{side}).(ROIs{roi}).(values{vi}).(cueds{ci}).n = curN');
+
+
+cueds = {'uncued','cued'};
+values = {'coherence','contrast'};
+
+for ai = 1:length(data.analyses)
+    analysis = data.analyses{ai};
+    rois = data.rROIs{ai};
+    for ri = 1:length(rois)
+        roi = rois{ri};       
+        [vals, cuedTask, valueType] = parseNames(data.concat.(analysis).(roi).stimNames);        
+        fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,'fitType=deconv','amplitudeType=fit1');
+
+%         fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,'fitType=glm','amplitudeType=area');
+        
+        
+        for z = 1:length(fit.amplitude)
+            if cuedTask(z) <= 2
+                % ignore the 'catch' conditions for now
+                amp = fit.amplitude(z); % amplitude
+                ase = fit.amplitudeSTE(z);
+                stim = valueType(z);
+                val = vals(z);
+                main = cuedTask(z);
+                % since we know there are no catch trials, if cued==stim,
+                % then it was attended
+                cued = 1 + (stim == main);
+                N = length(data.concat.(analysis).(roi).stimvol{z});
+                
+                if ~isfield(allData, roi), allData.(roi) = struct; end       
+                if ~isfield(allData.(roi), values{stim}), allData.(roi).(values{stim}) = struct; end
+                if ~isfield(allData.(roi).(values{stim}), cueds{cued})
+                    allData.(roi).(values{stim}).(cueds{cued}) = struct;
+                    allData.(roi).(values{stim}).(cueds{cued}).i = [];
+                    allData.(roi).(values{stim}).(cueds{cued}).a = [];
+                    allData.(roi).(values{stim}).(cueds{cued}).ase = [];
+                    allData.(roi).(values{stim}).(cueds{cued}).N = [];
+                    if isfield(fit,'canonicalResponse')
+                        allData.(roi).(values{stim}).(cueds{cued}).canon = fit.canonicalResponse;
+                    end
+                    allData.(roi).(values{stim}).(cueds{cued}).times = 0.25:.5:20.25;
+                end
+
+                
+                % intensity
+                allData.(roi).(values{stim}).(cueds{cued}).i(end+1) = val;
+                % amplitude
+                allData.(roi).(values{stim}).(cueds{cued}).a(end+1) = amp;
+                % error
+                allData.(roi).(values{stim}).(cueds{cued}).ase(end+1) = ase;
+                % N
+                allData.(roi).(values{stim}).(cueds{cued}).N(end+1) = N;
+            end
         end
     end
 end
 
-function [tSeries, stimVol, concatInfo,stimNames] = loadERAnalysis(folder,allROI,curA)
+function [tSeries, stimVol, concatInfo,stimNames] = loadERAnalysis(folder,allROI,curA, r_ts, r_sv, thresh)
 %%
 cdir = pwd;
 cd(folder);
+
 
 %%
 view = newView();
 view = viewSet(view,'curGroup','Concatenation');
 scans = viewGet(view,'nScans');
 view = viewSet(view,'curScan',scans);
-view = loadAnalysis(view,sprintf('erAnal/%s',curA));
-analysis = viewGet(view,'analysis');
-d = analysis.d{1};
-d.scanNum = 1;
-d.groupNum = view.curGroup;
-stimNames = d.stimNames;
-d = loadroi(d,allROI);
+if r_ts
+    view = loadAnalysis(view,sprintf('erAnal/%s',curA));
+    analysis = viewGet(view,'analysis');
+    d = analysis.d{1};
+    d.scanNum = 1;
+    d.groupNum = view.curGroup;
+    d = loadroi(d,allROI);
+end
 concatInfo = viewGet(view,'concatInfo');
-stimVol = d.stimvol;
 
-scanDims = viewGet(view,'scanDims');
-r2 = viewGet(view,'overlayData',scans);
+% generate stimVol cell
+% format: {'rCon=XX,task=1', 'rCon=XX,task=2', etc...};'
+stimVol = {}; stimNames = {};
+sideVol{1} = [];sideVol{2} = []; sideNames{1} = [];sideNames{2} = [];
+for ri = 1:length(allROI)
+    roi = allROI{ri};
+    if strfind(roi,'l_')
+        prefix = 'r';
+        side = 1;
+    else
+        prefix = 'l';
+        side = 2;
+    end
+
+    if r_sv
+        if isempty(sideVol{side})
+            allStims = {};
+            for t = 1:4
+                for con = [.2 .4 .6 .8]
+                    allStims{end+1} = {sprintf('%sCon=[%0.3f]',prefix,con), sprintf('nTask=[%i]',t)};
+                end
+                for coh = [0 .1 .25 .7]
+                    allStims{end+1} = {sprintf('%sCoh=[%0.3f]',prefix,coh), sprintf('nTask=[%i]',t)};
+                end
+            end
+
+            [stimVol{end+1}, stimNames{end+1}, ~] = getStimvol(view,allStims);
+            sideVol{side} = stimVol{end};
+            sideNames{side} = stimNames{end};
+        else
+            stimVol{end+1} = sideVol{side};
+            stimNames{end+1} = stimNames{side};
+        end
+    else
+        stimVol{end+1} = {};
+        stimNames{end+1} = {};
+    end
+end
+
 
 tSeries = {};
-for ri = 1:length(allROI)
-    r = d.roi{roi};
-    r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
+if r_ts
+    scanDims = viewGet(view,'scanDims');
+    r2 = viewGet(view,'overlayData',scans);
+    for ri = 1:length(allROI)
+        r = d.roi{ri};
+        r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
 
-    r.r2 = r2(r.linearScanCoords);
-    tSeries{end+1} = mean(r.tSeries(r.r2>thresh,:));
+        r.r2 = r2(r.linearScanCoords);
+        tSeries{end+1} = mean(r.tSeries(r.r2>thresh,:));
+    end
 end
 
 clear view
 clear analysis
 clear d
+clear r
+clear r2
 
 %%
-
 cd(cdir);
-
-function [tSeries] = pullROITSeries(d,roi,thresh)
-
-r = d.roi{roi};
-r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
-
-r.r2 = r2(r.linearScanCoords);
-tSeries = mean(r.tSeries(r.r2>thresh,:));
-
-
-function allData = eventRelatedPedestalPlot(aName)
-
-
-x = .25:.5:14.75;
-
-    
-allData = {};
-
-%% Get the ER analysis
-view = newView();
-view = viewSet(view,'curGroup','Concatenation');
-scans = viewGet(view,'nScans');
-view = viewSet(view,'curScan',scans);
-
-view = loadAnalysis(view,'erAnal/left_ER');
-
-analysis = viewGet(view,'analysis');
-d = analysis.d{1};
-d.r2 = analysis.overlays(1).data{1};
-
-
-
-%% Calc Mean Response Across V1? and MT?
-
-d.scanNum = 1;
-d.groupNum = view.curGroup;
-d = loadroi(d,{'l_v1', 'l_mt'});
-
-%% Scan info
-scanDims = viewGet(view,'scanDims');
-r2 = viewGet(view,'overlayData',scans);
-scm = makescm(view,d.hdrlen,1,d.stimvol);
-
-%% Across ROIS
-for roinum = 1:2
-    r = d.roi{roinum};
-    r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
-    
-    r.r2 = r2(r.linearScanCoords);
-    
-    tSeries = mean(r.tSeries(r.r2>.2,:));
-    
-    roid = getr2timecourse(tSeries,d.nhdr,d.hdrlen,scm,d.tr);
-    
-%     figure, hold on
-%     for z = 10:2:18
-%         errorbar(roid.time,roid.ehdr(z,:),roid.ehdrste(z,:),'color',rand(1,3));
-%     end
-%     legend(d.stimNames(10:2:18));
-
-    [val, cuedTask, valueType] = parseNames(stimNames);
-    [side, roi] = parseROI(r.name);
-    
-    sides = {'left','right'};
-    ROIs = {'v1','mt'};
-    
-    %          cued  uncued
-    Ns.contrast.cued = [];
-    Ns.contrast.uncued = [];
-    Ns.coherence.cued = [];
-    Ns.coherence.uncued = [];
-    contrast.cued = [];
-    contrast.uncued = [];
-    contrastResp.cued = [];
-    contrastResp.uncued = [];
-    coherence.cued = [];
-    coherenceResp.cued = [];
-    coherence.uncued = [];
-    coherenceResp.uncued = [];
-    
-    cueds = {'uncued','cued'};
-    values = {'coherence','contrast'};
-    resps = {'coherenceResp','contrastResp'};
-    for z = 1:length(d.amplitude)
-        evalc(sprintf('%s.%s(end+1) = %f',values{valueType(z)},cueds{(cuedTask(z)==valueType(z))+1},val(z)));
-        evalc(sprintf('%s.%s(end+1) = %f',resps{valueType(z)},cueds{(cuedTask(z)==valueType(z))+1},d.amplitude(z)));
-        Ns.(values{valueType(z)}).(cueds{(cuedTask(z)==valueType(z))+1})(end+1) = length(stimVol{z});
-    end
-    
-    for vi = 1:length(values)
-        for ci = 1:length(cueds)
-            evalc(sprintf('[c,i] = sort(%s.%s)',values{vi},cueds{ci}));
-            evalc(sprintf('r = %s.%s(i)',resps{vi},cueds{ci}));
-            evalc('curN = Ns.(values{vi}).(cueds{ci})(i)');
-            evalc('allData.(sides{side}).(ROIs{roi}).(values{vi}).(cueds{ci}).c = c');
-            evalc('allData.(sides{side}).(ROIs{roi}).(values{vi}).(cueds{ci}).r = r');
-            evalc('allData.(sides{side}).(ROIs{roi}).(values{vi}).(cueds{ci}).n = curN');
-        end
-    end
-end
-
-clear view
-
-%% Output
-
-% anFolder = '~/proj/att_awe/analysis/csv/';
-% if ~exist(anFolder)
-%     mkdir(anFolder);
-% end
-% fname = fullfile(anFolder,'scanData.csv');
-% csvwriteh(fname,data,header);
 
 function [side, roi] = parseROI(roiname)
 
@@ -244,15 +292,18 @@ end
 
 
 function [val, cuedTask, valueType] = parseNames(stimNames)
-%%
+%% Note that parse names ignores the prefix entirely, so it's hemisphere independent
 val = []; cuedTask = []; valueType = [];
 
 vstr = 'Co';
 
 for i = 1:length(stimNames)
     name = stimNames{i};
-    t = str2num(name(strfind(name,'task=')+5:end));
-    v = str2num(name(strfind(name,vstr)+4:strfind(name,' and')));
+    % t can be 1, 2, (coherence, contrast) or 3, 4 (catch coherence, catch
+    % contrast)
+    t = str2num(name(strfind(name,'ask=')+4:end-1));
+    % v is the value of coh/con that was shown on the screen on this trial
+    v = str2num(name(strfind(name,vstr)+4:strfind(name,' &')));
     val(end+1) = v;
     cuedTask(end+1) = t;
     if strfind(name,'Con')
@@ -261,10 +312,3 @@ for i = 1:length(stimNames)
         valueType(end+1) = 1;
     end
 end
-
-
-function r = nakarushton(c,n,c50,k,cn)
-
-if ieNotDefined('cn'),cn = c;end
-
-r  = k*(c.^n./(cn.^n+c50.^n));

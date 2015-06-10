@@ -1,11 +1,12 @@
 %% To start off, let's get files
 
-mglSetSID('s300')
 addpath(genpath('~/proj/att_awe/analysis/'));
+doEye = true;
+scan = false;
 
 global analysis
 
-[analysis.datFolder, analysis.anFolder] = getSubjDataFolder('cohcon',true);
+[analysis.datFolder, analysis.anFolder] = getSubjDataFolder('cohcon',scan);
 
 year = date;
 year = year(end-1:end);
@@ -24,10 +25,13 @@ expHolder = loadExp(files);
 
 for ei = 1:length(expHolder)
     %     try                        %EYE SKIP
-    cohCon2csv(expHolder{ei},true);
+    cohCon2csv(expHolder{ei},~doEye);
     %     catch
     %         disp(sprintf('Experiment file %i not generated...',ei));
     %     end
+end
+if doEye
+    return
 end
 
 %% The following functions use the most recent stimulus file

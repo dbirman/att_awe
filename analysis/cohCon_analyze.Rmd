@@ -173,7 +173,7 @@ g302 = getSubjThresholdPlot(all,302,'behav') + ggtitle('S0302') + ylab('')
 m = multiplot(g300,g25,g21,g302,layout=matrix(c(1,2,3,4), nrow=2, byrow=TRUE))
 ```
 
-
+Run for scanning oNLY
 ```{r}
 subjs = c(300)
 
@@ -204,8 +204,9 @@ allF = left_join(allF,norms)
 Okay that's done. Now we can mutate with the normalized Ts
 
 ```{r}
-allF_ = allF %>%
-  mutate(T = T / normT) %>%
+allFn = allF %>%
+  mutate(T = T / normT)
+allF_ = allFn %>%
   select(-normT) %>%
   group_by(task,catch,subj) %>%
   summarise(T=mean(T),beta=mean(beta))
@@ -285,16 +286,27 @@ g = ggplot() +
 ggsave(fname,g)
 ```
 
+Test whether threshold epends on anything
 
 ```{r}
 contrasts(allT$catch) = cbind(c(-1,-1,2),c(-1,0,1))
 rs = lmer(data=allT,threshold ~ task*catch + (1|subj))
-rs2 = lmer(data=allT,threshold~task*catch + (1+task|subj))
+rs2 = lmer(data=allT,threshold~task*catch + (catch|subj))
 # rs3 = lmer(data=allT,threshold~task*catch + (task+catch|subj))
 # rs4 = lmer(data=allT,threshold~task*catch + (task*catch|subj))
 anova(rs,rs2,rs3,rs4)
 plot(allEffects(rs2))
 ```
+
+Test whether normalized threshold depends on anything
+
+```{r}
+contrasts(allFn$catch) = cbind(c(-1,-1,2),c(-1,0,1))
+contrasts(allFn$task) = c(1,0)
+rs = lm(data=allFn,T ~ catch*task)
+plot(allEffects(rs))
+```
+
 
 Plot the across subject data with curve estiamtes
 ```{r}
@@ -352,8 +364,8 @@ Reaction time Analysis follows
 
 ```{r}
 # Reaction time analysis
-filesToLoad = seq(1,14)
-subj = 's021'
+filesToLoad = seq(1,9)
+subj = 's300'
 type = 'behav'
 anFolder = sprintf('/Users/dan/data/cohcon/%s/%s/analysis/',subj,type)
 csvFolder = paste(anFolder,'csv/',sep="")

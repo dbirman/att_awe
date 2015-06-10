@@ -1,5 +1,7 @@
 function genCorrectedStims(folder)
 
+%% If isempty, default to 
+
 %% Get stim files from folder
 
 files = dir(fullfile(folder,'Etc','*.mat'));
@@ -12,10 +14,7 @@ end
 
 %% Run for each
 for i = 1:length(files)
-    try
     modifyStim(fullfile(folder,'Etc',files(i).name),fullfile(folder,'Etc','Orig',files(i).name));
-    catch
-    end
 end
 
 function modifyStim(file,backup)
@@ -41,10 +40,13 @@ randVars = task{1}{1}.randVars;
 trials = task{1}{1}.trialnum;
 param = task{1}{1}.block.parameter;
 
+if ~isfield(randVars,'coherence')
+    disp('This stimfile doesn''t have a coherence field, skipping.');
+    return
+end
+
 baseCoh = randVars.coherence(1:trials);
 baseCon = randVars.contrast(1:trials);
-
-nTask = [];
 
 lCon = []; lCoh = [];
 rCon = []; rCoh = [];
@@ -61,8 +63,8 @@ for t = 1:trials
         lCon(t) = baseCon(t) + randVars.conDelta(t);
         rCon(t) = baseCon(t);
     else
-        rCon(t) = baseCon(t) + randVars.conDelta(t);
         lCon(t) = baseCon(t);
+        rCon(t) = baseCon(t) + randVars.conDelta(t);
     end
     if param.cohSide(t) == 1
         lCoh(t) = baseCoh(t) + randVars.cohDelta(t);
@@ -72,8 +74,8 @@ for t = 1:trials
         rCoh(t) = baseCoh(t) + randVars.cohDelta(t);
     end
 end
-lCon = nearestFive(lCon); rCon = nearestFive(rCon);
-lCoh = nearestFive(lCoh); rCoh = nearestFive(rCoh);
+lCon = nearestValue(lCon,2); rCon = nearestValue(rCon,2);
+lCoh = nearestValue(lCoh,1); rCoh = nearestValue(rCoh,1);
 
 if ~isfield(randVars,'lCon'), addCalculatedVar('lCon',lCon,file,'backup=0'); end
 if ~isfield(randVars,'lCoh'), addCalculatedVar('lCoh',lCoh,file,'backup=0'); end
@@ -81,17 +83,21 @@ if ~isfield(randVars,'rCon'), addCalculatedVar('rCon',rCon,file,'backup=0'); end
 if ~isfield(randVars,'rCoh'), addCalculatedVar('rCoh',rCoh,file,'backup=0'); end
 if ~isfield(randVars,'nTask'), addCalculatedVar('nTask',nTask,file,'backup=0'); end
 
-%% Save
-
-% save(file,'task', 'stimulus', 'myscreen','-V6');
-
-function val = nearestFive(val)
+function val = nearestValue(val,type)
 
 if length(val)>1
     for i = 1:length(val)
-        val(i) = nearestFive(val(i));
+        val(i) = nearestValue(val(i),type);
     end
     return
+end
+
+if type==1
+    % coherence
+    vList = [0 .1 .25 .7];
+else
+    % contrast
+    vList = [.2 .4 .6 .8];
 end
 
 if val > 1 || val < 0
@@ -99,8 +105,11 @@ if val > 1 || val < 0
     keyboard
 end
 
-val = val*100 - mod(val*100,10) + round(mod(val*100,10)/10)*10;
-val = val / 100;
-% 
-% val = val*100 - mod(val*100,5) + round(mod(val*100,5)/5)*5;
-% val = val / 100;
+high = find(vList >= val,1);
+low = find(vList <= val,1);
+
+if abs(vList(high)-val) < abs(vList(low)-val)
+    val = vList(high);
+else
+    val = vList(low);
+end
