@@ -139,24 +139,29 @@ cueds = {'uncued','cued'};
 values = {'coherence','contrast'};
 
 for ai = 1:length(data.analyses)
+    
+    %% Calculate Fits
     analysis = data.analyses{ai};
     rois = data.rROIs{ai};
-    f = figure;
+    fits = {};
     for ri = 1:length(rois)
         roi = rois{ri};       
         [conVals, cohVals, cuedTask] = parseNames(data.concat.(analysis).(roi).stimNames); 
-        fitter = 'fitType=glm';
-        amper = 'amplitudeType=area';
-        fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,fitter,amper);
-
-        figure(f)
-        N = [];
+        fitter = 'fitType=nonlin';
+        amper = 'amplitudeType=fit2each';
+%         fits{end+1} = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,fitter,amper);
+    end
+    
         
-        %% Do matrix calculation
+    %% Figures
+    f = figure;
+    for ri = 1:length(rois)
+        roi = rois{ri};     
+%         fit = fits{ri};
+        N = [];
         for si = 1:length(data.concat.(analysis).(roi).stimvol)
             N(end+1) = length(data.concat.(analysis).(roi).stimvol{si});
         end
-%         fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,'fitType=glm','amplitudeType=area');
         conVals = conVals(cuedTask<=2);
         cohVals = cohVals(cuedTask<=2);
         amps = fit.amplitude(cuedTask<=2);
@@ -172,33 +177,39 @@ for ai = 1:length(data.analyses)
         matse{1} = zeros(length(ucon),length(ucoh));
         matse{2} = zeros(length(ucon),length(ucoh));
         
-        for ai = 1:length(amps)
-            mat{cuedTask(ai)}(find(ucon==conVals(ai)),find(ucoh==cohVals(ai))) = amps(ai);
-            matse{cuedTask(ai)}(find(ucon==conVals(ai)),find(ucoh==cohVals(ai))) = ampse(ai);
+        for ampi = 1:length(amps)
+            mat{cuedTask(ampi)}(find(ucon==conVals(ampi)),find(ucoh==cohVals(ampi))) = amps(ampi);
+            matse{cuedTask(ampi)}(find(ucon==conVals(ampi)),find(ucoh==cohVals(ampi))) = ampse(ampi);
         end
         
         
         con = [.2 .4 .6 .8];
         coh = [0 .1 .25 .7];
-        %% X axis = contrast
+        % X axis = contrast
         subplot(length(rois),2,(ri-1)*2+1); hold on
         clist1 = brewermap(4,'Oranges');
-        clist2 = brewermap(4,'Greens');
+        clist2 = brewermap(4,'Purples');
+        legVals = {};
         for i = 1:4
             plot(con,mat{1}(i,:),'-','Color',clist1(i,:));
-            errorbar(con,mat{1}(i,:),matse{1}(i,:),'*','Color',clist1(i,:));
+            legVals{end+1} = sprintf('Cued Coh, Coh = %0.2f',coh(i));
             plot(con,mat{2}(i,:),'-','Color',clist2(i,:));
+            legVals{end+1} = sprintf('Cued Con, Coh = %0.2f',coh(i));
+        end
+        legend(legVals);
+        for i = 1:4
+            errorbar(con,mat{1}(i,:),matse{1}(i,:),'*','Color',clist1(i,:));
             errorbar(con,mat{2}(i,:),matse{2}(i,:),'*','Color',clist2(i,:));
         end
         title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
         xlabel('Contrast');
         ylabel('Response Amplitude');
-        axis([0 1 0 450])
+        axis([0 1 0 3])
         
-        %% X axis = coherence
+        % X axis = coherence
         subplot(length(rois),2,(ri-1)*2+2); hold on
         clist1 = brewermap(4,'Oranges');
-        clist2 = brewermap(4,'Greens');
+        clist2 = brewermap(4,'Purples');
         for i = 1:4
             m1 = mat{1}';
             m2 = mat{2}';
@@ -210,7 +221,7 @@ for ai = 1:length(data.analyses)
         title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
         xlabel('Coherence');
         ylabel('Response Amplitude');
-        axis([0 1 0 450])
+        axis([0 1 0 3])
     end
 end
        
@@ -224,12 +235,12 @@ cd(folder);
 view = newView();
 view = viewSet(view,'curGroup','Concatenation');
 scans = viewGet(view,'nScans');
-view = viewSet(view,'curScan',1);
+view = viewSet(view,'curScan',2);
 if r_ts
     view = loadAnalysis(view,sprintf('erAnal/%s',curA));
     analysis = viewGet(view,'analysis');
-    d = analysis.d{1};
-    d.scanNum = 1;
+    d = analysis.d{2};
+    d.scanNum = 2;
     d.groupNum = view.curGroup;
     d = loadroi(d,allROI);
 end
