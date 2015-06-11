@@ -1,39 +1,11 @@
 dbstop('if','error');
 
-pathNames = {'~/proj/matlab','~/proj/mrTools','~/proj/mgl','~/proj/gru','~/proj/grustim','~/proj/matlab/plugins','~/proj/att_awe'};
+pathNames = {'~/proj/att_awe'};
 
 for i = 1:length(pathNames)
   if isdir(pathNames{i})
     addpath(genpath(pathNames{i}));
   end
-end
-
-if usejava('jvm')
-  com.mathworks.services.Prefs.setBooleanPref('EditorGraphicalDebugging', false);
-end
-format long g
-beep off
-
-% some preferences for mrTools
-mrSetPref('site','Stanford');
-mrSetPref('magnet',{'GE Discovery MR750','other'} ); 
-mrSetPref('coil',{'Nova Medical 32-channel','Nova Medical 16-channel', 'other'} ); 
-mrSetPref('pulseSequence',{'epi','tsense','gre', 'se', 'sense','other'} );
-mrSetPref('pluginPaths','~/proj/matlab/plugins');
-
-% select some plugins
-selectedPlugins = mrGetPref('selectedPlugins');
-addedPlugin = false;
-if ~any(strcmp('pRF',selectedPlugins))
-  selectedPlugins{end+1} = 'pRF';
-  addedPlugin = true;
-end
-if ~any(strcmp('gru',selectedPlugins))
-  selectedPlugins{end+1} = 'gru';
-  addedPlugin = true;
-end
-if addedPlugin
-  mrSetPref('selectedPlugins',selectedPlugins);
 end
 
 % run user specific matlab startup. This will look for a matlab

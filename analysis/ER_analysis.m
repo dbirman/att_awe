@@ -6,8 +6,8 @@ if redo_all
 end
 
 pre = '~/data/cohcon/s0300_pilot/s0300';
-% folders = {'20150511'};
-folders = {'20150509','20150513'};
+% folders = {'20150509'};
+folders = {'20150509','20150511','20150513'};
 
 thresh = .06;
 
@@ -141,55 +141,79 @@ values = {'coherence','contrast'};
 for ai = 1:length(data.analyses)
     analysis = data.analyses{ai};
     rois = data.rROIs{ai};
+    f = figure;
     for ri = 1:length(rois)
         roi = rois{ri};       
-        [vals, cuedTask, valueType] = parseNames(data.concat.(analysis).(roi).stimNames);        
-        fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,'fitType=deconv','amplitudeType=fit1');
+        [conVals, cohVals, cuedTask] = parseNames(data.concat.(analysis).(roi).stimNames); 
+        fitter = 'fitType=glm';
+        amper = 'amplitudeType=area';
+        fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,fitter,amper);
 
-%         fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,'fitType=glm','amplitudeType=area');
+        figure(f)
+        N = [];
         
-        
-        for z = 1:length(fit.amplitude)
-            if cuedTask(z) <= 2
-                % ignore the 'catch' conditions for now
-                amp = fit.amplitude(z); % amplitude
-                ase = fit.amplitudeSTE(z);
-                stim = valueType(z);
-                val = vals(z);
-                main = cuedTask(z);
-                % since we know there are no catch trials, if cued==stim,
-                % then it was attended
-                cued = 1 + (stim == main);
-                N = length(data.concat.(analysis).(roi).stimvol{z});
-                
-                if ~isfield(allData, roi), allData.(roi) = struct; end       
-                if ~isfield(allData.(roi), values{stim}), allData.(roi).(values{stim}) = struct; end
-                if ~isfield(allData.(roi).(values{stim}), cueds{cued})
-                    allData.(roi).(values{stim}).(cueds{cued}) = struct;
-                    allData.(roi).(values{stim}).(cueds{cued}).i = [];
-                    allData.(roi).(values{stim}).(cueds{cued}).a = [];
-                    allData.(roi).(values{stim}).(cueds{cued}).ase = [];
-                    allData.(roi).(values{stim}).(cueds{cued}).N = [];
-                    if isfield(fit,'canonicalResponse')
-                        allData.(roi).(values{stim}).(cueds{cued}).canon = fit.canonicalResponse;
-                    end
-                    allData.(roi).(values{stim}).(cueds{cued}).times = 0.25:.5:20.25;
-                end
-
-                
-                % intensity
-                allData.(roi).(values{stim}).(cueds{cued}).i(end+1) = val;
-                % amplitude
-                allData.(roi).(values{stim}).(cueds{cued}).a(end+1) = amp;
-                % error
-                allData.(roi).(values{stim}).(cueds{cued}).ase(end+1) = ase;
-                % N
-                allData.(roi).(values{stim}).(cueds{cued}).N(end+1) = N;
-            end
+        %% Do matrix calculation
+        for si = 1:length(data.concat.(analysis).(roi).stimvol)
+            N(end+1) = length(data.concat.(analysis).(roi).stimvol{si});
         end
+%         fit = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,'fitType=glm','amplitudeType=area');
+        conVals = conVals(cuedTask<=2);
+        cohVals = cohVals(cuedTask<=2);
+        amps = fit.amplitude(cuedTask<=2);
+        ampse = fit.amplitudeSTE(cuedTask<=2);
+        N = N(cuedTask<=2);
+        cuedTask = cuedTask(cuedTask<=2);
+        
+        ucon = unique(conVals);
+        ucoh = unique(cohVals);
+        
+        mat{1} = zeros(length(ucon),length(ucoh));
+        mat{2} = zeros(length(ucon),length(ucoh));
+        matse{1} = zeros(length(ucon),length(ucoh));
+        matse{2} = zeros(length(ucon),length(ucoh));
+        
+        for ai = 1:length(amps)
+            mat{cuedTask(ai)}(find(ucon==conVals(ai)),find(ucoh==cohVals(ai))) = amps(ai);
+            matse{cuedTask(ai)}(find(ucon==conVals(ai)),find(ucoh==cohVals(ai))) = ampse(ai);
+        end
+        
+        
+        con = [.2 .4 .6 .8];
+        coh = [0 .1 .25 .7];
+        %% X axis = contrast
+        subplot(length(rois),2,(ri-1)*2+1); hold on
+        clist1 = brewermap(4,'Oranges');
+        clist2 = brewermap(4,'Greens');
+        for i = 1:4
+            plot(con,mat{1}(i,:),'-','Color',clist1(i,:));
+            errorbar(con,mat{1}(i,:),matse{1}(i,:),'*','Color',clist1(i,:));
+            plot(con,mat{2}(i,:),'-','Color',clist2(i,:));
+            errorbar(con,mat{2}(i,:),matse{2}(i,:),'*','Color',clist2(i,:));
+        end
+        title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+        xlabel('Contrast');
+        ylabel('Response Amplitude');
+        axis([0 1 0 450])
+        
+        %% X axis = coherence
+        subplot(length(rois),2,(ri-1)*2+2); hold on
+        clist1 = brewermap(4,'Oranges');
+        clist2 = brewermap(4,'Greens');
+        for i = 1:4
+            m1 = mat{1}';
+            m2 = mat{2}';
+            plot(coh,m1(i,:),'-','Color',clist1(i,:));
+            errorbar(coh,m1(i,:),matse{1}(i,:),'*','Color',clist1(i,:));
+            plot(coh,m2(i,:),'-','Color',clist2(i,:));
+            errorbar(coh,m2(i,:),matse{2}(i,:),'*','Color',clist2(i,:));
+        end
+        title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+        xlabel('Coherence');
+        ylabel('Response Amplitude');
+        axis([0 1 0 450])
     end
 end
-
+       
 function [tSeries, stimVol, concatInfo,stimNames] = loadERAnalysis(folder,allROI,curA, r_ts, r_sv, thresh)
 %%
 cdir = pwd;
@@ -200,7 +224,7 @@ cd(folder);
 view = newView();
 view = viewSet(view,'curGroup','Concatenation');
 scans = viewGet(view,'nScans');
-view = viewSet(view,'curScan',scans);
+view = viewSet(view,'curScan',1);
 if r_ts
     view = loadAnalysis(view,sprintf('erAnal/%s',curA));
     analysis = viewGet(view,'analysis');
@@ -228,12 +252,11 @@ for ri = 1:length(allROI)
     if r_sv
         if isempty(sideVol{side})
             allStims = {};
-            for t = 1:4
+            for t = 1:2
                 for con = [.2 .4 .6 .8]
-                    allStims{end+1} = {sprintf('%sCon=[%0.3f]',prefix,con), sprintf('nTask=[%i]',t)};
-                end
-                for coh = [0 .1 .25 .7]
-                    allStims{end+1} = {sprintf('%sCoh=[%0.3f]',prefix,coh), sprintf('nTask=[%i]',t)};
+                    for coh = [0 .1 .25 .7]
+                        allStims{end+1} = {sprintf('%sCon=[%0.3f]',prefix,con),sprintf('%sCoh=[%0.3f]',prefix,coh), sprintf('nTask=[%i]',t)};
+                    end
                 end
             end
 
@@ -291,24 +314,21 @@ else
 end
 
 
-function [val, cuedTask, valueType] = parseNames(stimNames)
+function [conVal, cohVal, cuedTask] = parseNames(stimNames)
 %% Note that parse names ignores the prefix entirely, so it's hemisphere independent
-val = []; cuedTask = []; valueType = [];
-
-vstr = 'Co';
+conVal = []; cohVal = []; cuedTask = [];
 
 for i = 1:length(stimNames)
     name = stimNames{i};
+    ands = strfind(name,' &');
+    
+    if strfind(name,'Con=')
+        conVal(end+1) = str2num(name(strfind(name,'Con=')+4:ands(1))); % note contrast first
+    end
+    if strfind(name,'Coh=')
+        cohVal(end+1) = str2num(name(strfind(name,'Coh=')+4:ands(2)-2));
+    end
     % t can be 1, 2, (coherence, contrast) or 3, 4 (catch coherence, catch
     % contrast)
-    t = str2num(name(strfind(name,'ask=')+4:end-1));
-    % v is the value of coh/con that was shown on the screen on this trial
-    v = str2num(name(strfind(name,vstr)+4:strfind(name,' &')));
-    val(end+1) = v;
-    cuedTask(end+1) = t;
-    if strfind(name,'Con')
-        valueType(end+1) = 2;
-    else
-        valueType(end+1) = 1;
-    end
+    cuedTask(end+1) = str2num(name(strfind(name,'ask=')+4:end-1));
 end
