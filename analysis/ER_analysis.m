@@ -7,13 +7,13 @@ end
 
 pre = '~/data/cohcon/s0300_pilot/s0300';
 % folders = {'20150509'};
-folders = {'20150509','20150511','20150513'};
+folders = {'20150509','20150511','20150513','20150618'};
 
-thresh = .06;
+thresh = .07;
 
 curAnalysis = {'both_ER'};
-ROIs = {{'l_v1','l_hmt','r_v1','r_hmt'}};
-shortROIs = {{'v1','hmt'}};
+ROIs = {{'l_v1','l_v2v','l_v2d','l_v3v','l_v3d','l_hmt','r_v1','r_v2v','r_v2d','r_v3v','r_v3d','r_hmt'}};
+shortROIs = {{'v1','v2','v3','hmt'}};
 
 total_analysis = sprintf('%s_%s.mat',strcat(folders{1}),strcat(curAnalysis{1}));
 
@@ -21,16 +21,17 @@ tempFolder = '~/data/temp';
 
 tempSave = fullfile(tempFolder,total_analysis);
 
-if isfile(tempSave)
+if isfile(tempSave) && ~redo_all
     load(tempSave)
 else
     data = struct;
-    data.ROIs = ROIs;
-    data.rROIs = shortROIs;
-    data.analyses = curAnalysis;
-    data.folders = folders;
-    data.pre = pre;
 end
+
+data.ROIs = ROIs;
+data.rROIs = shortROIs;
+data.analyses = curAnalysis;
+data.folders = folders;
+data.pre = pre;
 
 if redo_ts || redo_sv
     for fi = 1:length(folders)
@@ -80,7 +81,7 @@ function allData = performAnalysis(data)
 % opposite mappings (i.e. lCoh or rCoh) of stimuli. But we can combine them
 % by ignoring the prefix later on, so it's safe to concatenate everything
 % here as long as it's coming form the same ROI.
-
+%%
 for ai = 1:length(data.analyses)
     analysis = data.analyses{ai};
     rois = data.ROIs{ai};
@@ -88,7 +89,7 @@ for ai = 1:length(data.analyses)
     for ri = 1:length(rois)
         croi = rois{ri};
         % get the current ROI that we are in
-        [~, rNum] = parseROI(croi);
+        [side, rNum] = parseROI(croi);
         % get the ROI that this maps onto (we just ignore hemisphere)
         rroi = data.rROIs{ai}{rNum};
         
@@ -112,17 +113,26 @@ for ai = 1:length(data.analyses)
             if isempty(roiTSeries)
                 % If this is the first timeseries we just save the data
                 roiTSeries = cdata.tSeries{ri};
-                roiStimVols = cdata.stimVol{ri};
+                if side==1
+                    roiStimVols = cdata.stimVol{1};
+                    data.concat.(analysis).(rroi).stimNames = cdata.stimNames{1};
+                else
+                    roiStimVols = cdata.stimVol{end};
+                    data.concat.(analysis).(rroi).stimNames = cdata.stimNames{end};
+                end
                 roiConcat = cdata.concatInfo;
                 % note stimnames is the same across all folders for an ROI
                 % so this is okay. BUT: this only applies once prefixes
                 % have been ignored obviously...
-                data.concat.(analysis).(rroi).stimNames = cdata.stimNames{ri};
             else
                 % Otherwise we concatenate to the previous data, we also
                 % concatenate the stimVols even though the prefixes may be
                 % different.
-                [roiTSeries, roiStimVols, roiConcat] = concatRuns({roiTSeries, cdata.tSeries{ri}},{roiStimVols, cdata.stimVol{ri}},{roiConcat, cdata.concatInfo});
+                if side==1
+                    [roiTSeries, roiStimVols, roiConcat] = concatRuns({roiTSeries, cdata.tSeries{ri}},{roiStimVols, cdata.stimVol{1}},{roiConcat, cdata.concatInfo});
+                else
+                    [roiTSeries, roiStimVols, roiConcat] = concatRuns({roiTSeries, cdata.tSeries{ri}},{roiStimVols, cdata.stimVol{end}},{roiConcat, cdata.concatInfo});
+                end
             end
         end
         % Save the data for the next run
@@ -138,9 +148,9 @@ allData = {};
 cueds = {'uncued','cued'};
 values = {'coherence','contrast'};
 
+    %% Calculate Fits
 for ai = 1:length(data.analyses)
     
-    %% Calculate Fits
     analysis = data.analyses{ai};
     rois = data.rROIs{ai};
     fits = {};
@@ -148,16 +158,17 @@ for ai = 1:length(data.analyses)
         roi = rois{ri};       
         [conVals, cohVals, cuedTask] = parseNames(data.concat.(analysis).(roi).stimNames); 
         fitter = 'fitType=nonlin';
-        amper = 'amplitudeType=fit2each';
-%         fits{end+1} = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,fitter,amper);
+        amper = 'amplitudeType=fit2';
+        fits{end+1} = fitTimecourse(data.concat.(analysis).(roi).tSeries,data.concat.(analysis).(roi).stimvol,.5,'concatInfo',data.concat.(analysis).(roi).concatInfo,fitter,amper);
     end
     
         
     %% Figures
-    f = figure;
+    f1 = figure;
+    f2 = figure;
     for ri = 1:length(rois)
         roi = rois{ri};     
-%         fit = fits{ri};
+        fit = fits{ri};
         N = [];
         for si = 1:length(data.concat.(analysis).(roi).stimvol)
             N(end+1) = length(data.concat.(analysis).(roi).stimvol{si});
@@ -176,53 +187,85 @@ for ai = 1:length(data.analyses)
         mat{2} = zeros(length(ucon),length(ucoh));
         matse{1} = zeros(length(ucon),length(ucoh));
         matse{2} = zeros(length(ucon),length(ucoh));
+        Nm{1} = zeros(length(ucon),length(ucoh));
+        Nm{2} = zeros(length(ucon),length(ucoh));
         
         for ampi = 1:length(amps)
             mat{cuedTask(ampi)}(find(ucon==conVals(ampi)),find(ucoh==cohVals(ampi))) = amps(ampi);
             matse{cuedTask(ampi)}(find(ucon==conVals(ampi)),find(ucoh==cohVals(ampi))) = ampse(ampi);
+            Nm{cuedTask(ampi)}(find(ucon==conVals(ampi)),find(ucoh==cohVals(ampi))) = N(ampi);
         end
         
-        
-        con = [.2 .4 .6 .8];
-        coh = [0 .1 .25 .7];
+        figure(f1)
         % X axis = contrast
         subplot(length(rois),2,(ri-1)*2+1); hold on
         clist1 = brewermap(4,'Oranges');
         clist2 = brewermap(4,'Purples');
         legVals = {};
         for i = 1:4
-            plot(con,mat{1}(i,:),'-','Color',clist1(i,:));
-            legVals{end+1} = sprintf('Cued Coh, Coh = %0.2f',coh(i));
-            plot(con,mat{2}(i,:),'-','Color',clist2(i,:));
-            legVals{end+1} = sprintf('Cued Con, Coh = %0.2f',coh(i));
+            plot(ucon,mat{1}(:,i),'-','Color',clist1(i,:));
+            legVals{end+1} = sprintf('Cued Coh, Coh = %0.2f',ucoh(i));
+        end
+        for i = 1:4
+            plot(ucon,mat{2}(:,i),'-','Color',clist2(i,:));
+            legVals{end+1} = sprintf('Cued Con, Coh = %0.2f',ucoh(i));
         end
         legend(legVals);
         for i = 1:4
-            errorbar(con,mat{1}(i,:),matse{1}(i,:),'*','Color',clist1(i,:));
-            errorbar(con,mat{2}(i,:),matse{2}(i,:),'*','Color',clist2(i,:));
+            errorbar(ucon,mat{1}(:,i),matse{1}(:,i),'*','Color',clist1(i,:));
+            errorbar(ucon,mat{2}(:,i),matse{2}(:,i),'*','Color',clist2(i,:));
         end
         title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
         xlabel('Contrast');
         ylabel('Response Amplitude');
-        axis([0 1 0 3])
+        axis([0 1 1 3])
         
         % X axis = coherence
         subplot(length(rois),2,(ri-1)*2+2); hold on
-        clist1 = brewermap(4,'Oranges');
-        clist2 = brewermap(4,'Purples');
         for i = 1:4
-            m1 = mat{1}';
-            m2 = mat{2}';
-            plot(coh,m1(i,:),'-','Color',clist1(i,:));
-            errorbar(coh,m1(i,:),matse{1}(i,:),'*','Color',clist1(i,:));
-            plot(coh,m2(i,:),'-','Color',clist2(i,:));
-            errorbar(coh,m2(i,:),matse{2}(i,:),'*','Color',clist2(i,:));
+            plot(ucoh,mat{1}(i,:),'-','Color',clist1(i,:));
+            errorbar(ucoh,mat{1}(i,:),matse{1}(i,:),'*','Color',clist1(i,:));
+            plot(ucoh,mat{2}(i,:),'-','Color',clist2(i,:));
+            errorbar(ucoh,mat{2}(i,:),matse{2}(i,:),'*','Color',clist2(i,:));
         end
         title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
         xlabel('Coherence');
         ylabel('Response Amplitude');
-        axis([0 1 0 3])
-    end
+        axis([0 1 1 3])
+        
+        
+        figure(f2)
+        subplot(length(rois),2,(ri-1)*2+1); hold on
+        plot(ucon,mean(mat{1},2),'-','Color',clist1(end,:));
+        plot(ucon,mean(mat{2},2),'-','Color',clist2(end,:));
+        legend({'Cued Coh','Cued Con'});
+        % get the pooled se...
+        pooledse{1} = sum(matse{1}.*(Nm{1}-1),2) ./ sum(Nm{1}-1,2);
+        pooledse{2} = sum(matse{2}.*(Nm{2}-1),2) ./ sum(Nm{1}-1,2);
+        % pooled
+        errorbar(ucon,mean(mat{1},2),1.96*pooledse{1},'*','Color',clist1(end,:));
+        errorbar(ucon,mean(mat{2},2),1.96*pooledse{2},'*','Color',clist2(end,:));
+        
+        title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+        xlabel('Contrast');
+        ylabel('Response Amplitude');
+        axis([0 1 1 3])
+        subplot(length(rois),2,(ri-1)*2+2); hold on
+        plot(ucoh,mean(mat{1},1),'-','Color',clist1(end,:));
+        plot(ucoh,mean(mat{2},1),'-','Color',clist2(end,:));
+        legend({'Cued Coh','Cued Con'});
+        % get the pooled se...
+        pooledse{1} = sum(matse{1}.*(Nm{1}-1),1) ./ sum(Nm{1}-1,1);
+        pooledse{2} = sum(matse{2}.*(Nm{2}-1),1) ./ sum(Nm{1}-1,1);
+        % pooled
+        errorbar(ucoh,mean(mat{1},1),1.96*pooledse{1},'*','Color',clist1(end,:));
+        errorbar(ucoh,mean(mat{2},1),1.96*pooledse{2},'*','Color',clist2(end,:));
+        title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+        xlabel('Coherence');
+        ylabel('Response Amplitude');
+        axis([0 1 1 3])
+    end   
+    
 end
        
 function [tSeries, stimVol, concatInfo,stimNames] = loadERAnalysis(folder,allROI,curA, r_ts, r_sv, thresh)
@@ -248,20 +291,22 @@ concatInfo = viewGet(view,'concatInfo');
 
 % generate stimVol cell
 % format: {'rCon=XX,task=1', 'rCon=XX,task=2', etc...};'
-stimVol = {}; stimNames = {};
-sideVol{1} = [];sideVol{2} = []; sideNames{1} = [];sideNames{2} = [];
+stimVol = {{},{}}; stimNames = {{},{}};
 for ri = 1:length(allROI)
     roi = allROI{ri};
     if strfind(roi,'l_')
         prefix = 'r';
-        side = 1;
     else
         prefix = 'l';
-        side = 2;
     end
 
     if r_sv
-        if isempty(sideVol{side})
+        if strfind(roi,'l_')
+            side = 1;
+        else
+            side = 2;
+        end
+        if ~isempty(allStims{side})
             allStims = {};
             for t = 1:2
                 for con = [.2 .4 .6 .8]
@@ -271,16 +316,8 @@ for ri = 1:length(allROI)
                 end
             end
 
-            [stimVol{end+1}, stimNames{end+1}, ~] = getStimvol(view,allStims);
-            sideVol{side} = stimVol{end};
-            sideNames{side} = stimNames{end};
-        else
-            stimVol{end+1} = sideVol{side};
-            stimNames{end+1} = stimNames{side};
+            [stimVol{side}, stimNames{side}, ~] = getStimvol(view,allStims);
         end
-    else
-        stimVol{end+1} = {};
-        stimNames{end+1} = {};
     end
 end
 
@@ -318,10 +355,22 @@ else
     side = 2;
 end
 
-if strcmp(rname,'v1')
-    roi = 1;
-else
-    roi = 2;
+%ROIs = {{'l_v1','l_v2v','l_v2d','l_v3v','l_v3d','l_hmt','r_v1','r_v2v','r_v2d','r_v3v','r_v3d','r_hmt'}};
+
+
+switch rname
+    case 'v1'
+        roi = 1;
+    case 'v2v'
+        roi = 2;
+    case 'v2d'
+        roi = 2;
+    case 'v3v'
+        roi = 3;
+    case 'v3d'
+        roi = 3;
+    case 'hmt'
+        roi = 4;
 end
 
 

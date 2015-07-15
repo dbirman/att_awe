@@ -94,7 +94,7 @@ end
 
 if type==1
     % coherence
-    vList = [0 .1 .25 .7];
+    vList = [.1 .25 .7];
 else
     % contrast
     vList = [.2 .4 .6 .8];
@@ -105,8 +105,19 @@ if val > 1 || val < 0
     keyboard
 end
 
+if val==0, return; end
+
 high = find(vList >= val,1);
 low = find(vList <= val,1);
+
+if isempty(low)
+    val = vList(1);
+    return
+end
+if isempty(high)
+    val = vList(end);
+    return
+end
 
 if abs(vList(high)-val) < abs(vList(low)-val)
     val = vList(high);

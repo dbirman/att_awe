@@ -55,6 +55,7 @@ edata = edata %>%
 ```{r}
 library(saccades)
 ```
+
 ```{r}
 edata_s = edata %>%
   mutate(x=xPos,y=yPos,trial=trialNum,time=time*1000)
