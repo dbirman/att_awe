@@ -1,0 +1,30 @@
+Day 1
+---------
+Sign Consent Form
+Collect Payment Info, explain payment schedule
+Run a short practice run of each task cohcon('nocatch=1','overrideTask')
+
+Day 2->5
+---------
+Training:
+
+Start with an informal training: cohcon('nocatch=1','overrideTask')
+
+Proceed to catch trial training: cohcon()
+
+Proceed to full training, 2x nocatch, 4x catch, repeat ad nauseaum.
+
+Retinotopy + MT Localizer
+----------
+Run full retinotopy + 2x MT localizer
+
+Etc
+---------
+Behavioral:
+
+Collect 2x nocatch, 4x catch, repeat...
+
+
+Scanning
+---------
+Run cohcon, always reset to original staircase

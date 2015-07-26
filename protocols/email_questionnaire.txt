@@ -8,13 +8,11 @@ I have a quick questionnaire below that will help us both figure out whether you
 (2) Have you previously been scanned in an MRI and were you comfortable?
 (3) Have you previously participated in experiments in which you were asked to maintain fixation while you performed a task?
 (4) Will you be available to scan during weekdays, weekends, weekday nights (after 8pm), and/or weekday mornings (before 8a)?
+(5) Are you a US citizen, an international visiting on a green card, or an international on a Stanford sponsored work visa? (If you aren't in one of these categories I'm sorry but you won't be able to participate)
 
 Let's also try to find a time next week where you can come in to the lab for ~30 minutes so that you can meet me, practice the task for a few minutes, and discuss whether you want to commit to the full experiment. Here are some time slots that are open right now:
 
-Mon, July 20th: 10a, 11a, 1p, 2p
-Tue, July 21st: 10a, 11a, 1p, 2p
-Wed, July 22nd: 10a
-Thu, July 23rd: 10a, 11a, 1p, 2p
+_____
 
 Thanks again for your interest,
 Dan Birman
