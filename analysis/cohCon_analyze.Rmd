@@ -138,7 +138,7 @@ getFolders = function(snum) {
 ```
 
 ```{r}
-subjs = c(300,25,21,302)
+subjs = c(304)
 
 allT = data.frame()
 allF = data.frame()
@@ -146,6 +146,8 @@ allF = data.frame()
 gs = list()
 for (snum in subjs) {
   all = getSubjThresholdData('behav',snum)
+  all = all %>%
+    filter(threshold>0,threshold<100)
   fit = getSubjFits('behav',snum)
   allF = rbind(allF,fit)
   allT = rbind(allT,all)
@@ -169,6 +171,9 @@ g21 = getSubjThresholdPlot(all,21,'behav') + ggtitle('S0021')+ ylab('')
 
 all = getSubjThresholdData('behav',302)
 g302 = getSubjThresholdPlot(all,302,'behav') + ggtitle('S0302') + ylab('')
+
+all = getSubjThresholdData('behav',304)
+g304 = getSubjThresholdPlot(all,304,'behav') + ggtitle('S0302') + ylab('')
 
 m = multiplot(g300,g25,g21,g302,layout=matrix(c(1,2,3,4), nrow=2, byrow=TRUE))
 ```
@@ -292,8 +297,8 @@ Test whether threshold epends on anything
 contrasts(allT$catch) = cbind(c(-1,-1,2),c(-1,0,1))
 rs = lmer(data=allT,threshold ~ task*catch + (1|subj))
 rs2 = lmer(data=allT,threshold~task*catch + (catch|subj))
-# rs3 = lmer(data=allT,threshold~task*catch + (task+catch|subj))
-# rs4 = lmer(data=allT,threshold~task*catch + (task*catch|subj))
+rs3 = lmer(data=allT,threshold~task*catch + (task+catch|subj))
+rs4 = lmer(data=allT,threshold~task*catch + (task*catch|subj))
 anova(rs,rs2,rs3,rs4)
 plot(allEffects(rs2))
 ```

@@ -1,6 +1,5 @@
 
 *.m~
-*.pdf
 .Rproj.user
 analysis/.Rhistory
 talks/~$20150417_frisem.pptx

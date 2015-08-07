@@ -1,7 +1,7 @@
 %% To start off, let's get files
+function allData = exportCohCon(allData)
 
-addpath(genpath('~/proj/att_awe/analysis/'));
-doEye = true;
+doEye = false;
 scan = false;
 
 global analysis
@@ -59,37 +59,63 @@ if ~isempty(strfind(analysis.anFolder,'scan'))
     end
 end
 
+%% Build up dataset for Performance vs. Stimulus Intensity
+
+I = struct;
+
+I.catch.con = [];
+I.nocatch.con = [];
+I.catch.coh = [];
+I.nocatch.coh = [];
+I.catch.side = [];
+I.nocatch.side = [];
+I.catch.task = [];
+I.nocatch.task = [];
+I.catch.catch = [];
+
+% What we want to do is get every single trial's left-right difference for
+% contrast and coherence, and which side was chosen. Then we can bin and
+% figure out
+for i = 1:length(expHolder)
+    expi = expHolder{i}{1};
+    if length(unique(expi.randVars.task))==2
+        % catch
+        I.catch.coh = [I.catch.coh expi.randVars.rCoh-expi.randVars.lCoh];
+        I.catch.con = [I.catch.con expi.randVars.rCon-expi.randVars.lCon];
+        I.catch.side = [I.catch.side expi.response];
+        I.catch.task = [I.catch.task expi.randVars.task];
+        I.catch.catch = [I.catch.catch expi.parameter.catch];
+    else
+        % nocatch
+        I.nocatch.coh = [I.nocatch.coh expi.randVars.rCoh-expi.randVars.lCoh];
+        I.nocatch.con = [I.nocatch.con expi.randVars.rCon-expi.randVars.lCon];
+        I.nocatch.side = [I.nocatch.side expi.response];
+        I.nocatch.task = [I.nocatch.task expi.randVars.task];
+    end
+end
+
+
 %% Send main to CSV file
-[plotting, mfits] = cohCon_discFuncs(stimulus,0);
+[plotting, mfits, maf] = cohCon_discFuncs(stimulus,0);
 cohCon_plo2csv(plotting);
 
 %% Send catch to CSV file
-[cat, cfits] = cohCon_catPerf(stimulus,0);
+[cat, cfits, caf] = cohCon_catPerf(stimulus,0);
 per2csv(cat);
 
 %% Send nocatch to CSV file
-[nocat, nfits] = cohCon_nocatPerf(stimulus,0);
+[nocat, nfits, nocaf] = cohCon_nocatPerf(stimulus,0);
 nocat2csv(nocat);
 
 %% Send fits to CSV file
 cohCon_fits2csv(nfits,mfits,cfits);
 
-% %%
-% x = 0:.01:3
-% figure, hold on
-% color = {{'k','g','k','k'},{'r','b','r','r'}};
-% for t = 1:2
-%     dat = mfits{t,1};
-%     dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
-%     y = weibull(x,mean(dat,1));
-%     plot(x,y,color{t}{1});
-% end
-% for t = 1:2
-%     dat = cfits{t,1};
-%     dat(:,1) = dat(:,1) ./ mean(nfits{t,1}(:,1),1);
-%     y = weibull(x,mean(dat,1));
-%     plot(x,y,color{t}{2});
-% end
-% axis([0 5 .5 1])
+%% Save into allData
 
-%% normalize
+allData.(mglGetSID).behav.I = I;
+allData.(mglGetSID).behav.maf = maf;
+allData.(mglGetSID).behav.caf = caf;
+allData.(mglGetSID).behav.nocaf = nocaf;
+allData.(mglGetSID).behav.mfits = mfits;
+allData.(mglGetSID).behav.nfits = nfits;
+allData.(mglGetSID).behav.cfits = cfits;

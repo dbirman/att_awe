@@ -4,9 +4,11 @@ pathNames = {'~/proj/att_awe'};
 
 for i = 1:length(pathNames)
   if isdir(pathNames{i})
-    addpath(genpath(pathNames{i}));
+    addpath(genpath_exclude(pathNames{i}));
   end
 end
+
+mglSetParam('sidDatabaseFilename','/Volumes/gru/sid/sidDatabase');
 
 % run user specific matlab startup. This will look for a matlab
 % script like startupkenji to run, if it finds it on the path

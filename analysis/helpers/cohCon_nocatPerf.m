@@ -1,7 +1,8 @@
-function [plotting, fits] = cohCon_nocatPerf(stimulus,check)
+function [plotting, fits, allfit] = cohCon_nocatPerf(stimulus,check)
 
 plotting = cell(2,1);
 fits = cell(2,1);
+allfit = cell(2,1);
 try
     for task = 1:2
         for ped = 1
@@ -19,6 +20,7 @@ try
                 plotting{task,ped} = -1;
             end
         end
+        allfit{task} = doStaircase('threshold',stimulus.nocatchs.staircase{task,ped},'type','weibull');
     end
 catch
     disp('(cohCon_catPerf) Failed.');

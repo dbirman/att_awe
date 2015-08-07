@@ -1,9 +1,10 @@
-function [plotting, fits] = cohCon_discFuncs(stimulus,check)
+function [plotting, fits, allfit] = cohCon_discFuncs(stimulus,check)
 
 disp('Computing Weibull functions. CAUTION: Check all Weibull functions for accuracy (use check=1 flag)');
 
 plotting = cell(2,1);
 fits = cell(2,1);
+allfit = cell(2,1);
 for task = 1:2
     
     for ped = 1
@@ -25,5 +26,6 @@ for task = 1:2
                 end
             end
         end
+        allfit{task} = doStaircase('threshold',stimulus.staircase{task,ped},'type','weibull');
     end
 end
