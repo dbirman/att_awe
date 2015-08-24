@@ -1,6 +1,8 @@
-function cc_rightChoicePlots(allData,sid)
+function cc_rightChoicePlots(sid)
 
-I = allData.(sid).behav.I;
+allData = loadAllData(sid);
+
+I = allData.behav.I;
 
 tasks = {'coherence','contrast'};
 catchs = {'catch','nocatch'};
@@ -23,7 +25,8 @@ for ci = 1:length(catchs)
         % cued and miscued trials separately
         if strcmp(catchc,'catch')
             ccatch = I.(catchc).catch;
-            X = [coh(task==ti)',con(task==ti)',ccatch(task==ti)'];
+            conv = con(task==ti); cohv = coh(task==ti); catv = ccatch(task==ti);
+            X = [cohv',conv',(cohv.*catv)'];
             Y = side(task==ti)'-1;
             [B,dev,stats] = glmfit(X,Y,'binomial','link','logit');
             
@@ -37,7 +40,29 @@ for ci = 1:length(catchs)
             cohMean = cellfun(@mean,cohBinned);
             cohStd = cellfun(@(A) std(A)/sqrt(length(A))*1.96,cohBinned);
             
+            subplot(3,2,(ci-1)*2+ti);
+            hold on
+            % plot cued trials
             
+            % plot main trials (on catch runs)
+            % P(R) = Icoh + Icon + iscatch
+            y = glmval(B,[zeros(61,1),(-.3:.01:.3)',zeros(61,1)],'logit');
+            plot(-.3:.01:.3,y,'-r');
+            
+            y = glmval(B,[(-.85:.01:.85)',zeros(171,1),zeros(171,1)],'logit');
+            plot(-.85:.01:.85,y,'-b')
+            
+            title(sprintf('Cued: Response for %s, %s',ctask,catchc));
+            
+            subplot(3,2,4+ti);
+            hold on
+            y = glmval(B,[zeros(61,1),(-.3:.01:.3)',zeros(61,1)],'logit');
+            plot(-.3:.01:.3,y,'-r');
+            
+            y = glmval(B,[(-.85:.01:.85)',zeros(171,1),(-.85:.01:.85)'],'logit');
+            plot(-.85:.01:.85,y,'-b')
+            title(sprintf('Mis-Cued: Response for %s, %s',ctask,catchc));
+            % plot miscued trials
         else
             % run logistic regression
             X = [coh(task==ti)',con(task==ti)'];
@@ -53,16 +78,17 @@ for ci = 1:length(catchs)
             cohMean = cellfun(@mean,cohBinned);
             cohStd = cellfun(@(A) std(A)/sqrt(length(A))*1.96,cohBinned);
 
-            subplot(2,2,(ci-1)*2+ti);
+            subplot(3,2,(ci-1)*2+ti);
             hold on
             y = glmval(B,[zeros(61,1),(-.3:.01:.3)'],'logit');
             plot(-.3:.01:.3,y,'-r')    
             errorbar(conrange,conMean,conStd,'-r');
-            y = glmval(B,[(-.85:.01:.85)',zeros(171,1),],'logit');
+            y = glmval(B,[(-.85:.01:.85)',zeros(171,1)],'logit');
             plot(-.85:.01:.85,y,'-b')
             errorbar(cohrange,cohMean,cohStd,'-b');
+            axis([-.85 .85 0 1]);
             legend({'Contrast','Coherence'});
-            title(sprintf('Attending %s, %s',ctask,catchc));
+            title(sprintf('Control: Response for %s, %s',ctask,catchc));
         end
     end
 end

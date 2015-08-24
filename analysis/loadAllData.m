@@ -1,8 +1,8 @@
-function allData = loadAllData( )
+function allData = loadAllData(sid)
 %LOADALLDATA Summary of this function goes here
 %   Detailed explanation goes here
 
-adFile = '~/proj/att_awe/analysis/allData.mat';
+adFile = fullfile('~/proj/att_awe/analysis/data/',sprintf('%s_allData.mat',sid));
 
 if isfile(adFile)
     disp('(allData) Loading...');

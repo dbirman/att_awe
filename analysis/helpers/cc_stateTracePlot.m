@@ -1,4 +1,6 @@
-function [f, data] = cc_stateTracePlot( allData, subjID )
+function [f, data] = cc_stateTracePlot( sid )
+
+allData = loadAllData(sid);
 
 data = struct;
 x = 0:.0001:1;
@@ -6,10 +8,10 @@ x = 0:.0001:1;
 atts = {'att_con','att_coh'};
 fits = {'cohfit','confit'};
 
-data.att_con.cohfit = allData.(subjID).behav.caf{1}.fit;
-data.att_con.confit = allData.(subjID).behav.maf{2}.fit;
-data.att_coh.cohfit = allData.(subjID).behav.maf{1}.fit;
-data.att_coh.confit = allData.(subjID).behav.caf{2}.fit;
+data.att_con.cohfit = allData.behav.caf{1}.fit;
+data.att_con.confit = allData.behav.maf{2}.fit;
+data.att_coh.cohfit = allData.behav.maf{1}.fit;
+data.att_coh.confit = allData.behav.caf{2}.fit;
 
 %%
 for ai = 1:length(atts)

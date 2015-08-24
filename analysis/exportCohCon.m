@@ -110,12 +110,20 @@ nocat2csv(nocat);
 %% Send fits to CSV file
 cohCon_fits2csv(nfits,mfits,cfits);
 
+%% Eye data
+
+eye = {};
+for ei = 1:length(expHolder)
+    eye{ei} = expHolder{ei}{2};
+end
+
 %% Save into allData
 
-allData.(mglGetSID).behav.I = I;
-allData.(mglGetSID).behav.maf = maf;
-allData.(mglGetSID).behav.caf = caf;
-allData.(mglGetSID).behav.nocaf = nocaf;
-allData.(mglGetSID).behav.mfits = mfits;
-allData.(mglGetSID).behav.nfits = nfits;
-allData.(mglGetSID).behav.cfits = cfits;
+allData.behav.I = I;
+allData.behav.maf = maf;
+allData.behav.caf = caf;
+allData.behav.nocaf = nocaf;
+allData.behav.mfits = mfits;
+allData.behav.nfits = nfits;
+allData.behav.cfits = cfits;
+allData.behav.eye = eye;

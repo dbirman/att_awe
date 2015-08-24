@@ -14,7 +14,7 @@ end
 
 %% Load and Export
 
-allData = loadAllData();
+allData = loadAllData(sid);
 
 maf = {};
 caf = {};
@@ -25,13 +25,21 @@ for si = 1:length(subjects)
     mglSetSID(sid);
     
     allData = exportCohCon(allData);
+    saveAllData(sid,allData);
 end
 
-saveAllData(allData);
+
+%% Eye Plots
+
+for si = 1:length(subjects)
+    sid = subjects{si};
+    
+    cc_eyePlots(sid);
+end
 
 %% R-Choice Plots
 
-cc_rightChoicePlots(allData,sid);
+cc_rightChoicePlots(sid);
 
 %% State-Trace Plots
 
@@ -44,7 +52,46 @@ end
 %% Simulations
 
 simData = cc_runBehavSimulations();
-%%
+
+%% Generate fullData
+% fullData is the entire dataset in long form, it loads all of the subjects
+% individually and copies their entire dataset (every trial) into a single
+% matrix. The formatting is as follows:
+% Run # | Trial # | lCon | rCon | lCoh | rCoh | dCon | dCoh | side | response | task 
+
+fullData = loadFullData();
+
+if length(fields(fullData))==0 || isempty(fullData.data) || ~length(subjects)==length(fullData.subjects)
+    fullData.subjects = subjects;
+    fData = {};
+    for si = 1:length(subjects)
+        sid = subjects{si};
+
+        [fData{si}, header] = cc_exportFull(sid);
+        fData{si}(:,end+1) = mrStr2num(strrep(sid,'s',''));
+    end
+    header{end+1} = 'sid';
+
+    data = cc_catLong(fData);
+
+    % add 'side'
+    header{end+1} = 'side';
+
+    side = [];
+    for i = 1:size(data)
+        if data(i,3)==1 % coherence
+            side(i) = data(i,10);
+        else
+            side(i) = data(i,9);
+        end
+    end
+    data(:,end+1) = side;
+
+    fullData.data = data;
+    fullData.header = header;
+end
+
+saveFullData(fullData);
 
 %% Generate CDF for selectionModel
 %        CDF is a similar struncture containing contrast discrimination data. So, continuing
