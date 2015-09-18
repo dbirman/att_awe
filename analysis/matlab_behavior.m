@@ -97,6 +97,32 @@ end
 
 saveFullData(fullData);
 
+%% lightning talk plot
+
+colors = brewermap(15,'PuOr');
+
+mafs = []; cafs = [];
+for si = 1:length(subjects)
+    sid = subjects{si};
+    allData = loadAllData(sid);
+    
+    figure
+    subplot(1,2,1), hold on
+    % attending coherence
+    bar([1 2],[allData.behav.maf{1}.threshold allData.behav.caf{1}.threshold]);
+    axis([0.5 2.5 0 .4]);
+    set(gca,'yscale','log');
+    subplot(1,2,2), hold on
+    % attending contrast
+    bar([1 2],[allData.behav.maf{2}.threshold allData.behav.caf{2}.threshold]);
+    axis([0.5 2.5 0 0.5]);
+    set(gca,'yscale','log');
+    dir = fullfile('~/proj/att_awe/analysis/figures',sid);
+    if ~isdir(dir), mkdir(dir); end
+    fname = fullfile(dir,'threshold_bar.pdf');
+    print(fname,'-dpdf');
+end
+
 
 %% junk
 
