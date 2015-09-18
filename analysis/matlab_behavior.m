@@ -109,14 +109,18 @@ for si = 1:length(subjects)
     figure
     subplot(1,2,1), hold on
     % attending coherence
-    bar([1 2],[allData.behav.maf{1}.threshold allData.behav.caf{1}.threshold]);
+    maf1 = allData.behav.mfits{1}(:,1);
+    caf1 = allData.behav.cfits{1}(:,1);
+    bar([1 2],[mean(maf1) mean(caf1)]);
+    errorbar([1 2],[mean(maf1) mean(caf1)],[std(maf1) std(caf1)],'*');
     axis([0.5 2.5 0 .4]);
-    set(gca,'yscale','log');
     subplot(1,2,2), hold on
     % attending contrast
-    bar([1 2],[allData.behav.maf{2}.threshold allData.behav.caf{2}.threshold]);
+    maf2 = allData.behav.mfits{2}(:,1);
+    caf2 = allData.behav.cfits{2}(:,1);
+    bar([1 2],[mean(maf2) mean(caf2)]);
+    errorbar([1 2],[mean(maf2) mean(caf2)],[std(maf2) std(caf2)],'*');
     axis([0.5 2.5 0 0.5]);
-    set(gca,'yscale','log');
     dir = fullfile('~/proj/att_awe/analysis/figures',sid);
     if ~isdir(dir), mkdir(dir); end
     fname = fullfile(dir,'threshold_bar.pdf');

@@ -14,9 +14,9 @@ aconcatScans = {2,1};
 ROIs = {'lV1','lV2v','lV2d','lV3v','lV3d','lMT','rV1','rV2v','rV2d','rV3v','rV3d','rMT','lV3a','lV3b','rV3a','rV3b'};
 shortROIs = {'V1','V2','V3','MT','V3a','V3b'};
 
-reset = [1 2];
+reset = [1];
 
-run = [1 2];
+run = [1];
 
 %% Use run to alter fields
 
