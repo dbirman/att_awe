@@ -1,7 +1,10 @@
-function CRF = cc_neuralFigures(neural,name)
+function cc_neuralFigures(neural,name,sid)
 
-[conVals, cohVals, cuedTask] = parseNames(neural.SCM.(name).v1.stimNames); 
+[conVals, cohVals, cuedTask] = parseNames(neural.SCM.(name).V1.stimNames); 
 %% Deconv Figures
+
+dir = fullfile('~/proj/att_awe/analysis/figures',sid);
+if ~isdir(dir), mkdir(dir); end
 
 rois = neural.shortROIs;
 deconvo = neural.(name).deconvo;
@@ -9,8 +12,8 @@ fits = neural.(name).fits;
 % Contrast Response at each Coherence
 ucoh = unique(cohVals);
 ucon = unique(conVals);
-clist1 = brewermap(length(ucoh),'Oranges');
-clist2 = brewermap(length(ucon),'Purples');
+clist2 = brewermap(length(ucoh),'Oranges');
+clist1 = brewermap(length(ucon),'Blues');
 if ~length(ucoh)==length(ucon)
     disp('This code will break.. fix it up');keyboard
 end
@@ -63,6 +66,10 @@ for ri = 1:length(rois)
             end
             title(sprintf('Contrast: %0.02f',ccon));
         end
+        
+        fname = fullfile(dir,sprintf('Deconv_%s',roi));
+        print(fname,'-dpdf');
+
     end
 end
 
@@ -115,7 +122,7 @@ for ri = 1:length(rois)
         plot(ucon,mat{2}(:,i),'-','Color',clist2(i,:));
         legVals{end+1} = sprintf('Cued Con, Coh = %0.2f',ucoh(i));
     end
-    legend(legVals);
+%     legend(legVals);
     for i = 1:4
         errorbar(ucon,mat{1}(:,i),matse{1}(:,i),'*','Color',clist1(i,:));
         errorbar(ucon,mat{2}(:,i),matse{2}(:,i),'*','Color',clist2(i,:));
@@ -123,8 +130,9 @@ for ri = 1:length(rois)
     title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
     xlabel('Contrast');
     ylabel('Response Amplitude');
-    axis([0 1 0 ceil(max([mat{1}(:,i)',mat{2}(:,i)']))]);
-
+    axis([min(ucon)-.05 max(ucon)+.05 round(10*min([mat{1}(i,:),mat{2}(i,:)]))/10-.1 round(10*max([mat{1}(:,i)',mat{2}(:,i)']))/10+.1]);
+%     set(ax,'YTick',[-1 -0.5 0 0.5 1])
+    
     % X axis = coherence
     subplot(length(rois),2,(ri-1)*2+2); hold on
     for i = 1:4
@@ -136,14 +144,14 @@ for ri = 1:length(rois)
     title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
     xlabel('Coherence');
     ylabel('Response Amplitude');
-    axis([0 1 0 ceil(max([mat{1}(i,:),mat{2}(i,:)]))]);
+    axis([min(ucoh)-.05 max(ucoh)+.05 round(10*min([mat{1}(i,:),mat{2}(i,:)]))/10-.1 round(10*max([mat{1}(i,:),mat{2}(i,:)]))/10+.1]);
 
 
     figure(f2)
     subplot(length(rois),2,(ri-1)*2+1); hold on
     plot(ucon,mean(mat{1},2),'-','Color',clist1(end,:));
     plot(ucon,mean(mat{2},2),'-','Color',clist2(end,:));
-    legend({'Cued Coh','Cued Con'});
+%     legend({'Cued Coh','Cued Con'});
     % get the pooled se...
     pooledse{1} = sum(matse{1}.*(Nm{1}-1),2) ./ sum(Nm{1}-1,2);
     pooledse{2} = sum(matse{2}.*(Nm{2}-1),2) ./ sum(Nm{1}-1,2);
@@ -153,12 +161,12 @@ for ri = 1:length(rois)
     title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
     xlabel('Contrast');
     ylabel('Response Amplitude');
-    axis([0 1 0 ceil(max(max([mean(mat{1},2),mean(mat{2},2)])))]);
+    axis([min(ucon)-.05 max(ucon)+.05 round(10*min(min([mean(mat{1},2),mean(mat{2},2)])))/10-.1 round(10*max(max([mean(mat{1},2),mean(mat{2},2)])))/10+.1]);
 
     subplot(length(rois),2,(ri-1)*2+2); hold on
     plot(ucoh,mean(mat{1},1),'-','Color',clist1(end,:));
     plot(ucoh,mean(mat{2},1),'-','Color',clist2(end,:));
-    legend({'Cued Coh','Cued Con'});
+%     legend({'Cued Coh','Cued Con'});
     % get the pooled se...
     pooledse{1} = sum(matse{1}.*(Nm{1}-1),1) ./ sum(Nm{1}-1,1);
     pooledse{2} = sum(matse{2}.*(Nm{2}-1),1) ./ sum(Nm{1}-1,1);
@@ -168,12 +176,16 @@ for ri = 1:length(rois)
     title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
     xlabel('Coherence');
     ylabel('Response Amplitude');
-    axis([0 1 0 ceil(max(max([mean(mat{1},1),mean(mat{2},1)])))]);
-end   
-    
-%% TODO: Add print functions to print out figures
-stop = 1;
+    axis([min(ucoh)-.05 max(ucoh)+.05 round(10*min(min([mean(mat{1},1),mean(mat{2},1)])))/10-.1 round(10*max(max([mean(mat{1},1),mean(mat{2},1)])))/10+.1]);
 
+end   
+figure(f1);
+    fname = fullfile(dir,'AmplitudeRange');
+    print(fname,'-dpdf');
+figure(f2);
+fname = fullfile(dir,'AmplitudeMean');
+print(fname,'-dpdf');
+    
 %% CRF
 % for ri = 1:length(rois)
 %     roi = rois{ri};
