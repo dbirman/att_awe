@@ -101,7 +101,7 @@ saveFullData(fullData);
 
 colors = brewermap(15,'PuOr');
 
-mafs = []; cafs = [];
+mafs = cell(length(subjects),1); cafs = cell(length(subjects),1);
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
@@ -125,7 +125,36 @@ for si = 1:length(subjects)
     if ~isdir(dir), mkdir(dir); end
     fname = fullfile(dir,'threshold_bar.pdf');
     print(fname,'-dpdf');
+    
+    mafs{si,1} = maf1;
+    cafs{si,1} = caf1;
+    mafs{si,2} = maf2;
+    cafs{si,2} = caf2;
 end
+
+%% average plot
+
+marray = cellfun(@mean, mafs);
+carray = cellfun(@mean, cafs);
+
+mu = mean(marray,1);
+ms = std(marray,1);
+cu = mean(carray,1);
+cs = std(carray,1);
+
+topy = [0.55 0.21];
+
+figure
+for pos = 1:2
+    subplot(1,2,pos), hold on
+    bar([1 2],[mu(pos) cu(pos)]);
+    errorbar([1 2],[mu(pos) cu(pos)],[ms(pos) cs(pos)],'o');
+    axis([0.5 2.5 0 topy(pos)]);
+    fname=fullfile('~/proj/att_awe/analysis/figures','avg_bar.pdf');
+    print(fname,'-dpdf');
+    [h,p] = ttest2(marray(:,pos),carray(:,pos)); p
+end
+
 
 
 %% junk

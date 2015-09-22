@@ -13,8 +13,8 @@ for ri = 1:length(rois)
     roi = rois{ri};       
     
     fit = fitTimecourse(neural.tSeries.(name).(roi).tSeries,neural.SCM.(name).(roi).stimVol,.5,'concatInfo',neural.tSeries.(name).(roi).concatInfo,fitter,amper);
-    fit = rmfield(fit,'scm');    
-    fit = rmfield(fit,'covar');
+    if isfield(fit.fit,'scm'), fit.fit = rmfield(fit.fit,'scm'); end
+    if isfield(fit.fit,'covar'), fit.fit = rmfield(fit.fit,'covar'); end
 
     fits{end+1} = fit;
 end

@@ -12,11 +12,11 @@ aconcatScans = {2,1};
 
 %%%%% TODO %%%%% EDIT ROIs to reflect naming conventions
 ROIs = {'lV1','lV2v','lV2d','lV3v','lV3d','lMT','rV1','rV2v','rV2d','rV3v','rV3d','rMT','lV3a','lV3b','rV3a','rV3b'};
-shortROIs = {'V1','V2','V3','MT','V3a','V3b'};
+shortROIs = {'V3a','V3b','V1','V2','V3','MT'};
 
-reset = [1];
+reset = [0 1];
 
-run = [1];
+run = [2];
 
 %% Use run to alter fields
 
@@ -95,7 +95,6 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-    
     allData.neural = cc_concatER(allData.neural,'highr2');
     saveAllData(sid,allData);
 end
@@ -123,9 +122,10 @@ end
 for si = 1:length(asubjects)
     sid = asubjects{si};
     allData = loadAllData(sid);
-    [allData.CRF] = cc_neuralFigures(allData.neural,'highr2');
-    saveAllData(sid,allData);
+    cc_neuralFigures(allData.neural,'highr2',sid,false,true);
+%     saveAllData(sid,allData);
 end
+close all
 
 %% Full Data
 

@@ -1,7 +1,4 @@
-function cc_neuralFigures(neural,name,sid)
-
-[conVals, cohVals, cuedTask] = parseNames(neural.SCM.(name).V1.stimNames); 
-%% Deconv Figures
+function cc_neuralFigures(neural,name,sid,df, nf)
 
 dir = fullfile('~/proj/att_awe/analysis/figures',sid);
 if ~isdir(dir), mkdir(dir); end
@@ -10,15 +7,18 @@ rois = neural.shortROIs;
 deconvo = neural.(name).deconvo;
 fits = neural.(name).fits;
 % Contrast Response at each Coherence
-ucoh = unique(cohVals);
-ucon = unique(conVals);
-clist2 = brewermap(length(ucoh),'Oranges');
-clist1 = brewermap(length(ucon),'Blues');
-if ~length(ucoh)==length(ucon)
-    disp('This code will break.. fix it up');keyboard
-end
 tasks = {'Cued Coherence','Cued Contrast'};
+%% Deconv Figures
+if df
 for ri = 1:length(rois)
+    [conVals, cohVals, cuedTask] = parseNames(neural.SCM.(name).(rois{ri}).stimNames); 
+    ucoh = unique(cohVals);
+    ucon = unique(conVals);
+    clist2 = brewermap(length(ucoh),'Oranges');
+    clist1 = brewermap(length(ucon),'Blues');
+    if ~length(ucoh)==length(ucon)
+        disp('This code will break.. fix it up');keyboard
+    end
     roi = rois{ri};
     dfs(1) = figure('name',sprintf('%s: %s',tasks{1},roi)); dfs(2) = figure('name',sprintf('%s: %s',tasks{2},roi));
 %     fit = fits{ri}.fit;
@@ -72,11 +72,20 @@ for ri = 1:length(rois)
 
     end
 end
+end
 
 %% Amplitude Figures
 f1 = figure;
 f2 = figure;
 for ri = 1:length(rois)
+    [conVals, cohVals, cuedTask] = parseNames(neural.SCM.(name).(rois{ri}).stimNames); 
+    ucoh = unique(cohVals);
+    ucon = unique(conVals);
+    clist2 = brewermap(length(ucoh),'Oranges');
+    clist1 = brewermap(length(ucon),'Blues');
+    if ~length(ucoh)==length(ucon)
+        disp('This code will break.. fix it up');keyboard
+    end
     roi = rois{ri};     
     fit = fits{ri};
     N = [];
@@ -127,7 +136,7 @@ for ri = 1:length(rois)
         errorbar(ucon,mat{1}(:,i),matse{1}(:,i),'*','Color',clist1(i,:));
         errorbar(ucon,mat{2}(:,i),matse{2}(:,i),'*','Color',clist2(i,:));
     end
-    title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+    title(sprintf('%s Orange = Attend Con; Blue = Attend Coh',roi));
     xlabel('Contrast');
     ylabel('Response Amplitude');
     axis([min(ucon)-.05 max(ucon)+.05 round(10*min([mat{1}(i,:),mat{2}(i,:)]))/10-.1 round(10*max([mat{1}(:,i)',mat{2}(:,i)']))/10+.1]);
@@ -141,7 +150,7 @@ for ri = 1:length(rois)
         plot(ucoh,mat{2}(i,:),'-','Color',clist2(i,:));
         errorbar(ucoh,mat{2}(i,:),matse{2}(i,:),'*','Color',clist2(i,:));
     end
-    title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+    title(sprintf('%s Orange = Attend Con; Blue = Attend Coh',roi));
     xlabel('Coherence');
     ylabel('Response Amplitude');
     axis([min(ucoh)-.05 max(ucoh)+.05 round(10*min([mat{1}(i,:),mat{2}(i,:)]))/10-.1 round(10*max([mat{1}(i,:),mat{2}(i,:)]))/10+.1]);
@@ -149,31 +158,51 @@ for ri = 1:length(rois)
 
     figure(f2)
     subplot(length(rois),2,(ri-1)*2+1); hold on
-    plot(ucon,mean(mat{1},2),'-','Color',clist1(end,:));
-    plot(ucon,mean(mat{2},2),'-','Color',clist2(end,:));
+%     plot(ucon,mean(mat{1},2),'-','Color',clist1(end,:));
+%     plot(ucon,mean(mat{2},2),'-','Color',clist2(end,:));
 %     legend({'Cued Coh','Cued Con'});
     % get the pooled se...
     pooledse{1} = sum(matse{1}.*(Nm{1}-1),2) ./ sum(Nm{1}-1,2);
     pooledse{2} = sum(matse{2}.*(Nm{2}-1),2) ./ sum(Nm{1}-1,2);
     % pooled
-    errorbar(ucon,mean(mat{1},2),1.96*pooledse{1},'*','Color',clist1(end,:));
-    errorbar(ucon,mean(mat{2},2),1.96*pooledse{2},'*','Color',clist2(end,:));
-    title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+    errorbar(ucon,mean(mat{1},2),1.96*pooledse{1},'o','Color',clist1(end,:));
+    % regression
+    b = [ones(length(ucon),1) ucon']\mean(mat{1},2);
+    yCalc = b(1) + b(2) * ucon;
+    plot(ucon,yCalc,'-','Color',clist1(end,:));
+    %next
+    errorbar(ucon,mean(mat{2},2),1.96*pooledse{2},'o','Color',clist2(end,:));
+    % regression
+    b = [ones(length(ucon),1) ucon']\mean(mat{2},2);
+    yCalc = b(1) + b(2) * ucon;
+    plot(ucon,yCalc,'-','Color',clist2(end,:));
+    %next
+    title(sprintf('%s Orange = Attend Con; Blue = Attend Coh',roi));
     xlabel('Contrast');
     ylabel('Response Amplitude');
     axis([min(ucon)-.05 max(ucon)+.05 round(10*min(min([mean(mat{1},2),mean(mat{2},2)])))/10-.1 round(10*max(max([mean(mat{1},2),mean(mat{2},2)])))/10+.1]);
 
     subplot(length(rois),2,(ri-1)*2+2); hold on
-    plot(ucoh,mean(mat{1},1),'-','Color',clist1(end,:));
-    plot(ucoh,mean(mat{2},1),'-','Color',clist2(end,:));
+%     plot(ucoh,mean(mat{1},1),'o','Color',clist1(end,:));
+%     plot(ucoh,mean(mat{2},1),'o','Color',clist2(end,:));
 %     legend({'Cued Coh','Cued Con'});
     % get the pooled se...
     pooledse{1} = sum(matse{1}.*(Nm{1}-1),1) ./ sum(Nm{1}-1,1);
     pooledse{2} = sum(matse{2}.*(Nm{2}-1),1) ./ sum(Nm{1}-1,1);
     % pooled
-    errorbar(ucoh,mean(mat{1},1),1.96*pooledse{1},'*','Color',clist1(end,:));
-    errorbar(ucoh,mean(mat{2},1),1.96*pooledse{2},'*','Color',clist2(end,:));
-    title(sprintf('%s: Orange = Cued Coh, Green = Cued Con.',roi));
+    errorbar(ucoh,mean(mat{1},1),1.96*pooledse{1},'o','Color',clist1(end,:));    
+    % regression
+    b = [ones(length(ucoh),1) ucoh']\mean(mat{1},1)';
+    yCalc = b(1) + b(2) * ucoh;
+    plot(ucoh,yCalc,'-','Color',clist1(end,:));
+    %next
+    errorbar(ucoh,mean(mat{2},1),1.96*pooledse{2},'o','Color',clist2(end,:));
+    % regression
+    b = [ones(length(ucoh),1) ucoh']\mean(mat{2},1)';
+    yCalc = b(1) + b(2) * ucoh;
+    plot(ucoh,yCalc,'-','Color',clist2(end,:));
+    %next
+    title(sprintf('%s Orange = Attend Con; Blue = Attend Coh',roi));
     xlabel('Coherence');
     ylabel('Response Amplitude');
     axis([min(ucoh)-.05 max(ucoh)+.05 round(10*min(min([mean(mat{1},1),mean(mat{2},1)])))/10-.1 round(10*max(max([mean(mat{1},1),mean(mat{2},1)])))/10+.1]);
