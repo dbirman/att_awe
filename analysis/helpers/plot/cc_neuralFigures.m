@@ -1,4 +1,4 @@
-function cc_neuralFigures(neural,name,sid,df, nf)
+function neural = cc_neuralFigures(neural,name,sid,df, nf)
 
 dir = fullfile('~/proj/att_awe/analysis/figures',sid);
 if ~isdir(dir), mkdir(dir); end
