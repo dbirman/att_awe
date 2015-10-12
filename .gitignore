@@ -222,3 +222,5 @@ pip-log.txt
 *.mat
 
 **.mat
+analysis/data/*.mat
+analysis/figures/*
