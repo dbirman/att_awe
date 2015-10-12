@@ -28,6 +28,7 @@ for fi = 1:length(folders)
     d.groupNum = view.curGroup;
     thresh = neural.r2_cutoffs(fi);
     d = loadroi(d,neural.ROIs);
+%     d = erBootstrap('view',view,'d',d,'iterations=10');
 
     concatInfo = viewGet(view,'concatInfo');
 

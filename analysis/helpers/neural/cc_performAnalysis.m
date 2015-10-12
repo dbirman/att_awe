@@ -4,6 +4,8 @@ neural.fit = struct;
 
 rois = neural.shortROIs;
 
+if ~isdir(fullfile('~/proj/att_awe/analysis/figures/fitCheck/')), mkdir(fullfile('~/proj/att_awe/analysis/figures/fitCheck/')); end
+
 %% Calculate Non-Lin Fits (for amplitude)
 
 fitter = 'fitType=nonlin';
@@ -13,6 +15,9 @@ for ri = 1:length(rois)
     roi = rois{ri};       
     
     fit = fitTimecourse(neural.tSeries.(name).(roi).tSeries,neural.SCM.(name).(roi).stimVol,.5,'concatInfo',neural.tSeries.(name).(roi).concatInfo,fitter,amper);
+    figure(1)
+    fname = sprintf('~/proj/att_awe/analysis/figures/fitCheck/%s',roi);
+    print(fname,'-dpdf');
     if isfield(fit.fit,'scm'), fit.fit = rmfield(fit.fit,'scm'); end
     if isfield(fit.fit,'covar'), fit.fit = rmfield(fit.fit,'covar'); end
 

@@ -39,11 +39,7 @@ end
 
 %% R-Choice Plots
 
-for si = 1:length(subjects)
-    sid = subjects{si};
-    
-    cc_rightChoicePlots(sid, false);   
-end
+cc_rightChoicePlots(true);   
 
 %% State-Trace Plots
 
@@ -53,10 +49,6 @@ for si = 1:length(subjects)
     [f_stp.(sid).f, f_stp.(sid).data] = cc_stateTracePlot(sid);
 end
 
-%% Simulations
-
-simData = cc_runBehavSimulations();
-
 %% Generate fullData
 % fullData is the entire dataset in long form, it loads all of the subjects
 % individually and copies their entire dataset (every trial) into a single
@@ -64,8 +56,10 @@ simData = cc_runBehavSimulations();
 % Run # | Trial # | lCon | rCon | lCoh | rCoh | dCon | dCoh | side | response | task 
 
 fullData = loadFullData();
+reset = 1;
 
-if length(fields(fullData))==0 || isempty(fullData.data) || ~length(subjects)==length(fullData.subjects)
+if reset==1 || length(fields(fullData))==0 || isempty(fullData.data) || ~length(subjects)==length(fullData.subjects)
+    fullData.data = []; fullData.header = {}; fullData.subjects = {};
     fullData.subjects = subjects;
     fData = {};
     for si = 1:length(subjects)
@@ -99,7 +93,8 @@ saveFullData(fullData);
 
 %% lightning talk plot
 
-colors = brewermap(15,'PuOr');
+clist2 = brewermap(3,'Oranges');
+clist1 = brewermap(3,'Blues');
 
 mafs = cell(length(subjects),1); cafs = cell(length(subjects),1);
 for si = 1:length(subjects)
@@ -113,14 +108,14 @@ for si = 1:length(subjects)
     caf1 = allData.behav.cfits{1}(:,1);
     bar([1 2],[mean(maf1) mean(caf1)]);
     errorbar([1 2],[mean(maf1) mean(caf1)],[std(maf1) std(caf1)],'*');
-    axis([0.5 2.5 0 .4]);
+    axis([0.5 2.5 0 max([mean(maf1) mean(caf1)]+[std(maf1) std(caf1)])]);
     subplot(1,2,2), hold on
     % attending contrast
     maf2 = allData.behav.mfits{2}(:,1);
     caf2 = allData.behav.cfits{2}(:,1);
-    bar([1 2],[mean(maf2) mean(caf2)]);
+    b = bar([1 2],[mean(maf2) mean(caf2)]);
     errorbar([1 2],[mean(maf2) mean(caf2)],[std(maf2) std(caf2)],'*');
-    axis([0.5 2.5 0 0.5]);
+    axis([0.5 2.5 0 max([mean(maf2) mean(caf2)]+[std(maf2) std(caf2)])]);
     dir = fullfile('~/proj/att_awe/analysis/figures',sid);
     if ~isdir(dir), mkdir(dir); end
     fname = fullfile(dir,'threshold_bar.pdf');

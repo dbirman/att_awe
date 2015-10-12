@@ -1,6 +1,4 @@
 %%
-
-
 asubjects = {'s0300','s0304','s0315','s0305'};
 
 afolders = {{'20150509','20150511','20150513','20150618','20150729'},...
@@ -10,15 +8,17 @@ afolders = {{'20150509','20150511','20150513','20150618','20150729'},...
 ar2_cutoffs = {[0.12,.1,.1,.09,0.1],...
     [0.15,0.08,0.1,0.1,0.09],...
     [0.1,0.15,0.1,0.15,0.1],...
-    [0.07,0.05,0.07,0.08]};
-aconcatScans = {2,1,1,1};
+    [0.07,0.05,0.07,0.05]};
+aconcatScans = {2,1,1,1,1};
 
-ROIs = {'lV1','lV2v','lV2d','lV3v','lV3d','lMT','rV1','rV2v','rV2d','rV3v','rV3d','rMT','lV3a','lV3b','rV3a','rV3b'};
-shortROIs = {'V3a','V3b','V1','V2','V3','MT'};
+ROIs = {'lV1','lV2v','lV2d','lV3v','lV3d','lMT','rV1','rV2v','rV2d','rV3v','rV3d','rMT','lV3a','lV3b','rV3a','rV3b','lLO1','lLO2','lV4','rLO1','rLO2','rV4'};
+shortROIs = {'V3a','V3b','V1','V2','V3','MT','LO1','LO2','V4'};
 
-reset = [0 0 0 1];
+reset = [1 1 1 1];
 
-run = [4];
+run = [1 2 3 4];
+
+main_name = 'highr2';
 
 %% Use run to alter fields
 
@@ -79,7 +79,7 @@ for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
     
-    allData.neural.SCM = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,'highr2');
+    allData.neural.SCM = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
     saveAllData(sid,allData);
 end
 %% Load ER_analysis
@@ -88,7 +88,7 @@ for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
     
-    allData.neural = cc_loadER(allData.neural,sid,'highr2');
+    allData.neural = cc_loadER(allData.neural,sid,main_name);
     saveAllData(sid,allData);
 end
 
@@ -97,7 +97,7 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-    allData.neural = cc_concatER(allData.neural,'highr2');
+    allData.neural = cc_concatER(allData.neural,main_name);
     saveAllData(sid,allData);
 end
 %% Remove stimVols that don't have enough data
@@ -107,7 +107,7 @@ for si = 1:length(subjects)
     allData = loadAllData(sid);
     
     restore = 0; % flag = 1 will reverse the removal and restore the backup
-    allData.neural.SCM = cc_removeNoDataStimVols(allData.neural.SCM,'highr2',15,restore);
+    allData.neural.SCM = cc_removeNoDataStimVols(allData.neural.SCM,main_name,15,restore);
     saveAllData(sid,allData);
 end
 %% Run Analysis
@@ -115,39 +115,42 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-    [allData.neural] = cc_performAnalysis(allData.neural,'highr2');
+    [allData.neural] = cc_performAnalysis(allData.neural,main_name);
     saveAllData(sid,allData);
 end
 
 %% Figures
 
-for si = 1:length(subjects)
-    sid = subjects{si};
+for si = 1:length(asubjects)
+    sid = asubjects{si};
     allData = loadAllData(sid);
-    allData.neural = cc_neuralFigures(allData.neural,'highr2',sid,false,true);
-    saveAllData(sid,allData);
+    cc_neuralFigures(allData.neural,main_name,sid,false,true);
+%     saveAllData(sid,allData);
 end
 
-%% Full Data
-disp('pausing');
-keyboard
+%%
+% Full Data
 % here we want to save the neural data points for the full model analysis.
 % What we do need? We'll keep the deconvolved response to each of the
 % binned conditions, so we end up with like a 4x4 matrix of deconvolved
 % responses
 
-header = {'amplitude','task','contrast','coherence','roi','sid'};
-slong = {};
+header = {'amplitude','se','task','contrast','coherence','roi','sid'};
+slong = {}; subjs = {};
 for si = 1:length(asubjects)
     sid = asubjects{si};
     allData = loadAllData(sid);
-    slong{si} = cc_addNeuralFull(allData,'highr2',sid);
+    slong{si} = cc_addNeuralFull(allData,main_name,mrStr2num(strrep(sid,'s','')));
+    subjs{end+1} = sid;
 end
-fullN = cc_catLong(slong); fullN.header = header;
+fullN = struct;
+fullN.data = cc_catLong(slong); fullN.header = header;
+fullN.subjects = subjs;
+fullN.rois = shortROIs;
 
 %% Cat full
 fullData = loadFullData;
 fullData.ndata = fullN.data;
 fullData.nheader = fullN.header;
-fullData.nsubjects = asubjects;
+fullData.nsubjects = fullN.subjects;
 saveFullData(fullData);

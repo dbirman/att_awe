@@ -13,16 +13,13 @@ mx= [];
 my = [];
 for ei = 1:length(eye)
     ceye = eye{ei};
-    for ti = 1:size(ceye.xPos,1)
-        if length(mx) < 5000
-            mx = [mx ceye.xPos(1:250)];
-            my = [my ceye.yPos(1:250)];
-        elseif length(mx)>1
-            mx = mean(mx); my = mean(my);
-        end
+    for ti = 1:min(5,size(ceye.xPos,1))
+        mx = [mx ceye.xPos(1:250)];
+        my = [my ceye.yPos(1:250)];
         plot(ceye.xPos(1:250),ceye.yPos(1:250),'*');
     end
 end
+            mx = nanmean(mx); my = nanmean(my);
 
 rectangle('Position',[mx-.5 my-.5 1 1],'Curvature',[1 1]);
 rectangle('Position',[mx+3.5 my-5 7.5 10]);

@@ -1,19 +1,23 @@
 function fdata = cc_addNeuralFull(allData,name,sid)
 
-data = allData.neural.fit.(name);    
+data = allData.neural.(name);    
 
 % we are going to convert the data into long form to push it into fullData
 
-% amplitude | task | contrast | coherence | roi
+% amplitude | se | task | contrast | coherence | roi | sid
 fdata = [];
 for ri = 1:length(allData.neural.shortROIs)
+    ndata = [];
     roi = allData.neural.shortROIs{ri};
     [conVals, cohVals, cuedTask] = parseNames(allData.neural.SCM.(name).(roi).stimNames); 
-    fdata(:,1) = data.(roi).mat{1}(:);
-    fdata(:,2) = cuedTask';
-    fdata(:,3) = conVals';
-    fdata(:,4) = cohVals';
-    fdata(:,5) = repmat(ri,size(cuedTask'));
+    ndata(:,1) = data.fits{ri}.amplitude;
+    ndata(:,2) = data.fits{ri}.amplitudeSTE;
+    ndata(:,3) = cuedTask';
+    ndata(:,4) = conVals';
+    ndata(:,5) = cohVals';
+    ndata(:,6) = repmat(ri,size(cuedTask'));
+    ndata(:,7) = repmat(sid,size(cuedTask'));
+    fdata = [fdata ; ndata];
 end
 
 
