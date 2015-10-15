@@ -79,10 +79,22 @@ for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
     
-    allData.neural.SCM = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
+    allData.neural.SCM_s = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
+    allData.neural.SCM_f = cc_simplifySCM(allData.neural.SCM,[],[],1,'full');
+    neural.SCM_f = cc_simplifySCM(neural.SCM,[],[],1,'full');
     saveAllData(sid,allData);
 end
-%% Load ER_analysis
+
+%% Load and Run Decoding Analysis
+
+% this is the new 
+for si = 1:length(subjects)
+    sid = subjects{si};
+    allData = loadAllData(sid);
+    decode = cc_decoding(allData.neural,sid);
+end
+
+%% Load Mean ER_analysis
 
 for si = 1:length(subjects)
     sid = subjects{si};

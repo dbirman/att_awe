@@ -32,7 +32,8 @@ for fi = 1:length(folders)
 
     concatInfo = viewGet(view,'concatInfo');
 
-    tSeries = {};
+    tSeries = {}; % meaned tSeries
+%     fTSeries = {}; % all voxels surviving r^2 cutoff
 
     scanDims = viewGet(view,'scanDims');
     r2 = viewGet(view,'overlayData',d.scanNum);
@@ -41,9 +42,11 @@ for fi = 1:length(folders)
         r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
 
         r.r2 = r2(r.linearScanCoords);
+%         fTSeries{end+1} = r.tSeries(r.r2>thresh,:);
         tSeries{end+1} = nanmean(r.tSeries(r.r2>thresh,:));
     end
 
+%     neural.tSeries.(folderz).(name).fullTSeries = fTSeries;
     neural.tSeries.(folderz).(name).ROIs = neural.ROIs;
     neural.tSeries.(folderz).(name).tSeries = tSeries;
     neural.tSeries.(folderz).(name).concatInfo = concatInfo;

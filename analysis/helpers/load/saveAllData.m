@@ -2,18 +2,19 @@ function adFile = saveAllData( sid, allData )
 %SAVEALLDATA Summary of this function goes here
 %   Detailed explanation goes here
 
-if ~isdir('~/proj/att_awe/analysis/data/')
-    mkdir('~/proj/att_awe/analysis/data/');
+if ~isdir('~/data/cohcon/analysis/')
+    mkdir('~/data/cohcon/analysis/');
 end
 
 
-adFile = fullfile('~/proj/att_awe/analysis/data/',sprintf('%s_allData.mat',sid));
+adFile = fullfile('~/data/cohcon/analysis/',sprintf('%s_allData.mat',sid));
+
 
 if isfile(adFile)
-    if ~isdir('~/proj/att_awe/analysis/data/adBackups')
-        mkdir('~/proj/att_awe/analysis/data/adBackups');
+    if ~isdir('~/data/cohcon/analysis/adBackups')
+        mkdir('~/data/cohcon/analysis/adBackups');
     end
-    copyfile(adFile,sprintf('~/proj/att_awe/analysis/data/adBackups/%s_%s_allData.mat',datestr(date,'YYMMDD'),sid));
+    copyfile(adFile,sprintf('~/data/cohcon/analysis/adBackups/%s_%s_allData.mat',datestr(date,'YYMMDD'),sid));
 end
 
 disp('(allData) Saving...');

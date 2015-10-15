@@ -11,6 +11,31 @@ prefixes = {{'rCon','rCoh'},{'lCon','lCoh'}};
 pattern = '%s=%0.2f and %s=%0.2f and task=%i';
 taskValues = [1 2];
 
+if isempty(conValues) || isempty(cohValues)
+    disp('(simplifySCM) Cannot simplify: using all available values');
+    
+    conValues = []; cohValues = [];
+    
+    for si = 1:length(stims)
+        stim = stims{si};
+        % we need to build up a list of all THE VALUES
+        for fi = 1:length(fList)
+            folder = fList{fi};
+            prefixs = prefixes{si};
+            
+            sN = SCM.(folder).(stim).stimNames;
+            sV = SCM.(folder).(stim).stimVol;
+            tsN = SCM.(folder).(stim).taskNames;
+            tsV = SCM.(folder).(stim).taskSV;
+            
+            % re-build into separate con/coh structures
+            [con, coh, task, newsV] = parseSCM(sN,sV,tsN, tsV, prefixs);
+            conValues = unique([conValues con]);
+            cohValues = unique([cohValues coh]);
+        end
+    end
+end
+
 for fi = 1:length(fList)
     folder = fList{fi};
     disp(sprintf('Simplifying SCM for folder %s',folder));
@@ -27,18 +52,20 @@ for fi = 1:length(fList)
         % re-build into separate con/coh structures
         [con, coh, task, newsV] = parseSCM(sN,sV,tsN, tsV, prefixs);
         
-        % remove values we didn't ask for
-        if nearest
-            % just move everything to the nearest values
-            con = nearestValue(con, conValues);
-            coh = nearestValue(coh, cohValues);
-        else
-            % remove everything except if it's in conValues or cohValues
-            for ci = 1:length(con)
-                if ~any(conValues==con(ci)) || ~any(cohValues==coh(ci))
-                    newsV(ci) = [];
-                    con(ci) = [];
-                    coh(ci) = [];
+        if ~isempty(conValues) && ~isempty(cohValues)
+            % remove values we didn't ask for
+            if nearest
+                % just move everything to the nearest values
+                con = nearestValue(con, conValues);
+                coh = nearestValue(coh, cohValues);
+            else
+                % remove everything except if it's in conValues or cohValues
+                for ci = 1:length(con)
+                    if ~any(conValues==con(ci)) || ~any(cohValues==coh(ci))
+                        newsV(ci) = [];
+                        con(ci) = [];
+                        coh(ci) = [];
+                    end
                 end
             end
         end
@@ -82,11 +109,11 @@ for i = 1:length(sV)
             csv = sv(si);
             newsV = [newsV csv];
             conPos = strfind(sn,prefixs{1});
-            cohPos = strfind(sn,prefixs{2});            
-
+            cohPos = strfind(sn,prefixs{2});
+            
             con = [con cc_getStringNum(sn,conPos)];
             coh = [coh cc_getStringNum(sn,cohPos)];
-
+            
             % now find task
             for ti = 1:length(tsV)
                 tsv = tsV{ti};

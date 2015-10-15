@@ -1,4 +1,4 @@
-function neural = cc_concatER(neural,name,which_SCM,poolHem)
+function neural = cc_concatER_d(neural,d,name,which_SCM,poolHem)
 
 % Start by concatenating, within each ROI, within each analysis
 

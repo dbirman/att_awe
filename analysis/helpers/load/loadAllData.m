@@ -2,7 +2,7 @@ function allData = loadAllData(sid)
 %LOADALLDATA Summary of this function goes here
 %   Detailed explanation goes here
 
-adFile = fullfile('~/proj/att_awe/analysis/data/',sprintf('%s_allData.mat',sid));
+adFile = fullfile('~/data/cohcon/analysis/',sprintf('%s_allData.mat',sid));
 
 if isfile(adFile)
     disp('(allData) Loading...');
