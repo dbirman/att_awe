@@ -9,7 +9,7 @@ ar2_cutoffs = {[0.12,.1,.1,.09,0.1],...
     [0.15,0.08,0.1,0.1,0.09],...
     [0.1,0.15,0.1,0.15,0.1],...
     [0.07,0.05,0.07,0.05]};
-aconcatScans = {2,1,1,1,1};
+aconcatScans = {2,1,1,1};
 
 ROIs = {'lV1','lV2v','lV2d','lV3v','lV3d','lMT','rV1','rV2v','rV2d','rV3v','rV3d','rMT','lV3a','lV3b','rV3a','rV3b','lLO1','lLO2','lV4','rLO1','rLO2','rV4'};
 shortROIs = {'V3a','V3b','V1','V2','V3','MT','LO1','LO2','V4'};
@@ -18,7 +18,7 @@ reset = [1 1 1 1];
 
 run = [1 2 3 4];
 
-main_name = 'highr2';
+main_name = 'up_ret';
 
 %% Use run to alter fields
 
@@ -67,8 +67,6 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-    
-    disp('(Rewrite here: copy existing SCM if it exists)');
     allData.neural.SCM = cc_genSCM(allData.neural,sid);
     saveAllData(sid,allData);
 end
@@ -79,9 +77,8 @@ for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
     
-    allData.neural.SCM_s = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
+%     allData.neural.SCM_s = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
     allData.neural.SCM_f = cc_simplifySCM(allData.neural.SCM,[],[],1,'full');
-    neural.SCM_f = cc_simplifySCM(neural.SCM,[],[],1,'full');
     saveAllData(sid,allData);
 end
 
@@ -91,7 +88,7 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-    decode = cc_decoding(allData.neural,sid);
+    cc_decoding(allData.neural,sid);
 end
 
 %% Load Mean ER_analysis
@@ -119,7 +116,7 @@ for si = 1:length(subjects)
     allData = loadAllData(sid);
     
     restore = 0; % flag = 1 will reverse the removal and restore the backup
-    allData.neural.SCM = cc_removeNoDataStimVols(allData.neural.SCM,main_name,15,restore);
+    allData.neural.SCM_s = cc_removeNoDataStimVols(allData.neural.SCM_s,main_name,15,restore);
     saveAllData(sid,allData);
 end
 %% Run Analysis

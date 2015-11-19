@@ -107,7 +107,7 @@ for si = 1:length(fd.subjects)
     adata.(sid) = dat;
 end
 
-%% Move the ROI Data into bdata
+%% Move the ROI Data into adata
 
 for si = 1:length(fd.subjects) % only for subjs in behav
     sid = fd.subjects{si};
@@ -137,7 +137,57 @@ for si = 1:length(fd.subjects) % only for subjs in behav
     end
 end
 
-stop = 1; 
+%% Plot the noise estimates alongside the behavioral data and the slopes
+conds = {'nocatch','cued','miscued'};
+
+for si = 1:length(fd.subjects)
+    sid = fd.subjects{si};
+    
+    for ti = 1:length(tasks)
+        task = tasks{ti};
+        
+        for ci = 1:length(conds)
+            cond = conds{ci};a
+            
+            dat = adata.(sid).(task).(cond);
+            datv1 = adata.(sid).(task).V1;
+            datmt = adata.(sid).(task).MT;
+            figure
+
+            subplot(1,3,1), hold on            
+            title(sprintf('%s: Task %s, Condition %s',sid,task,cond));
+
+            % the behavioral effects are cumulative gaussian functions, so
+            % reconstruct the function and plot
+            x = -.85:.01:.85;
+            y = normcdf(x,0,1/dat.cohEff);
+            plot(x,y,'-b');
+            y = normcdf(x,0,1/dat.conEff);
+            plot(x,y,'-r');
+            axis([-.85 .85 0 1])
+            drawPublishAxis
+            subplot(1,3,2), hold on
+            title('V1')
+            x = 0:.01:1;
+            y = datv1.con.b0 + datv1.con.a * x;
+            ymax = y + dat.conNoise(3);
+            ymin = y - dat.conNoise(3);
+            plot(x,y,'-r'); % contrast response
+            plot(x,ymax,'-.k'); % contrast response
+            plot(x,ymin,'-.k'); % contrast response
+            drawPublishAxis
+            subplot(1,3,3), hold on
+            title('MT')
+            y = datmt.coh.b0 + datmt.coh.a * x;
+            ymax = y + dat.cohNoise(6);
+            ymin = y - dat.cohNoise(6);
+            plot(x,y,'-b'); % contrast response
+            plot(x,ymax,'-.k'); % contrast response
+            plot(x,ymin,'-.k'); % contrast response
+            drawPublishAxis
+        end
+    end
+end
 
 function data = cc_fullEstimator(data)
 %% setup
