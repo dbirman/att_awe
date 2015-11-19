@@ -44,6 +44,7 @@ local.properties
 *.suo
 *.user
 *.sln.docstates
+analysis/data/*.csv
 
 # Build results
 
@@ -224,3 +225,4 @@ pip-log.txt
 **.mat
 analysis/data/*.mat
 analysis/figures/*
+analysis/data/s0300_voxels.csv
