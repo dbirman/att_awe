@@ -78,14 +78,14 @@ for si = 1:length(subjects)
     allData = loadAllData(sid);
     
 %     allData.neural.SCM_s = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
-    allData.neural.SCM_f = cc_simplifySCM(allData.neural.SCM,[],[],1,'full');
+    allData.neural.SCM_f = cc_simplifySCM(allData.neural.SCM,[],[],1);
     saveAllData(sid,allData);
 end
 
 %% Load and Run Decoding Analysis
 
 % this is the new 
-for si = 1:length(subjects)
+for si = 2:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
     cc_decoding(allData.neural,sid);

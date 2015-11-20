@@ -1,9 +1,11 @@
-function SCM = cc_simplifySCM( SCM, conValues, cohValues, nearest, name)
+function nSCM = cc_simplifySCM( SCM, conValues, cohValues, nearest)
 
 % We're going to modify the SCM for each folder in SCM.f## so that they
 % only have values from conValues and cohValues.
 % nearest = 0: Just those values specifically
 % nearest = 1: Use the nereast neighbors
+
+nSCM = struct;
 
 fList = fields(SCM);
 stims = {'lStim','rStim'};
@@ -80,14 +82,18 @@ for fi = 1:length(fList)
                     conP = con==ccon; cohP = coh==ccoh; taskP = task==ctask;
                     P = conP.*cohP.*taskP; % spots where we overlap
                     stimVolP = newsV(logical(P));
-                    finalSV{end+1} = sort(unique(stimVolP));
+                    if isempty(stimVolP)
+                        finalSV{end+1} = [];
+                    else
+                        finalSV{end+1} = sort(unique(stimVolP));
+                    end
                 end
             end
         end
         
         % add to name
-        SCM.(folder).(stim).(name).stimVol = finalSV;
-        SCM.(folder).(stim).(name).stimNames = stimNames;
+        nSCM.(folder).(stim).stimVol = finalSV;
+        nSCM.(folder).(stim).stimNames = stimNames;
     end
 end
 

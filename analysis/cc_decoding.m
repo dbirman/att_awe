@@ -1,8 +1,5 @@
 function neural = cc_decoding(neural,sid)
 
-stop = 1;
-
-
 %% Step 1: Load Data
 folders = neural.folders;
 
@@ -41,24 +38,32 @@ for fi = 1:length(folders)
     d.roi = getSortIndex(view,d.roi,r2);
     
     ds{fi} = d;
-    % 
-
+    %
+    
     
 end
-cd(cdir);
 
 %% Step 2: Get Instances
 % now we want to get the average response to every single condition that
 % exists in our experiment. We use 'get instances' to do this. Then we want
 % to combine this into a giant long-form dataset.
 %
-% Header
-% roi - voxel - con - coh - task - amplitude - instance
-header = {'roi','voxel','con','coh','task','amplitude','instance'};
-data = []; count = 1;
-prefixes = {{'rCon','rCoh'},{'lCon','lCoh'}};
+adata = [];
 for fi = 1:length(folders)
     folderz = sprintf('f%s',folders{fi});
+    
+    folder = folders{fi};
+    folderz = sprintf('f%s',folder);
+    fullFolder = fullfile(preF,sprintf('%s%s',sid,folder));
+    
+    mrQuit;
+    cd(fullFolder);
+    
+    %% Setup a view, don't load ROIs
+    view = newView();
+    view = viewSet(view,'curGroup','Concatenation');
+    view = viewSet(view,'curScan',neural.concatScan);
+    view = loadAnalysis(view,sprintf('erAnal/%s','both_ER'));
     d = ds{fi};
     
     lindxs = []; rindxs = [];
@@ -72,57 +77,79 @@ for fi = 1:length(folders)
     
     lROIs = d.roi(lindxs);
     rROIs = d.roi(rindxs);
-%     
-%     lInst = getInstances(view,lROIs,neural.SCM.(folderz).lStim.stimVol,'startLag=6','blockLen=10','minResponseLen=4');
-%     rInst = getInstances(view,rROIs,neural.SCM.(folderz).rStim.stimVol,'startLag=6','blockLen=10','minResponseLen=4');
+    %
+    %     lInst = getInstances(view,lROIs,neural.SCM.(folderz).lStim.stimVol,'startLag=6','blockLen=10','minResponseLen=4');
+    %     rInst = getInstances(view,rROIs,neural.SCM.(folderz).rStim.stimVol,'startLag=6','blockLen=10','minResponseLen=4');
     lInst = getInstances(view,lROIs,neural.SCM_f.(folderz).lStim.stimVol,'type','glm','r2cutoff=0.07','hdrlen=15');
     rInst = getInstances(view,rROIs,neural.SCM_f.(folderz).rStim.stimVol,'type','glm','r2cutoff=0.07','hdrlen=15');
-
+    
+    %%
+    tCount = 0;
+    for li = 1:length(lInst)
+        inst = lInst{li}.classify.instances;
+        for ii = 1:length(inst)
+            tCount = tCount + length(inst{ii});
+        end
+    end
+    tCount = 0;
+    for ri = 1:length(rInst)
+        inst = rInst{ri}.classify.instances;
+        for ii = 1:length(inst)
+            tCount = tCount + length(inst{ii});
+        end
+    end
+    tCount = tCount*100; % max possible size
+    
+    % setup data to the max possible size, we will remove the end later
+    data = zeros(tCount,9);
+    count = 1;
     %% calculate left/right data
     disp('Starting left...');
     disppercent(-1/length(lInst));
     for li = 1:length(lInst)
         inst = lInst{li};
         
-        sN = neural.SCM_f.(folderz).lStim.stimNames;
-        sV = neural.SCM_f.(folderz).lStim.stimVol;
-        tsN = neural.SCM_f.(folderz).lStim.taskNames;
-        tsV = neural.SCM_f.(folderz).lStim.taskSV;
-        iV = inst.classify.instanceVol;
-        amps = inst.classify.instances;
-        [con,coh,task, sv] = sv2long(sV,sN,tsV,tsN);
-        
-        roi_pos = find(cellfun(@(x) strcmp(x,inst.name),neural.ROIs));
-        croi = neural.ROIs{roi_pos};
-        [s, r] = parseROI(croi,neural.shortROIs);
-        
-        
-        for ci=1:length(amps)
-            if ~isempty(amps)
-                camps = amps{ci};
-                for i = 1:size(camps,1)
-                    camp = camps(i,:);
-                    vol = iV{ci}(i);
-                    
-                    sv_pos = find(sv==vol);
-                    if ~isempty(sv_pos)
-                        ccon = con(sv_pos);
-                        ccoh = coh(sv_pos);
-                        ctask = task(sv_pos);
+        if ~isempty(inst.classify.instances)
+            sN = neural.SCM_f.(folderz).lStim.stimNames;
+            sV = neural.SCM_f.(folderz).lStim.stimVol;
+            tsN = neural.SCM.(folderz).lStim.taskNames;
+            tsV = neural.SCM.(folderz).lStim.taskSV;
+            iV = inst.classify.instanceVol;
+            amps = inst.classify.instances;
+            [con,coh,task, sv] = sv2long(sV,sN,tsV,tsN);
+            
+            roi_pos = find(cellfun(@(x) strcmp(x,inst.name),neural.ROIs));
+            croi = neural.ROIs{roi_pos};
+            [s, r] = parseROI(croi,neural.shortROIs);
+            
+            
+            for ci=1:length(amps)
+                if ~isempty(amps)
+                    camps = amps{ci};
+                    for i = 1:size(camps,1)
+                        camp = camps(i,:);
+                        vol = iV{ci}(i);
                         
-                        for ai = 1:length(camp) % for each voxel
+                        sv_pos = find(sv==vol);
+                        if ~isempty(sv_pos)
+                            ccon = con(sv_pos);
+                            ccoh = coh(sv_pos);
+                            ctask = task(sv_pos);
                             
-                            a = camp(ai);
-                            
-                            % roi - voxel - con - coh - task - amplitude - instance
-                            % - folder - side
-                            dat = [r ai ccon ccoh ctask a i fi s];
-                            data(count,:) = dat;
-                            count = count+1;
+                            for ai = 1:length(camp) % for each voxel
+                                
+                                a = camp(ai);
+                                
+                                % roi - voxel - con - coh - task - amplitude - instance
+                                % - folder - side
+                                dat = [r ai ccon ccoh ctask a i fi s];
+                                data(count,:) = dat;
+                                count = count+1;
+                            end
                         end
                     end
+                    
                 end
-                
             end
         end
         
@@ -135,60 +162,68 @@ for fi = 1:length(folders)
     for li = 1:length(rInst)
         inst = rInst{li};
         
-        sN = neural.SCM_f.(folderz).rStim.stimNames;
-        sV = neural.SCM_f.(folderz).rStim.stimVol;
-        tsN = neural.SCM_f.(folderz).rStim.taskNames;
-        tsV = neural.SCM_f.(folderz).rStim.taskSV;
-        iV = inst.classify.instanceVol;
-        amps = inst.classify.instances;
-        [con,coh,task, sv] = sv2long(sV,sN,tsV,tsN);
-        
-        roi_pos = find(cellfun(@(x) strcmp(x,inst.name),neural.ROIs));
-        croi = neural.ROIs{roi_pos};
-        [s, r] = parseROI(croi,neural.shortROIs);
-        
-        
-        for ci=1:length(amps)
-            if ~isempty(amps)
-                camps = amps{ci};
-                for i = 1:size(camps,1)
-                    camp = camps(i,:);
-                    vol = iV{ci}(i);
-                    
-                    sv_pos = find(sv==vol);
-                    if ~isempty(sv_pos)
-                        ccon = con(sv_pos);
-                        ccoh = coh(sv_pos);
-                        ctask = task(sv_pos);
+        if ~isempty(inst.classify.instances)
+            
+            sN = neural.SCM_f.(folderz).rStim.stimNames;
+            sV = neural.SCM_f.(folderz).rStim.stimVol;
+            tsN = neural.SCM.(folderz).rStim.taskNames;
+            tsV = neural.SCM.(folderz).rStim.taskSV;
+            iV = inst.classify.instanceVol;
+            amps = inst.classify.instances;
+            [con,coh,task, sv] = sv2long(sV,sN,tsV,tsN);
+            
+            roi_pos = find(cellfun(@(x) strcmp(x,inst.name),neural.ROIs));
+            croi = neural.ROIs{roi_pos};
+            [s, r] = parseROI(croi,neural.shortROIs);
+            
+            
+            for ci=1:length(amps)
+                if ~isempty(amps)
+                    camps = amps{ci};
+                    for i = 1:size(camps,1)
+                        camp = camps(i,:);
+                        vol = iV{ci}(i);
                         
-                        for ai = 1:length(camp) % for each voxel
+                        sv_pos = find(sv==vol);
+                        if ~isempty(sv_pos)
+                            ccon = con(sv_pos);
+                            ccoh = coh(sv_pos);
+                            ctask = task(sv_pos);
                             
-                            a = camp(ai);
-                            
-                            % roi - voxel - con - coh - task - amplitude - instance
-                            % - folder - side
-                            dat = [r ai ccon ccoh ctask a i fi s];
-                            data(count,:) = dat;
-                            count = count+1;
+                            for ai = 1:length(camp) % for each voxel
+                                
+                                a = camp(ai);
+                                
+                                % roi - voxel - con - coh - task - amplitude - instance
+                                % - folder - side
+                                dat = [r ai ccon ccoh ctask a i fi s];
+                                data(count,:) = dat;
+                                count = count+1;
+                            end
                         end
                     end
+                    
                 end
-                
             end
         end
+        disppercent(li/length(rInst));
     end
-    disppercent(li/length(rInst));
+    disppercent(inf);
+    data = data(1:count,:);
+    adata = [adata;data];
 end
-disppercent(inf);
+
+cd(cdir);
 
 %% Write CSV (then can be used for R analyses)
 
-                            % roi - voxel - con - coh - task - amplitude - instance
-                            % - folder - side
+% roi - voxel - con - coh - task - amplitude - instance
+%                             % - folder - side
 header = {'roi','voxel','con','coh','task','amplitude','instance','folder','side'};
 fname = sprintf('~/proj/att_awe/analysis/data/%s_voxels.csv',sid);
 csvwriteh(fname,data,header);
 
+return
 %% Step 3: Lasso Decoding
 
 % data is obs x 8
@@ -212,11 +247,11 @@ for ri = 1:length(rois)
         voxel = voxels(vi);
         dat2 = select(dat,2,voxel);
         X = dat2(:,3:4);
-%         X = [ones(size(X,1),1),X]; % intercept
-%         Y = dat2(:,6)*100-100; % reduce range to percentage
-%         increase/decrease (only if using mean)
+        %         X = [ones(size(X,1),1),X]; % intercept
+        %         Y = dat2(:,6)*100-100; % reduce range to percentage
+        %         increase/decrease (only if using mean)
         Y = dat2(:,6);
-
+        
         if ~any(isnan(Y))
             if any(Y>10) || any(Y<-10)
                 X = X(Y<10,:);
@@ -225,7 +260,7 @@ for ri = 1:length(rois)
                 Y = Y(Y>-10,:);
             end
             lm = fitlm(X,Y);
-    %         B = X\Y;
+            %         B = X\Y;
             int = lm.Coefficients.Estimate(1);
             Bcon = lm.Coefficients.Estimate(2);
             Bcoh = lm.Coefficients.Estimate(3);
@@ -235,8 +270,8 @@ for ri = 1:length(rois)
             pvcoh = [pvcoh lm.Coefficients.pValue(3)];
         end
     end
-%     X = [ones(size(bcon,2),1),bcon']; Y = bcoh';
-%     Broi = X\Y;
+    %     X = [ones(size(bcon,2),1),bcon']; Y = bcoh';
+    %     Broi = X\Y;
     lm = fitlm(bcon',bcoh');
     x = -5:5;
     for i = 1:length(bcon)

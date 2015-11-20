@@ -58,12 +58,14 @@ lmdata = lmdata %>%
 
 ```{r}
 g = ggplot(data=lmdata, aes(ec,em,color=attending)) +
-  geom_point() +
+  geom_point(size=0.5) +
   geom_smooth(method="lm") +
   facet_grid(.~roi, scales="fixed") +
   xlab('Effect Across Contrast 0->1 (beta)') +
   ylab('Effect Across Coherence 0->1 (beta)') +
+  coord_fixed() +
   theme_bw()
+g
 ```
 
 
@@ -71,7 +73,7 @@ Generate indiviual ROI plots with marginals:
 
 ```{r}
 localdata = lmdata %>%
-  filter(roi=='V3b')
+  filter(roi=='V1')
 pMain <- localdata %>%
   ggplot(data=., aes(ec,em,color=attending)) +
   geom_point() +
