@@ -2,6 +2,7 @@ function neural = cc_decoding(neural,sid)
 
 %% Step 1: Load Data
 folders = neural.folders;
+folders = folders(1);
 
 if ~isfield(neural,'tSeries')
     neural.tSeries = struct;
@@ -43,12 +44,18 @@ for fi = 1:length(folders)
     
 end
 
+%% Matching Voxels Across Scans
+% because the cross-validation is only so good it would be nice to have the
+% same voxels across scans--they will be slightly off but it isn't a big
+% deal. 
+
 %% Step 2: Get Instances
 % now we want to get the average response to every single condition that
 % exists in our experiment. We use 'get instances' to do this. Then we want
 % to combine this into a giant long-form dataset.
 %
 adata = [];
+aInsts = {};
 for fi = 1:length(folders)
     folderz = sprintf('f%s',folders{fi});
     
@@ -82,6 +89,7 @@ for fi = 1:length(folders)
     %     rInst = getInstances(view,rROIs,neural.SCM.(folderz).rStim.stimVol,'startLag=6','blockLen=10','minResponseLen=4');
     lInst = getInstances(view,lROIs,neural.SCM_f.(folderz).lStim.stimVol,'type','glm','r2cutoff=0.07','hdrlen=15');
     rInst = getInstances(view,rROIs,neural.SCM_f.(folderz).rStim.stimVol,'type','glm','r2cutoff=0.07','hdrlen=15');
+    aInst = [lInst rInst];
     
     %%
     tCount = 0;
@@ -221,76 +229,13 @@ cd(cdir);
 %                             % - folder - side
 header = {'roi','voxel','con','coh','task','amplitude','instance','folder','side'};
 fname = sprintf('~/proj/att_awe/analysis/data/%s_voxels.csv',sid);
+fname2 = sprintf('~/proj/Box Sync/cohcon/%s_voxels.csv',sid);
 csvwriteh(fname,data,header);
+csvwriteh(fname2,data,header);
 
 return
-%% Step 3: Lasso Decoding
 
-% data is obs x 8
-% roi - voxel - con - coh - task - amplitude - instance - folder - side
+%% Cross-Validated Analysis (Build Encoding Model, Decode from Test Set)
 
-rois = neural.shortROIs;
-
-figure
-% first do attending contrast
-for ri = 1:length(rois)
-    subplot(1,length(rois),ri), hold on
-    bcon = [];
-    bcoh = [];
-    pvcon = [];
-    pvcoh = [];
-    disp(sprintf('Current ROI: %s',rois{ri}));
-    dat = select(data,1,ri);
-    dat = select(dat,5,1); % contrast task
-    voxels = unique(dat(:,2));
-    for vi = 1:length(voxels)
-        voxel = voxels(vi);
-        dat2 = select(dat,2,voxel);
-        X = dat2(:,3:4);
-        %         X = [ones(size(X,1),1),X]; % intercept
-        %         Y = dat2(:,6)*100-100; % reduce range to percentage
-        %         increase/decrease (only if using mean)
-        Y = dat2(:,6);
-        
-        if ~any(isnan(Y))
-            if any(Y>10) || any(Y<-10)
-                X = X(Y<10,:);
-                Y = Y(Y<10,:);
-                X = X(Y>-10,:);
-                Y = Y(Y>-10,:);
-            end
-            lm = fitlm(X,Y);
-            %         B = X\Y;
-            int = lm.Coefficients.Estimate(1);
-            Bcon = lm.Coefficients.Estimate(2);
-            Bcoh = lm.Coefficients.Estimate(3);
-            bcon = [bcon Bcon];
-            pvcon = [pvcon lm.Coefficients.pValue(2)];
-            bcoh = [bcoh Bcoh];
-            pvcoh = [pvcoh lm.Coefficients.pValue(3)];
-        end
-    end
-    %     X = [ones(size(bcon,2),1),bcon']; Y = bcoh';
-    %     Broi = X\Y;
-    lm = fitlm(bcon',bcoh');
-    x = -5:5;
-    for i = 1:length(bcon)
-        if pvcon(i) < .05 && pvcoh(i) < .05
-            plot(bcon(i),bcoh(i),'*');
-        else
-            plot(bcon(i),bcoh(i),'o');
-        end
-    end
-    text(-0.5,1,sprintf('sd: %1.2f',std(bcoh)));
-    text(0.5,-1,sprintf('sd: %1.2f',std(bcon)));
-    plot(x,x,'-.k');
-    axis([-2 2 -2 2]);
-    plot(x,lm.Coefficients.Estimate(1)+lm.Coefficients.Estimate(2)*x,'-.r');
-    title(sprintf('%s: B = %1.2f, p = %1.3f',rois{ri},lm.Coefficients.Estimate(2),lm.Coefficients.pValue(2)));
-end
-
-
-function data = select(data,col,value)
-
-scol = data(:,col);
-data = data(scol==value,:);
+% We are going to do a few things here. First, we split the dataset into 5
+% parts *for each voxel in each session*. Then we take the first four folds

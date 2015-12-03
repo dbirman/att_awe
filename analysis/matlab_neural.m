@@ -50,13 +50,12 @@ end
 %% Modify stimfiles
 for si = 1:length(subjects)
     sid = subjects{si};
-    allData = loadAllData(sid);
     
-    folders = allData.neural.folders;
+    cfolders = folders{si};
     
-    for fi = 1:length(folders)
-        fullFolder = fullfile(sprintf('~/data/cohcon/%s%s',sid,folders{fi}));
-        disp(sprintf('(matlab_neural) Checking if folder %s needs corrected stimfiles.',folders{fi}));
+    for fi = 1:length(cfolders)
+        fullFolder = fullfile(sprintf('~/data/cohcon/%s%s',sid,cfolders{fi}));
+        disp(sprintf('(matlab_neural) Checking if folder %s needs corrected stimfiles.',cfolders{fi}));
         genCorrectedStims(fullFolder);
     end
 end
@@ -67,7 +66,8 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-    allData.neural.SCM = cc_genSCM(allData.neural,sid);
+%     allData.neural.SCM = cc_genSCM(allData.neural,sid,'');
+    allData.neural.SCM_st = cc_genSCM(allData.neural,sid,'side_x_nTask_x_correct=1');
     saveAllData(sid,allData);
 end
 
@@ -80,6 +80,13 @@ for si = 1:length(subjects)
 %     allData.neural.SCM_s = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
     allData.neural.SCM_f = cc_simplifySCM(allData.neural.SCM,[],[],1);
     saveAllData(sid,allData);
+end
+
+%% LDA/SVM Decoding
+for si = 1:length(subjects)
+    sid = subjects{si};
+    allData = loadAllData(sid);
+    cc_decoding_svm(allData.neural,sid);
 end
 
 %% Load and Run Decoding Analysis

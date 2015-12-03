@@ -34,9 +34,27 @@ if ~exist('stimulus','var') || ~exist('task','var') || ~exist('myscreen','var')
     keyboard
 end
 
-%% nTask
+%% Variables
 
 randVars = task{1}{1}.randVars;
+trials = task{1}{1}.trialnum;
+param = task{1}{1}.block.parameter;
+
+%% Side
+if isfield(param,'conSide') && ~isfield(randVars,'conSide')
+    addCalculatedVar('conSide',param.conSide(1:trials),file,'backup=0');
+    addCalculatedVar('cohSide',param.cohSide(1:trials),file,'backup=0');
+    if sum(randVars.task==1) > sum(randVars.task==2)
+        % this is a motion run
+        addCalculatedVar('side',param.cohSide(1:trials),file,'backup=0');
+    else
+        % this is a contrast run
+        addCalculatedVar('side',param.conSide(1:trials),file,'backup=0');
+    end
+end
+
+%% nTask
+
 if ~isfield(randVars,'coherence')
     disp('This stimfile doesn''t have a coherence field, skipping.');
     return
@@ -44,8 +62,6 @@ end
 
 
 
-trials = task{1}{1}.trialnum;
-param = task{1}{1}.block.parameter;
 if any(param.catch(1:trials)>0)
     nTask = randVars.task(1:trials) + param.catch(1:trials) .* 2;
 else

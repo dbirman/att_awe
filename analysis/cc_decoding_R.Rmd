@@ -5,10 +5,11 @@ library(dplyr)
 library(tidyr)
 library(effects)
 library(lme4)
+library(gridExtra)
 ```
 
 ```{r}
-d = read.csv('~/proj/att_awe/analysis/data/s0300_voxels.csv')
+d = read.csv('~/proj/att_awe/analysis/data/s0304_voxels.csv')
 ```
 
 ```{r}
@@ -73,7 +74,7 @@ Generate indiviual ROI plots with marginals:
 
 ```{r}
 localdata = lmdata %>%
-  filter(roi=='V1')
+  filter(roi=='V2')
 pMain <- localdata %>%
   ggplot(data=., aes(ec,em,color=attending)) +
   geom_point() +
