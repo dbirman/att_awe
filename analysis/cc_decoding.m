@@ -2,7 +2,6 @@ function neural = cc_decoding(neural,sid)
 
 %% Step 1: Load Data
 folders = neural.folders;
-folders = folders(1);
 
 if ~isfield(neural,'tSeries')
     neural.tSeries = struct;
@@ -89,7 +88,6 @@ for fi = 1:length(folders)
     %     rInst = getInstances(view,rROIs,neural.SCM.(folderz).rStim.stimVol,'startLag=6','blockLen=10','minResponseLen=4');
     lInst = getInstances(view,lROIs,neural.SCM_f.(folderz).lStim.stimVol,'type','glm','r2cutoff=0.07','hdrlen=15');
     rInst = getInstances(view,rROIs,neural.SCM_f.(folderz).rStim.stimVol,'type','glm','r2cutoff=0.07','hdrlen=15');
-    aInst = [lInst rInst];
     
     %%
     tCount = 0;
@@ -229,9 +227,12 @@ cd(cdir);
 %                             % - folder - side
 header = {'roi','voxel','con','coh','task','amplitude','instance','folder','side'};
 fname = sprintf('~/proj/att_awe/analysis/data/%s_voxels.csv',sid);
+fnamemat = sprintf('~/proj/att_awe/analysis/data/%s_voxels',sid);
 fname2 = sprintf('~/proj/Box Sync/cohcon/%s_voxels.csv',sid);
-csvwriteh(fname,data,header);
-csvwriteh(fname2,data,header);
+csvwriteh(fname,adata,header);
+% csvwriteh(fname2,data,header);
+
+save(fnamemat,'adata','header');
 
 return
 

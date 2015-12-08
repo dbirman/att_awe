@@ -82,17 +82,17 @@ for si = 1:length(subjects)
     saveAllData(sid,allData);
 end
 
-%% LDA/SVM Decoding
-for si = 1:length(subjects)
-    sid = subjects{si};
-    allData = loadAllData(sid);
-    cc_decoding_svm(allData.neural,sid);
-end
+% %% LDA/SVM Decoding
+% for si = 1:length(subjects)
+%     sid = subjects{si};
+%     allData = loadAllData(sid);
+%     cc_decoding_svm(allData.neural,sid);
+% end
 
 %% Load and Run Decoding Analysis
 
 % this is the new 
-for si = 2:length(subjects)
+for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
     cc_decoding(allData.neural,sid);

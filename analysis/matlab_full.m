@@ -3,6 +3,33 @@ function matlab_full()
 %   This is a simulation function to compare different possible models. It
 %   will load the neural and behavioral datasets stored in fullData.mat
 
+nsubjects = {'s0300','s0304','s0305','s0315'};
+bsubjects = {'s300','s304','s305','s315'};
+%% Load the Decoding Data
+
+for si = 1:length(nsubjects)
+    sid = nsubjects{si};
+    fname = sprintf('~/proj/att_awe/analysis/data/%s_voxels.csv',sid);
+    [header, data] = csvreadh(fname);
+    
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 %% Load and Initialize Parameters
 
 % Naka-Rushtonish: N * i^(p+q) / [i^q * (sigma/s)^q]
