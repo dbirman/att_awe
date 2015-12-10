@@ -9,26 +9,100 @@ bsubjects = {'s300','s304','s305','s315'};
 
 for si = 1:length(nsubjects)
     sid = nsubjects{si};
-    fname = sprintf('~/proj/att_awe/analysis/data/%s_voxels.csv',sid);
-    [header, data] = csvreadh(fname);
+    fname = sprintf('~/proj/att_awe/analysis/data/%s_voxels.mat',sid);
+    load(fname)
+%     [header, data] = csvreadh(fname);
     
 end
 
+% header = {'roi','voxel','con','coh','task','amplitude','instance','folder','side'};
 
+%% Pre-process
+% remove amp > 10 or < -10
+adata = fil(adata,6,'<',10);
+adata = fil(adata,6,'>',-10);
 
+%%
+effect = zeros(100000,10); count = 1;
+preps = 100;
 
+rois = unique(adata(:,1));
+for ri = 1:length(rois)
+    croi = rois(ri);
+    rdata = sel(adata,1,croi);
+    
+    sides = unique(rdata(:,9));
+    for si = 1:length(sides)
+        cside = sides(si);
+        sdata = sel(rdata,9,cside);
+        
+        voxels = unique(sdata(:,2));
+        for vi = 1:length(voxels)
+            cvox = voxels(vi);
+            vdata = sel(sdata,2,cvox);
+            
+            amp = vdata(:,6);
+            con = vdata(:,3);
+            coh = vdata(:,4);
+            task = vdata(:,5)-1; % 0 = attend coh, 1 = attend contrast
+            
+            X = [ones(size(vdata,1),1),task,con,coh,con.*task,coh.*task];
+            % task contrast is dummy coding: 0/1
+            % model: Amp ~ Intercept + Con + Task*Coh
+            b = X\amp;
+            SStotal = sum((amp-mean(amp)).^2);
+            SSresid = sum((amp-X*b).^2);
+            R2 = (SStotal-SSresid)/SStotal;
+            
+            for pi = 1:preps
+                bp = X\(amp(randperm(length(amp))));
+                SSresidp = sum((amp-X*bp).^2);
+                R2p(pi) = (SStotal-SSresidp)/SStotal;
+            end
+            
+            % we will separate the overall amplitude (intercept/task) b/c
+            % we want to look at slopes and amplitude changes separately
+            att_coh = b(1);
+            att_con = b(2);
 
+            con_att_coh = b(3);
+            coh_att_coh = b(4);
+            con_att_con = b(3)+b(5);
+            coh_att_con = b(4)+b(6);
+            
+            %save all data
+            effect(count,:) = [att_con,con_att_con,coh_att_con,1,cvox,croi,cside,R2,mean(R2p),std(R2p)];
+            effect(count,:) = [att_coh,con_att_coh,coh_att_coh,0,cvox,croi,cside,R2,mean(R2p),std(R2p)];
+            count = count + 1;
+        end
+    end
+end
+effect = effect(1:count,:);
 
+eheader = {'Effect Contrast','Effect Coherence','Attending 0=Coh, 1=Con','Voxel','ROI','Side','R2'};
 
+%% Plot Data
 
+% this is the same plot we did in R, just in matlab, cause fuck r
+sides = unique(effect(:,7));
+rois = unique(effect(:,6));
 
-
-
-
-
-
-
-
+cols = {'*r','*b'};
+figure
+for si = 1:length(sides)
+    cside = sides(si);
+    for ri = 1:length(rois)
+        croi = rois(ri);
+        subplot(length(sides),length(rois),(si-1)*length(rois)+ri), hold on
+        for ai = 0:1
+            eff = sel(effect,7,cside);
+            eff = sel(eff,6,croi);
+            eff = sel(eff,4,ai);
+            plot(ai*ones(size(eff(:,8))),eff(:,8),cols{ai+1});
+        end
+        axis([-0.5 1.05 0 0.1])
+    end
+end
 
 %% Load and Initialize Parameters
 
