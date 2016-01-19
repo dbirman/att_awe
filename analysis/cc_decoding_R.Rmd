@@ -83,7 +83,7 @@ pMain <- localdata %>%
   ggplot(data=., aes(ec,em,color=attending)) +
   geom_point() +
   geom_smooth(method="lm") +
-  facet_grid(side~roi, scales="fixed") +
+  facet_grid(sid~roi, scales="fixed") +
   xlab('Effect Across Contrast 0->1 (beta)') +
   ylab('Effect Across Coherence 0->1 (beta)') +
   theme_bw()

@@ -82,6 +82,20 @@ for li = 1:length(aInst)
 end
 disppercent(inf);
 
+%% test code (delete)
+test = t;
+train;
+
+Y = train(:,1);
+X = train(:,5:end);
+Y = Y(~any(X>100,2),:);
+X = X(~any(X>100,2),:); % remove rows with motion spikes first
+X = X(:,~any(X>100,1)); % now remove voxels that show spikes
+X = X(:,~any(X<-100,1)); % now remove voxels that show spikes
+
+[B,stats] = lasso(X,Y,'CV',5);
+lassoPlot(B,stats);
+
 %% Lasso
 
 Y = data(:,1); % contrast
