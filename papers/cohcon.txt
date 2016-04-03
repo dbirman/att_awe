@@ -1,0 +1,19 @@
+// This is a draft of ideas for the future cohcon paper
+
+General Outline:
+
+ - Concept comes from inattentional blindness literature
+ 	a) When attention is captured by one feature you lose access to some other features.
+ 	b) The loss depends on (1) the two features, (2) the amount of attention captured
+ 	c) This suggests that (1) features can interfere, and that (2) attention causes suppression
+ - Here we will look at a model system, V1->MT contrast/coherence discrimination as an example of how this might play out
+ 	a) Attending to contrast affects motion perception, but not vice versa
+ 	b) Presumably effect is difficulty dependent
+ 	c) Contrast response in V1, slope is large
+ 	d) Coherenc response in MT, slope is small
+ 	e) A simple d' model might be sufficient to account for the behavioral effect with constant noise in both areas
+ - What about the corruption suppression story?
+ 	a) We will build a model that motion does direction discrimination to test this
+ 	b) We can readout from the model contrast (linear readout from V1)
+ 	c) We can readout from the model coherence (population based model)
+ 	d) We can check whether inputting sensory gain on contrast corrupts the representation of motion coherence
