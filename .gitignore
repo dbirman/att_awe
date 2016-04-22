@@ -220,9 +220,4 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-*.mat
-
-**.mat
-analysis/data/*.mat
 analysis/figures/*
-analysis/data/s0300_voxels.csv
