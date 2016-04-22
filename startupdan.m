@@ -8,6 +8,7 @@ for i = 1:length(pathNames)
   end
 end
 
+mrSetPref('maxBlocksize',32000000000);
 mglSetParam('sidDatabaseFilename','/Volumes/gru/sid/sidDatabase');
 
 % run user specific matlab startup. This will look for a matlab

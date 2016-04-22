@@ -20,6 +20,18 @@ run = [1 2 3 4];
 
 main_name = 'up_ret';
 
+%% temp run (to check motion coherence)
+
+asubjects = {'s0300'};
+afolders = {{'20160216'}};
+ar2_cutoffs = {[.07]};
+aconcatScans = {1};
+ROIs = {'lV1','lV2v','lV2d','lV3v','lV3d','lMT','rV1','rV2v','rV2d','rV3v','rV3d','rMT','lV3a','lV3b','rV3a','rV3b','lLO1','lLO2','lV4','rLO1','rLO2','rV4'};
+shortROIs = {'V3a','V3b','V1','V2','V3','MT','LO1','LO2','V4'};
+reset = [1];
+run = [1];
+main_name = 'up_ret';
+
 %% Use run to alter fields
 
 subjects = asubjects(run);
@@ -66,8 +78,8 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-%     allData.neural.SCM = cc_genSCM(allData.neural,sid,'');
-    allData.neural.SCM_st = cc_genSCM(allData.neural,sid,'side_x_nTask_x_correct=1');
+    allData.neural.SCM = cc_genSCM(allData.neural,sid,'');
+    %allData.neural.SCM_st = cc_genSCM(allData.neural,sid,'side_x_nTask_x_correct=1');
     saveAllData(sid,allData);
 end
 
@@ -77,8 +89,9 @@ for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
     
-%     allData.neural.SCM_s = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1,main_name);
+    allData.neural.SCM_s = cc_simplifySCM(allData.neural.SCM,[.2 .4 .6 .8 1],[0 .02 .1 .2 .4 .6],1);
     allData.neural.SCM_f = cc_simplifySCM(allData.neural.SCM,[],[],1);
+    allData.neural.SCM = cc_simplifySCM(allData.neural.SCM,[.5],[],1);
     saveAllData(sid,allData);
 end
 
@@ -92,11 +105,11 @@ end
 %% Load and Run Decoding Analysis
 
 % this is the new 
-for si = 1:length(subjects)
-    sid = subjects{si};
-    allData = loadAllData(sid);
-    cc_decoding(allData.neural,sid);
-end
+% % for si = 1:length(subjects)
+% %     sid = subjects{si};
+% %     allData = loadAllData(sid);
+% %     cc_decoding(allData.neural,sid);
+% % end
 
 %% Load Mean ER_analysis
 
@@ -113,7 +126,7 @@ end
 for si = 1:length(subjects)
     sid = subjects{si};
     allData = loadAllData(sid);
-    allData.neural = cc_concatER(allData.neural,main_name);
+    allData.neural = cc_concatER(allData.neural,main_name,'SCM',1);
     saveAllData(sid,allData);
 end
 %% Remove stimVols that don't have enough data
@@ -123,7 +136,8 @@ for si = 1:length(subjects)
     allData = loadAllData(sid);
     
     restore = 0; % flag = 1 will reverse the removal and restore the backup
-    allData.neural.SCM_s = cc_removeNoDataStimVols(allData.neural.SCM_s,main_name,15,restore);
+    allData.neural.SCM_s = cc_removeNoDataStimVols(allData.neural.SCM_s,5,restore);
+    allData.neural.SCM = cc_removeNoDataStimVols(allData.neural.SCM,5,restore);
     saveAllData(sid,allData);
 end
 %% Run Analysis
@@ -135,12 +149,41 @@ for si = 1:length(subjects)
     saveAllData(sid,allData);
 end
 
+%% test figures 3-2-16
+clist2 = brewermap(8,'Oranges');
+for fi = 1:8
+    figure, hold on
+    xvals = [.1 .15 .2 .3 .4 .6 .8];
+    title(allData.neural.shortROIs{fi})
+    leg = {};
+    for ci = 1:length(xvals)
+        plot(allData.neural.up_ret.deconvo{fi}.ehdr(ci,:),'Color',clist2(ci,:));
+        leg{end+1} = num2str(xvals(ci));
+    end
+    legend(leg);
+    a = axis();
+    axis([a(1) a(2) -2 5]);
+end
+
+%% test figure (mean of deoncvo) 3-2-16
+for fi = 1:7
+    figure, hold on
+    xvals = [.1 .15 .2 .3 .4 .6 .8];
+    title(allData.neural.shortROIs{fi})
+    mu = zeros(1,7);
+    for ci = 1:length(xvals)
+        mu(ci) = mean(allData.neural.up_ret.deconvo{fi}.ehdr(ci,8:15));
+    end
+    plot(xvals,mu);
+    axis([0 1 0 5]);
+end
+
 %% Figures
 
 for si = 1:length(asubjects)
     sid = asubjects{si};
     allData = loadAllData(sid);
-    cc_neuralFigures(allData.neural,main_name,sid,false,true);
+    cc_neuralFigures(allData.neural,main_name,sid,true,true);
 %     saveAllData(sid,allData);
 end
 

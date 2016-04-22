@@ -8,8 +8,8 @@ global analysis
 
 [analysis.datFolder, analysis.anFolder] = getSubjDataFolder('cohcon',scan);
 
-year = date;
-year = year(end-1:end);
+year = '15';
+%year = year(end-1:end);
 
 files = dir(sprintf('%s/%s*mat',analysis.datFolder,year));
 

@@ -48,44 +48,46 @@ for ri = 1:length(rois)
             roiConcat = {};
         end
         
-        cts = data.tSeries{ri};
+        if length(data.tSeries)>ri
+            cts = data.tSeries{ri};
         
-        if any(isnan(cts))
-            disp(sprintf('(concatER) Folder %s in ROI %s contains NaNs, not concatenating...',folder,roi));
-        else
-
-            if isempty(roiTSeries)
-                % If this is the first timeseries we just save the data
-                roiTSeries = cts;
-                if side==1
-                    roistimVols = sv.lStim.(name).stimVol;
-                    neural.SCM.(name).(rroi).stimNames = sv.lStim.(name).stimNames;
-                else
-                    roistimVols = sv.rStim.(name).stimVol;
-                    neural.SCM.(name).(rroi).stimNames = sv.rStim.(name).stimNames;
-                end
-                roiConcat = data.concatInfo;
-                % note stimnames is the same across all folders for an ROI
-                % so this is okay. BUT: this only applies once prefixes
-                % have been ignored obviously...
+            if any(isnan(cts))
+                disp(sprintf('(concatER) Folder %s in ROI %s contains NaNs, not concatenating...',folder,roi));
             else
-                % Otherwise we concatenate to the previous data, we also
-                % concatenate the stimVols even though the prefixes may be
-                % different.
-                ccI = data.concatInfo;
-                if side==1
-                    csv = sv.lStim.(name).stimVol;
+
+                if isempty(roiTSeries)
+                    % If this is the first timeseries we just save the data
+                    roiTSeries = cts;
+                    if side==1
+                        roistimVols = sv.lStim.stimVol;
+                        neural.SCM.(name).(rroi).stimNames = sv.lStim.stimNames;
+                    else
+                        roistimVols = sv.rStim.stimVol;
+                        neural.SCM.(name).(rroi).stimNames = sv.rStim.stimNames;
+                    end
+                    roiConcat = data.concatInfo;
+                    % note stimnames is the same across all folders for an ROI
+                    % so this is okay. BUT: this only applies once prefixes
+                    % have been ignored obviously...
                 else
-                    csv = sv.rStim.(name).stimVol;
-                end
-                if length(cts)>100
-                    [roiTSeries, roistimVols, roiConcat] = concatRuns({roiTSeries, cts}, {roistimVols, csv}, {roiConcat, ccI});
+                    % Otherwise we concatenate to the previous data, we also
+                    % concatenate the stimVols even though the prefixes may be
+                    % different.
+                    ccI = data.concatInfo;
+                    if side==1
+                        csv = sv.lStim.stimVol;
+                    else
+                        csv = sv.rStim.stimVol;
+                    end
+                    if length(cts)>100
+                        [roiTSeries, roistimVols, roiConcat] = concatRuns({roiTSeries, cts}, {roistimVols, csv}, {roiConcat, ccI});
+                    end
                 end
             end
+            % Save the data for the next run
+            neural.tSeries.(name).(rroi).tSeries = roiTSeries;
+            neural.SCM.(name).(rroi).stimVol = roistimVols;
+            neural.tSeries.(name).(rroi).concatInfo = roiConcat;
         end
-        % Save the data for the next run
-        neural.tSeries.(name).(rroi).tSeries = roiTSeries;
-        neural.SCM.(name).(rroi).stimVol = roistimVols;
-        neural.tSeries.(name).(rroi).concatInfo = roiConcat;
     end
 end

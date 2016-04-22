@@ -1,7 +1,7 @@
-function SCM = cc_removeNoDataStimVols(SCM,name,thresh,restore)
+function SCM = cc_removeNoDataStimVols(SCM,thresh,restore)
 
 if restore
-    data = SCM.(name);
+    data = SCM;
 
     scmFields = fields(data);
 
@@ -11,11 +11,11 @@ if restore
         data.(cfield) = data.(cfield).backup;
     end
 
-    SCM.(name) = data;
+    SCM = data;
     return
 end
 
-data = SCM.(name);
+data = SCM.f20160216;
 
 scmFields = fields(data);
 
@@ -40,4 +40,4 @@ for fi = 1:length(scmFields)
     data.(cfield) = dat;
 end
 
-SCM.(name) = data;
+SCM.f20160216 = data;

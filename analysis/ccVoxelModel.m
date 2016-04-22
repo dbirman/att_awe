@@ -69,8 +69,6 @@ function fit = ccVoxelModel( hrf, basecon, basecoh, con, coh, timing, time )
 %       lambda: exponential dropoff of the additive factor to the impulse
 %       response function
 
-
-%% Globals
 global fixedParams
 
 %% Reshape
@@ -96,18 +94,66 @@ if any(remove_idxs)
 end
 
 %% Parameter initialization
+% one value = fixed
+% three values = optimization
+% >three values = loop across options
 
-initparams.n = 1; % one value for fixed
-initparams.Rmax = 1; % three values for optimization
-initparams.c50 = 0.5;
+% Contrast Function Parameters
+if ~any((con-basecon)>0)
+    % fix contrast
+    warning('No contrast changes: Fixing to 0 effect');
+    initparams.n = 1; initparams.Rmax = 0; initparams.c50 = 0.5;
+else
+    initparams.n = 1; % one value for fixed
+    initparams.Rmax = [0 1]; % three values for optimization
+    initparams.c50 = [0.1 -inf inf];
+end
+
+% Coherence Function Parameters
 initparams.slope = [0.1 -inf inf];
+
+% Constant Effect
+initparams.beta = [0.25 -inf inf];
+
+% Gamma function
+initparams.amp1 = [1 -inf inf];
+initparams.tau1 = 0.9;
+initparams.timelag1 = 0.75;
+initparams.amp2 = [-0.2 -inf 0];
+initparams.tau2 = 0.9;
+initparams.timelag2 = 4;
+initparams.exponent = 5;
+fixedParams.diff = 1;
+
+% initparams.amplitude = 0;
+% initparams.tau = 0;
+% initparams.timelag = 0;
+
 initparams.offset = [0 -inf inf];
-initparams.beta = [1 -inf inf];
-initparams.amplitude = [1 -inf inf];
-initparams.exponent = [4 5 6 7]; % more than three values for fixed search
-initparams.tau = [0.75 -inf inf];
-initparams.timelag = [0.75 -inf inf];
-initparams.lambda = [0.01 -inf inf];
+
+% Dropoff of effect
+initparams.lambda = [0.04 -inf inf];
+
+% ALL VARIABLE:
+% % % % initparams.n = 1;
+% % % % initparams.Rmax = 1;
+% % % % initparams.c50 = [0.25 0 1];
+% % % % initparams.slope = [0 -inf inf];
+% % % % initparams.beta = [0.4 -inf inf];
+% % % % initparams.offset = [0 -inf inf];
+% % % % initparams.amplitude = 1;
+% % % % initparams.exponent = [5];
+% % % % initparams.tau = 0.55;
+% % % % initparams.timelag = 0.75;
+% % % % initparams.lambda = [0 0 inf];
+% % % % fixedParams.diff = 0;
+
+%% Parameter Fixing
+if ~any((coh-basecoh)>0)
+    % fix coherence
+    warning('No coherence changes: Fixing to 0 effect');
+    initparams.slope = 0;
+end
 
 %% Fit Model
 fit = optimFitModel(initparams,hrf,basecon,basecoh,con,coh,timing,time);
@@ -152,7 +198,7 @@ end
 % covar = sqrt(reducedChiSquared * inv(jacobian));
 % 
 % fit.ci_covar = nlparci(params,res,'covar',covar);
-fit.ci_jacobian = nlparci(bestparams,res,'jacobian',jacobian);
+% % fit.ci_jacobian = nlparci(bestparams,res,'jacobian',jacobian);
 
 %% Get Best Fit
 [err, fit] = fitModel(bestparams,hrf,basecon,basecoh,con,coh,timing,time);
@@ -175,41 +221,68 @@ params = getParams(params);
 impulse = gamma(t,params);
 
 out = zeros(size(hrf));
+err = zeros(size(hrf));
 for hi = 1:size(hrf,1)
     % get the size of the 'neural firing rate change'
     coneff = conModel(con(hi),params)-conModel(basecon(hi),params);
     coheff = cohModel(coh(hi),params)-cohModel(basecoh(hi),params);
     % total effect
-    effect = coneff + coheff + params.offset;
+    effect = coneff + coheff; % + params.offset;
     % timing
     timing = zeros(size(impulse));
     timing(1:convtiming(hi)) = exp(-(1:convtiming(hi))*params.lambda);
-    timing(1) = timing(1) + params.beta;
-    %
     timing = timing * effect;
+    timing(1) = timing(1) + params.beta;
     % convolve
     out_ = conv(impulse,timing);
     out(hi,:) = out_(1:size(hrf,2));
+    err(hi,:) = hrf(hi,:)-out(hi,:);
 end
 
-err = hrf-out;
+% err = hrf-out;
 err = err(:);
 
 fit.out = out;
 fit.impulse = impulse;
 
-ssres = sum(err(:).^2);
-sstot = sum(hrf(:)-mean(hrf(:)).^2);
-fit.r2 = 1 - ssres./sstot;
+ssres = sum(err.^2);
+sstot = sum((hrf(:)-mean(hrf(:))).^2);
+fit.r2 = 1 - ssres/sstot;
 
+%%
 function out = gamma(time,params)
-n = params.exponent;
-tau = params.tau;
-time = time-params.timelag;
-out = ((time/tau).^(n-1).*exp(-time/tau))./(tau*factorial(n-1));
-out(time < 0) = 0;
-out = (out-min(out)) ./ (max(out)-min(out));
-out = params.amplitude*out;
+
+global fixedParams
+
+if fixedParams.diff
+    n = params.exponent;
+    tau1 = params.tau1;
+    amp1 = params.amp1;
+    tau2 = params.tau2;
+    amp2 = params.amp2;
+    
+    time1 = time-params.timelag1;
+    out1 = ((time1/tau1).^(n-1).*exp(-time1/tau1))./(tau2*factorial(n-1));
+    out1(time1<0) = 0;
+    out1 = (out1-min(out1))./ (max(out1)-min(out1));
+    out1 = amp1*out1+params.offset;
+    
+    time2 = time-params.timelag2;
+    out2 = ((time2/tau2).^(n-1).*exp(-time2/tau2))./(tau2*factorial(n-1));
+    out2(time2<0) = 0;
+    out2 = (out2-min(out2))./(max(out2)-min(out2));
+    out2 = amp2*out2+params.offset;
+    
+    out = out1+out2;
+else
+    n = params.exponent;
+    tau = params.tau;
+    time = time-params.timelag;
+    out = ((time/tau).^(n-1).*exp(-time/tau))./(tau*factorial(n-1));
+    out(time < 0) = 0;
+    out = (out-min(out)) ./ (max(out)-min(out));
+    out = params.amplitude*out+params.offset;
+end
 
 function out = conModel(con,params)
 
@@ -247,7 +320,7 @@ for i = 1:fixedParams.num
         maxparams = [maxparams cvals(3)];
         indexes(i) = count;
         count = count+1;
-    elseif length(cvals)>3
+    elseif length(cvals)==2 || length(cvals)>3
         % optimizer
         fixedParams.(fixedParams.strs{i}) = cvals;
         optim(i) = 1;

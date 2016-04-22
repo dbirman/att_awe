@@ -1,7 +1,7 @@
 function cc_neuralFigures(neural,name,sid,df, nf)
 
-dir = fullfile('~/proj/att_awe/analysis/figures',sid);
-dir1 = fullfile('~/proj/att_awe/analysis/figures',sid,'single_panels');
+dir = fullfile('~/proj/att_awe/analysis/figures_coh',sid);
+dir1 = fullfile('~/proj/att_awe/analysis/figures_coh',sid,'single_panels');
 if ~isdir(dir), mkdir(dir); end
 if ~isdir(dir1), mkdir(dir1); end
 if ~isdir(fullfile(dir1,'deconv')), mkdir(fullfile(dir1,'deconv')); end
@@ -23,7 +23,7 @@ for ri = 1:length(rois)
     ucon = unique(conVals);
     clist2 = brewermap(length(ucoh),'Oranges');
     clist1 = brewermap(length(ucon),'Blues');
-    if ~length(ucoh)==length(ucon)
+    if ~(length(ucoh)==length(ucon))
         disp('This code will break.. fix it up');keyboard
     end
     roi = rois{ri};
@@ -403,23 +403,4 @@ function [f,c] = sp_figure()
 c = gcf;
 f = figure;
 whitebg(f);
-
-function [conVal, cohVal, cuedTask] = parseNames(stimNames)
-%% Note that parse names ignores the prefix entirely, so it's hemisphere independent
-conVal = []; cohVal = []; cuedTask = [];
-
-for i = 1:length(stimNames)
-    name = stimNames{i};
-    ands = strfind(name,' and');
-    
-    if strfind(name,'Con=')
-        conVal(end+1) = str2num(name(strfind(name,'Con=')+4:ands(1))); % note contrast first
-    end
-    if strfind(name,'Coh=')
-        cohVal(end+1) = str2num(name(strfind(name,'Coh=')+4:ands(2)-2));
-    end
-    % t can be 1, 2, (coherence, contrast) or 3, 4 (catch coherence, catch
-    % contrast)
-    cuedTask = [cuedTask str2num(name(strfind(name,'ask=')+4:end))];
-end
 

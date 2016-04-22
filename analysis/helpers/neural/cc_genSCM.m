@@ -31,7 +31,7 @@ for fi = 1:length(folders)
             scmGroup = scmGroups{si};
             prefix = prefixes{si};
             
-            allStims = {sprintf('%sCon_x_%sCoh',prefix,prefix)};
+            allStims = {sprintf('%sCon_x_%sCoh_x_correct=1',prefix,prefix)};
             
             if ~isfield(SCM,folderz)
                 SCM.(folderz) = struct;

@@ -13,27 +13,51 @@ prefixes = {{'rCon','rCoh'},{'lCon','lCoh'}};
 pattern = '%s=%0.2f and %s=%0.2f and task=%i';
 taskValues = [1 2];
 
-if isempty(conValues) || isempty(cohValues)
-    disp('(simplifySCM) Cannot simplify: using all available values');
-    
-    conValues = []; cohValues = [];
-    
-    for si = 1:length(stims)
-        stim = stims{si};
-        % we need to build up a list of all THE VALUES
-        for fi = 1:length(fList)
-            folder = fList{fi};
-            prefixs = prefixes{si};
-            
-            sN = SCM.(folder).(stim).stimNames;
-            sV = SCM.(folder).(stim).stimVol;
-            tsN = SCM.(folder).(stim).taskNames;
-            tsV = SCM.(folder).(stim).taskSV;
-            
-            % re-build into separate con/coh structures
-            [con, coh, task, newsV] = parseSCM(sN,sV,tsN, tsV, prefixs);
-            conValues = unique([conValues con]);
-            cohValues = unique([cohValues coh]);
+if isempty(conValues)
+    disp('(simplifySCM) Cannot simplify conValues: using all available values');
+        
+    % we need to build up a list of all THE VALUES
+    for fi = 1:length(fList)
+        folder = fList{fi};
+        if folder(1)=='f'
+            for si = 1:length(stims)
+                stim = stims{si};
+                prefixs = prefixes{si};
+
+                sN = SCM.(folder).(stim).stimNames;
+                sV = SCM.(folder).(stim).stimVol;
+                tsN = SCM.(folder).(stim).taskNames;
+                tsV = SCM.(folder).(stim).taskSV;
+
+                % re-build into separate con/coh structures
+                [con, ~, ~, ~] = parseSCM(sN,sV,tsN, tsV, prefixs);
+                conValues = unique([conValues con]);
+            end
+        end
+    end
+end
+
+
+if isempty(cohValues)
+    disp('(simplifySCM) Cannot simplify cohValues: using all available values');
+        
+    % we need to build up a list of all THE VALUES
+    for fi = 1:length(fList)
+        folder = fList{fi};
+        if folder(1)=='f'
+            for si = 1:length(stims)
+                stim = stims{si};
+                prefixs = prefixes{si};
+
+                sN = SCM.(folder).(stim).stimNames;
+                sV = SCM.(folder).(stim).stimVol;
+                tsN = SCM.(folder).(stim).taskNames;
+                tsV = SCM.(folder).(stim).taskSV;
+
+                % re-build into separate con/coh structures
+                [~, coh, ~, ~] = parseSCM(sN,sV,tsN, tsV, prefixs);
+                cohValues = unique([cohValues coh]);
+            end
         end
     end
 end
@@ -42,58 +66,60 @@ for fi = 1:length(fList)
     folder = fList{fi};
     disp(sprintf('Simplifying SCM for folder %s',folder));
     
-    for si = 1:length(stims)
-        stim = stims{si};
-        prefixs = prefixes{si};
-        
-        sN = SCM.(folder).(stim).stimNames;
-        sV = SCM.(folder).(stim).stimVol;
-        tsN = SCM.(folder).(stim).taskNames;
-        tsV = SCM.(folder).(stim).taskSV;
-        
-        % re-build into separate con/coh structures
-        [con, coh, task, newsV] = parseSCM(sN,sV,tsN, tsV, prefixs);
-        
-        if ~isempty(conValues) && ~isempty(cohValues)
-            % remove values we didn't ask for
-            if nearest
-                % just move everything to the nearest values
-                con = nearestValue(con, conValues);
-                coh = nearestValue(coh, cohValues);
-            else
-                % remove everything except if it's in conValues or cohValues
-                for ci = 1:length(con)
-                    if ~any(conValues==con(ci)) || ~any(cohValues==coh(ci))
-                        newsV(ci) = [];
-                        con(ci) = [];
-                        coh(ci) = [];
+    if folder(1)=='f'
+        for si = 1:length(stims)
+            stim = stims{si};
+            prefixs = prefixes{si};
+
+            sN = SCM.(folder).(stim).stimNames;
+            sV = SCM.(folder).(stim).stimVol;
+            tsN = SCM.(folder).(stim).taskNames;
+            tsV = SCM.(folder).(stim).taskSV;
+
+            % re-build into separate con/coh structures
+            [con, coh, task, newsV] = parseSCM(sN,sV,tsN, tsV, prefixs);
+
+            if ~isempty(conValues) && ~isempty(cohValues)
+                % remove values we didn't ask for
+                if nearest
+                    % just move everything to the nearest values
+                    con = nearestValue(con, conValues);
+                    coh = nearestValue(coh, cohValues);
+                else
+                    % remove everything except if it's in conValues or cohValues
+                    for ci = 1:length(con)
+                        if ~any(conValues==con(ci)) || ~any(cohValues==coh(ci))
+                            newsV(ci) = [];
+                            con(ci) = [];
+                            coh(ci) = [];
+                        end
                     end
                 end
             end
-        end
-        
-        % re-print stimNames and stimVol
-        stimNames = {}; finalSV = {};
-        for ccon = conValues
-            for ccoh = cohValues
-                for ctask = taskValues
-                    stimNames{end+1} = sprintf(pattern,prefixs{1},ccon,prefixs{2},ccoh,ctask);
-                    % now we find corresponding stimVols
-                    conP = con==ccon; cohP = coh==ccoh; taskP = task==ctask;
-                    P = conP.*cohP.*taskP; % spots where we overlap
-                    stimVolP = newsV(logical(P));
-                    if isempty(stimVolP)
-                        finalSV{end+1} = [];
-                    else
-                        finalSV{end+1} = sort(unique(stimVolP));
+
+            % re-print stimNames and stimVol
+            stimNames = {}; finalSV = {};
+            for ccon = conValues
+                for ccoh = cohValues
+                    for ctask = taskValues
+                        stimNames{end+1} = sprintf(pattern,prefixs{1},ccon,prefixs{2},ccoh,ctask);
+                        % now we find corresponding stimVols
+                        conP = con==ccon; cohP = coh==ccoh; taskP = task==ctask;
+                        P = conP.*cohP.*taskP; % spots where we overlap
+                        stimVolP = newsV(logical(P));
+                        if isempty(stimVolP)
+                            finalSV{end+1} = [];
+                        else
+                            finalSV{end+1} = sort(unique(stimVolP));
+                        end
                     end
                 end
             end
+
+            % add to name
+            nSCM.(folder).(stim).stimVol = finalSV;
+            nSCM.(folder).(stim).stimNames = stimNames;
         end
-        
-        % add to name
-        nSCM.(folder).(stim).stimVol = finalSV;
-        nSCM.(folder).(stim).stimNames = stimNames;
     end
 end
 
