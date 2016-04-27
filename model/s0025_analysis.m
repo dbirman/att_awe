@@ -25,6 +25,8 @@ basecoh = [];
 con = [];
 coh = [];
 timing = [];
+idx_groups = {};
+count = 1;
 
 for fi = 1:length(datas)
     for ri = 1:length(ROIs)
@@ -37,6 +39,8 @@ for fi = 1:length(datas)
         deconvo{ri}.ehdrste = [deconvo{ri}.ehdrste ;datas{fi}.deconvo{ri}.ehdrste];
         deconvo{ri}.ehdr2 = [deconvo{ri}.ehdr2 ;datas{fi}.deconvo{ri}.ehdr2];
     end
+    idx_groups{fi} = count:(count-1+size(datas{fi}.deconvo{1}.ehdr,1));
+    count = count + size(datas{fi}.deconvo{1}.ehdr,1);
     if length(datas{fi}.basecon)==1
         basecon = [basecon ;repmat(datas{fi}.basecon,size(datas{fi}.deconvo{1}.ehdr,1),1)];
     else
@@ -64,6 +68,18 @@ for fi = 1:length(datas)
     end
 end
 
+%% Remove conditions with con=0 coh=0
+remove_idxs = logical(logical((basecon-con)==0) .* logical((basecoh-coh)==0));
+if any(remove_idxs)
+    warning('You included conditions where con=0 and coh=0 (i.e. no change occurred), the model can''t account for these so they will be removed');  
+    hrf = hrf(~remove_idxs,:);
+    con = con(~remove_idxs);
+    coh = coh(~remove_idxs);
+    basecon = basecon(~remove_idxs);
+    basecoh = basecoh(~remove_idxs);
+    timing = timing(~remove_idxs);
+end
+
 %% New analysis: fit HRF
 
 % we will model an HRF (lag/peak/etc) using a single gamma function and
@@ -89,18 +105,19 @@ for ri = 1:length(deconvo)
 %     con = 0.25;
 %     coh = [0.25 0.25 0.25 0.25 0.25 1 1 1 1 1]';
 
+    incl = 2:3;
+    idxs = [];
+    for i = incl
+        idxs = [idxs idx_groups{i}];
+    end
         
-    bestfit = ccVoxelModel(ehdr,basecon,basecoh,con,coh,timing,time2);
+    bestfit = ccVoxelModel(ehdr(idxs,:),basecon(idxs),basecoh(idxs),con(idxs),coh(idxs),timing(idxs),time2);
     
     %%
-    figure, hold on
-    plot(bestfit.full.fcon,bestfit.full.fconr,'r');
-    plot(bestfit.full.fcoh,bestfit.full.fcohr,'b');
+%     figure, hold on
+%     plot(bestfit.full.fcon,bestfit.full.fconr,'r');
+%     plot(bestfit.full.fcoh,bestfit.full.fcohr,'b');
     
-    %%
-    figure, hold on
-    plot(time,decon.ehdr');
-    plot(time2,bestfit.out');
     %%
     clist = brewermap(20,'PuOr');
     res = [0.25 0.5 1 2 4];
@@ -109,14 +126,16 @@ for ri = 1:length(deconvo)
     figure, hold on
     
     count = 1;
-    for i = 1:length(datas)
+    for i = incl
         subplot(length(datas),1,i), hold on
         for j = 1:size(datas{i}.deconvo{ri}.ehdr,1)
+            % plot original
             plot(time,datas{i}.deconvo{ri}.ehdr(j,:),'o','MarkerFaceColor',clist(j,:),'MarkerEdgeColor',[1 1 1]);
             h = errbar(time,datas{i}.deconvo{ri}.ehdr(j,:),datas{i}.deconvo{ri}.ehdrste(j,:),'Color',clist(j,:));
         end
         
         for k = 1:size(datas{i}.deconvo{ri}.ehdr,1)
+            % plot the fit
             plot(time2,bestfit.out(count,:),'-','Color',clist(k,:));
             count = count + 1;
         end
@@ -129,6 +148,7 @@ for ri = 1:length(deconvo)
     %     drawPublishAxis;
 
     %%
+    if ~isdir(fullfile(pwd,'Figures')), mkdir(fullfile(pwd,'Figures')); end
     if ~isdir(fullfile(pwd,'Figures/linear')), mkdir(fullfile(pwd,'Figures/linear')); end
     fname = fullfile(pwd,'Figures/linear',sprintf('%s_lintiming.pdf',ROIs{ri}));
     print(fname,'-dpdf');
