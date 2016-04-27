@@ -24,18 +24,18 @@ function fit = ccVoxelModel( hrf, basecon, basecoh, con, coh, timing, time )
 %   (1) Contrast influences firing rates in a non-linear manner, according
 %   to the function:
 %
-%   Rcon(c) = Rmax * c^n / (c^n + c50^n) + offset
+%   Rcon(c) = Rmax * c^n / (c^n + c50^n)
 %
 %   (2) Coherence influences firing rates in a linear manner, according to
 %   the function:
 %
-%   Rcoh(c) = beta * c + offset
+%   Rcoh(c) = beta * c
 %
 %   (3) The amplitude of the human fMRI BOLD response is a linear function 
 %   of the rate of spiking of neurons within each voxel. Therefore the
 %   impulse response function due to a particular contrast and coherence:
 %
-%   HRF(con,coh) = conv(Rcon(c) + Rcoh(c),Canonical)
+%   HRF(con,coh) = conv(Rcon(c) + Rcoh(c) + offset,Canonical)
 %
 %   Where Canonical is a gamma function with three parameters: exponent,
 %   tau, and timelag.
@@ -105,8 +105,8 @@ if ~any((con-basecon)>0)
     initparams.n = 1; initparams.Rmax = 0; initparams.c50 = 0.5;
 else
     initparams.n = 1; % one value for fixed
-    initparams.Rmax = [0 1]; % three values for optimization
-    initparams.c50 = [0.1 -inf inf];
+    initparams.Rmax = [1 0 inf]; % three values for optimization
+    initparams.c50 = [0.1 0 1];
 end
 
 % Coherence Function Parameters
@@ -116,13 +116,13 @@ initparams.slope = [0.1 -inf inf];
 initparams.beta = [0.25 -inf inf];
 
 % Gamma function
-initparams.amp1 = [1 -inf inf];
-initparams.tau1 = 0.9;
+initparams.amp1 = 1;
+initparams.tau1 = 0.6;
 initparams.timelag1 = 0.75;
-initparams.amp2 = [-0.2 -inf 0];
-initparams.tau2 = 0.9;
-initparams.timelag2 = 4;
-initparams.exponent = 5;
+initparams.amp2 = -0.2;
+initparams.tau2 = 1.2;
+initparams.timelag2 = 2;
+initparams.exponent = 6;
 fixedParams.diff = 1;
 
 % initparams.amplitude = 0;
@@ -134,20 +134,6 @@ initparams.offset = [0 -inf inf];
 % Dropoff of effect
 initparams.lambda = [0.04 -inf inf];
 
-% ALL VARIABLE:
-% % % % initparams.n = 1;
-% % % % initparams.Rmax = 1;
-% % % % initparams.c50 = [0.25 0 1];
-% % % % initparams.slope = [0 -inf inf];
-% % % % initparams.beta = [0.4 -inf inf];
-% % % % initparams.offset = [0 -inf inf];
-% % % % initparams.amplitude = 1;
-% % % % initparams.exponent = [5];
-% % % % initparams.tau = 0.55;
-% % % % initparams.timelag = 0.75;
-% % % % initparams.lambda = [0 0 inf];
-% % % % fixedParams.diff = 0;
-
 %% Parameter Fixing
 if ~any((coh-basecoh)>0)
     % fix coherence
@@ -157,6 +143,14 @@ end
 
 %% Fit Model
 fit = optimFitModel(initparams,hrf,basecon,basecoh,con,coh,timing,time);
+
+fit.orig.hrf = hrf;
+fit.orig.con = con;
+fit.orig.coh = coh;
+fit.orig.timing = timing;
+fit.orig.basecon = basecon;
+fit.orig.basecoh = basecoh;
+fit.orig.time = time;
 
 function fit = optimFitModel(initparams,hrf,basecon,basecoh,con,coh,timing,time)
 
@@ -227,7 +221,7 @@ for hi = 1:size(hrf,1)
     coneff = conModel(con(hi),params)-conModel(basecon(hi),params);
     coheff = cohModel(coh(hi),params)-cohModel(basecoh(hi),params);
     % total effect
-    effect = coneff + coheff; % + params.offset;
+    effect = coneff + coheff + params.offset;
     % timing
     timing = zeros(size(impulse));
     timing(1:convtiming(hi)) = exp(-(1:convtiming(hi))*params.lambda);
@@ -265,13 +259,13 @@ if fixedParams.diff
     out1 = ((time1/tau1).^(n-1).*exp(-time1/tau1))./(tau2*factorial(n-1));
     out1(time1<0) = 0;
     out1 = (out1-min(out1))./ (max(out1)-min(out1));
-    out1 = amp1*out1+params.offset;
+    out1 = amp1*out1;
     
     time2 = time-params.timelag2;
     out2 = ((time2/tau2).^(n-1).*exp(-time2/tau2))./(tau2*factorial(n-1));
     out2(time2<0) = 0;
     out2 = (out2-min(out2))./(max(out2)-min(out2));
-    out2 = amp2*out2+params.offset;
+    out2 = amp2*out2;
     
     out = out1+out2;
 else
@@ -281,7 +275,7 @@ else
     out = ((time/tau).^(n-1).*exp(-time/tau))./(tau*factorial(n-1));
     out(time < 0) = 0;
     out = (out-min(out)) ./ (max(out)-min(out));
-    out = params.amplitude*out+params.offset;
+    out = params.amplitude*out;
 end
 
 function out = conModel(con,params)
