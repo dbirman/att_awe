@@ -1,4 +1,4 @@
-function fit = ccVoxelModel( hrf, basecon, basecoh, con, coh, timing, time )
+function fit = fitCCTimecourseVoxelModel( timeseries, stimvol, runtrans, basecon, basecoh, stimnames, timing )
 %CCVOXELMODEL Fit the contrast coherence model to a voxel or average of
 %voxels
 %
@@ -13,10 +13,12 @@ function fit = ccVoxelModel( hrf, basecon, basecoh, con, coh, timing, time )
 %   fit.full = Model output for con = 0:1 and coh 0:1
 %
 %   INPUT:
-%   hrfData = each row is an HRF to be fit
-%   con = each row is the delta contrast shown for that trial
-%   coh = each row is the delta coherence shown
-%   t = each row is the length of this stimulus (in 250 ms volumes)
+%   timecourse = each cell is a timecourse that will be fit
+%   stimvol = each cell is a set of stimvols that will be used
+%   bases = each cell is the base con/coh for those conditions
+%   con/coh = each cell is the conditions corresponding to the stimvols
+%   timing = each cell contains for each condition the stimulus length (in
+%   250 ms volumes)
 %
 %   Based on Rees & Koch 2000 and a bunch of other stuff...
 %
@@ -47,35 +49,13 @@ function fit = ccVoxelModel( hrf, basecon, basecoh, con, coh, timing, time )
 %   R = Rcon(c) + Rcoh(c)
 %
 %   exp(-time*lambda) * R
-%
-%   Full 11 parameter model:
-%       n: exponent of the contrast function, default: 1
-%       Rmax: max response of contrast function
-%       c50: half-max response of contrast function (controls the
-%       non-linearity)
-%
-%       slope: effect of coherence
-%       
-%       offset: combined offset from Rcon and Rcoh, the base firing rate
-%       due to stimulus onset across all conditions
-%
-%       beta: constant response on all trials
-%
-%       amplitude:
-%       exponent: 4-7
-%       tau:
-%       timelag:
-%
-%       lambda: exponential dropoff of the additive factor to the impulse
-%       response function
 
+% the fixedParams will help keep track of parameters that are fixed
 global fixedParams
 
-%% Reshape
-if length(basecon)==1, basecon = repmat(basecon,size(hrf,1),1); end
-if length(basecoh)==1, basecoh = repmat(basecoh,size(hrf,1),1); end
-if length(con)==1, con = repmat(con,size(hrf,1),1); end
-if length(coh)==1, coh = repmat(coh,size(hrf,1),1); end
+%% Deal with multiple timeseries constraint satisfaction
+
+
 
 %% Validation
 if max(con)>1 || min(con)<0 || max(coh)>1 || min(coh)<0 || size(hrf,1) ~= size(con,1) || size(hrf,1) ~= size(coh,1) || size(hrf,1) ~= size(timing,1) || size(hrf,1) ~= size(basecon,1) || size(hrf,1) ~= size(basecoh,1)
