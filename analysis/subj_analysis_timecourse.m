@@ -1,9 +1,6 @@
 function subj_analysis_timecourse( subj, incl )
-
+ 
 ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','LO1','LO2','MT'};
-
-
-%% Joint Analysis for s0025
 
 %% Load Files
 fdir = '~/data/cohcon_localizer'; 
@@ -42,7 +39,7 @@ for ri = 1:length(ROIs)
     rch = {};
     rt = {};
     for fi = 1:length(datas)
-        rts{end+1} = datas{fi}.pre.tSeries;
+        rts{end+1} = datas{fi}.pre.tSeries{ri};
         rrt{end+1} = datas{fi}.pre.concatInfo.runTransition;
         rsv{end+1} = datas{fi}.pre.stimvol;
         rsn{end+1} = datas{fi}.pre.stimNames;
@@ -69,6 +66,37 @@ for ri = 1:length(ROIs)
     fits{ri} = fitCCTimecourseVoxelModel(timeseries{ri},stimvol{ri},runtrans{ri},basecon{ri},basecoh{ri},stimnames{ri},timing{ri});
 end
 
+%% Con/Coh model plots
+
+% we want a plot that shows the change in the contrast/coherence functions
+% across brain regions, for now just show v1-v2-v3-v3a-mt
+roiIndexes = [1 2 3 5 10];
+clist = brewermap(5,'Oranges');
+figure
+subplot(211), hold on
+for ri = roiIndexes
+    plot(fits{ri}.full.fcon,fits{ri}.full.fconr,'Color',clist(find(roiIndexes==ri,1),:));
+end
+legend(ROIs(roiIndexes),'Location','NorthWest');
+title('Contrast Sensitivity by ROI')
+xlabel('Contrast (%)');
+ylabel('Effect (% signal change / s)');
+drawPublishAxis
+subplot(212), hold on
+clist = brewermap(5,'Purples');
+for ri = roiIndexes
+    plot(fits{ri}.full.fcoh,fits{ri}.full.fcohr,'Color',clist(find(roiIndexes==ri,1),:));
+end
+legend(ROIs(roiIndexes),'Location','NorthWest');
+title('Coherence Sensitivity by ROI')
+xlabel('Motion Coherence (%)');
+ylabel('Effect (% signal change / s)');
+drawPublishAxis
+
+if ~isdir(fullfile(pwd,'Figures')), mkdir(fullfile(pwd,'Figures')); end
+if ~isdir(fullfile(pwd,'Figures/sensitivity')), mkdir(fullfile(pwd,'Figures/sensitivity')); end
+fname = fullfile(pwd,'Figures/sensitivity',sprintf('%s_sensitivity.pdf',subj));
+print(fname,'-dpdf')
 
 %% Plot
 for ri = 1:length(bestfits)
@@ -102,12 +130,6 @@ for ri = 1:length(bestfits)
     ylabel('BOLD Amplitude (%s Signal Change)');
     title(sprintf('25%% Coherence, R^2: %0.2f',bestfit.r2));
         drawPublishAxis;
-
-    %%
-    figure, hold on
-    plot(bestfit.full.fcon,bestfit.full.fconr,'r');
-    plot(bestfit.full.fcoh,bestfit.full.fcohr,'b');
-    title(ROIs{ri});
     %%
     if ~isdir(fullfile(pwd,'Figures')), mkdir(fullfile(pwd,'Figures')); end
     if ~isdir(fullfile(pwd,'Figures/linear')), mkdir(fullfile(pwd,'Figures/linear')); end
@@ -128,8 +150,8 @@ effect.con = [];
 effect.coh = [];
 effect.ROIs = ROIs;
 
-for ri = 1:length(bestfits)
-    bestfit = bestfits{ri};
+for ri = 1:length(fits)
+    bestfit = fits{ri};
     effect.con = [effect.con bestfit.full.fconr(end)];
     effect.coh = [effect.coh bestfit.full.fcohr(end)];
 end
