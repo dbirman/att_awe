@@ -13,7 +13,8 @@ function fit = fitCCTimecourseVoxelModel( timeseries, stimvol, runtrans, basecon
 %   fit.full = Model output for con = 0:1 and coh 0:1
 %
 %   INPUT:
-%   timecourse = each cell is a timecourse that will be fit
+%   timecourse = cell array {dim1,dim2} where dim1 is across experiments
+%   and dim2 is across ROIs.
 %   stimvol = each cell is a set of stimvols that will be used
 %   bases = each cell is the base con/coh for those conditions
 %   con/coh = each cell is the conditions corresponding to the stimvols
@@ -42,7 +43,7 @@ function fit = fitCCTimecourseVoxelModel( timeseries, stimvol, runtrans, basecon
 %   Where Canonical is a gamma function with three parameters: exponent,
 %   tau, and timelag.
 %
-%   (4) The impulse response function corresponds to a 250 ms stimulus in
+%   (4) The impulse response function corresponds to a 500 ms stimulus in
 %   our experiments, longer stimuli cause an exponential dropoff in firing,
 %   such that firing rate is modeled by:
 %
@@ -53,7 +54,7 @@ function fit = fitCCTimecourseVoxelModel( timeseries, stimvol, runtrans, basecon
 % the fixedParams will help keep track of parameters that are fixed
 global fixedParams
 
-fixedParams.disp = 0;
+fixedParams.disp = 1;
 %% Parse and build long form stim matrix
 
 % stimvol - basecon - newcon - basecoh - newcoh - timing
@@ -70,8 +71,20 @@ for di = 1:length(timeseries)
     cbcoh = basecoh{di};
     cstimname = stimnames{di};
     ctim = timing{di};
+    ctim = ctim/2;
     
     [con,coh,time] = parseNames(cstimname,'contrast=','coherence=','timing=',' and ');
+    time = time/2;
+    
+    if isempty(con)
+        con = repmat(cbcon,size(coh));
+    end
+    if isempty(coh)
+        coh = repmat(cbcoh,size(con));
+    end
+    if isempty(time)
+        time = repmat(ctim,size(con));
+    end
 
     for ci = 1:length(csv)
         sv = csv{ci};        
@@ -100,8 +113,8 @@ end
 
 % Contrast Function Parameters
 initparams.n = 1; 
-initparams.Rmax = [1 -inf inf];
-initparams.c50 = [0.1 0 1];
+initparams.Rmax = [1 0 inf];
+initparams.c50 = [0.5 0 1];
 
 % Coherence Function Parameters
 initparams.slope = [0.1 -inf inf];
@@ -111,11 +124,11 @@ initparams.beta = 0;
 
 % Gamma function
 initparams.amp1 = 1;
-initparams.tau1 = [0.75 -inf inf];
-initparams.timelag1 = [1 -inf inf];
-initparams.amp2 = [-0.2 -inf 0];
-initparams.tau2 = 1.2;
-initparams.timelag2 = 2;
+initparams.tau1 = [0.3 -inf inf];
+initparams.timelag1 = [1 0 3];
+initparams.amp2 = [-0.2 -1 0];
+initparams.tau2 = [1.2 -inf inf];
+initparams.timelag2 = [0 0 5];
 initparams.exponent = [7];
 fixedParams.diff = 1;
 
@@ -182,7 +195,7 @@ end
 % % fit.ci_jacobian = nlparci(bestparams,res,'jacobian',jacobian);
 
 %% Get Best Fit
-[err, fit] = fitModel(bestparams,timeseries,designs,runtrans,f);
+[~, fit] = fitModel(bestparams,timeseries,designs,runtrans,f);
 % fit.err = reshape(err,size(hrf));
 fit.params = getParams(bestparams);
 
@@ -204,7 +217,7 @@ params = getParams(params);
 
 % by default lets model in 0.5 s increments
 
-t = 0:0.5:30;
+t = 0:0.5:50;
 impulse = gamma(t,params);
 
 errs = {};
@@ -227,7 +240,7 @@ errs = {};
 %
 % stimvol - basecon - newcon - basecoh - newcoh - timing
 
-err = zeros(length(timeseries),length(timeseries{1}));
+err = cell(size(timeseries));
 
 out = cell(size(timeseries));
 for ti = 1:length(timeseries)
@@ -256,10 +269,11 @@ for ti = 1:length(timeseries)
     modeltimeseries = modeltimeseries(1:length(ts));
     
     out{ti} = modeltimeseries;
-    err(ti,:) = ts - modeltimeseries;
+    err{ti} = ts - modeltimeseries;
+
 end
 
-err = err(:);
+err = [err{:}];
 
 fit.out = out;
 fit.impulse = impulse;
@@ -272,10 +286,13 @@ fit.r2 = 1 - ssres/sstot;
 if fixedParams.disp
     figure(f)
     clf(f)
+    subplot(211)
     hold on
     plot(ts(1:1000),'r');
     plot(modeltimeseries(1:1000),'b');
     title(sprintf('R^2: %0.2f Rmax: %2.2f c50: %2.2f slope: %2.2f offset: %2.2f',fit.r2,params.Rmax,params.c50,params.slope,params.offset));
+    subplot(212)
+    plot(t,impulse);
 end
 
 %%
@@ -312,6 +329,8 @@ else
     out = (out-min(out)) ./ (max(out)-min(out));
     out = params.amplitude*out;
 end
+
+out = out/sum(out)/2; % normalize to sum=1 for 1% signal change / s
 
 function out = conModel(con,params)
 

@@ -4,14 +4,14 @@ ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','LO1','LO2','MT'};
 
 %% Load Files
 fdir = '~/data/cohcon_localizer'; 
-files = dir(fullfile(fdir,sprintf('%s*.mat',subj)));
+files = dir(fullfile(fdir,sprintf('%s2016*.mat',subj)));
 
 
 analyses = {'CohxCon','Timing'};
 %% Load each file
 datas = {};
 
-for fi = 1:length(files)
+for fi = 1
     load(fullfile(fdir,files(fi).name));
     datas{fi} = data;
 end
@@ -66,6 +66,14 @@ for ri = 1:length(ROIs)
     fits{ri} = fitCCTimecourseVoxelModel(timeseries{ri},stimvol{ri},runtrans{ri},basecon{ri},basecoh{ri},stimnames{ri},timing{ri});
 end
 
+%% Check impulses
+clist = brewermap(10,'YlOrBr');
+figure, hold on
+for ri = 1:length(fits)
+    plot(fits{ri}.impulse,'Color',clist(ri,:));
+end
+legend(ROIs)
+
 %% Con/Coh model plots
 
 % we want a plot that shows the change in the contrast/coherence functions
@@ -98,49 +106,63 @@ if ~isdir(fullfile(pwd,'Figures/sensitivity')), mkdir(fullfile(pwd,'Figures/sens
 fname = fullfile(pwd,'Figures/sensitivity',sprintf('%s_sensitivity.pdf',subj));
 print(fname,'-dpdf')
 
-%% Plot
-for ri = 1:length(bestfits)
-    try
-    bestfit = bestfits{ri};
-    
-    clist = brewermap(20,'PuOr');
-    res = [0.25 0.5 1 2 4];
-%     if ~isdir(fullfile(pwd,'Figures/linear')), mkdir(fullfile(pwd,'Figures/linear')); end
+%% Deconvolve conditions
 
-    figure, hold on
-    
-    count = 1;
-    for i = incl
-        subplot(length(datas),1,i), hold on
-        for j = 1:size(datas{i}.deconvo{ri}.ehdr,1)
-            % plot original
-            plot(time,datas{i}.deconvo{ri}.ehdr(j,:),'o','MarkerFaceColor',clist(j,:),'MarkerEdgeColor',[1 1 1]);
-            h = errbar(time,datas{i}.deconvo{ri}.ehdr(j,:),datas{i}.deconvo{ri}.ehdrste(j,:),'Color',clist(j,:));
-        end
+for ri = 10
+    decon = cell(length(fits),length(datas));
+    model = cell(length(fits),length(datas));
+    for di = 1:length(datas)
+        curd = constructD(fits{ri}.orig.timeseries{di}-1,stimvol{ri}{di},0.5,15,datas{di}.pre.concatInfo,'none','deconv',0);
+
+        decon{ri,di} = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+        decon{ri,di} = rmfield(decon{ri,di},'scm');
+        decon{ri,di} = rmfield(decon{ri,di},'covar');
         
-        for k = 1:size(datas{i}.deconvo{ri}.ehdr,1)
-            % plot the fit
-            plot(time2,bestfit.out(count,:),'-','Color',clist(k,:));
-            count = count + 1;
-        end
-        title(analyses{i})
+        modd = constructD(fits{ri}.out{di},stimvol{ri}{di},0.5,15,datas{di}.pre.concatInfo,'none','deconv',0);
+
+        model{ri,di} = getr2timecourse(modd.timecourse,modd.nhdr,modd.hdrlenTR,modd.scm,modd.framePeriod,modd.verbose);
+        model{ri,di} = rmfield(model{ri,di},'scm');
+        model{ri,di} = rmfield(model{ri,di},'covar');
     end
-    axis([0 30 -0.5 1.5]);
-    xlabel('Time (s)');
-    ylabel('BOLD Amplitude (%s Signal Change)');
-    title(sprintf('25%% Coherence, R^2: %0.2f',bestfit.r2));
-        drawPublishAxis;
-    %%
-    if ~isdir(fullfile(pwd,'Figures')), mkdir(fullfile(pwd,'Figures')); end
-    if ~isdir(fullfile(pwd,'Figures/linear')), mkdir(fullfile(pwd,'Figures/linear')); end
-    fname = fullfile(pwd,'Figures/linear',sprintf('%s_%s_lintiming.pdf',subj,ROIs{ri}));
-    print(fname,'-dpdf')
-    catch
+end
+
+%% Plot Fit Comparisons
+for ri = 10
+    figure
+    for di = 1:length(datas)
+        subplot(length(datas),1,di), hold on
         
-    if ~isdir(fullfile(pwd,'Figures')), mkdir(fullfile(pwd,'Figures')); end
-    if ~isdir(fullfile(pwd,'Figures/linear')), mkdir(fullfile(pwd,'Figures/linear')); end
-    fname = fullfile(pwd,'Figures/linear',sprintf('%s_%s_lintiming.pdf',subj,ROIs{ri}));
-    print(fname,'-dpdf')
+        [con,coh,time] = parseNames(stimnames{ri}{di},'contrast=','coherence=','timing=',' and ');
+        d = decon{ri,di};
+        m = model{ri,di};
+        
+        if isempty(time)
+            %coh x con
+            % how best to display this? for now just do the base conditions
+            % where either con/coh stayed constant
+            const_con = find(con==0.25);
+            const_coh = find(coh==0);
+            clist = brewermap(11,'PuOr');
+            for i = 1:5 % coherences
+                plot(d.time,d.ehdr(const_con(i),:),'o','MarkerFaceColor',clist(11-i,:),'MarkerEdgeColor',[1 1 1]);
+                plot(m.time,m.ehdr(const_con(i),:),'-','Color',clist(11-i,:));
+            end
+            for i = 1:4 % contrasts
+                plot(d.time,d.ehdr(const_coh(i),:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+                plot(m.time,m.ehdr(const_coh(i),:),'-','Color',clist(i,:));
+            end
+        else
+            %timing
+            clist = brewermap(5,'Purples');
+            for i = 1:5
+                plot(d.time,d.ehdr(i,:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+                plot(m.time,m.ehdr(i,:),'-','Color',clist(i,:));
+            end
+            for i = 6:10
+                plot(d.time,d.ehdr(i,:),'o','MarkerFaceColor',clist(i-5,:),'MarkerEdgeColor',[1 1 1]);
+                plot(m.time,m.ehdr(i,:),'-','Color',clist(i-5,:));
+            end
+        end
     end
 end
 

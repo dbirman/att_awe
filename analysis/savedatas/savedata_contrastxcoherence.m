@@ -55,7 +55,7 @@ for ri = 1:length(d.roi)
 end
 
 %% Compute rdata
-[con,coh] = parseNames(stimNames,'contrast=','coherence=',' and '); % get individual contrast/coherence values
+[con,coh] = parseNames(stimNames,'contrast=','coherence=','',' and '); % get individual contrast/coherence values
 cons = unique(con); cohs = unique(coh);
 
 rdata = {};
@@ -96,7 +96,7 @@ savefolder = '~/data/cohcon_localizer';
 fname = sprintf('%s.mat',cfolder);
 fname = fullfile(savefolder,fname);
 
-[con,coh] = parseNames(stimNames,'contrast=','coherence=',' and '); % get individual contrast/coherence values
+% [con,coh] = parseNames(stimNames,'contrast=','coherence=',,'',' and '); % get individual contrast/coherence values
 
 % you need: deconvo, basecon, basecoh, con, coh, timing
 data.pre.tSeries = tSeries;
