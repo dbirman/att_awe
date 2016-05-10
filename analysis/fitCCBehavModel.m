@@ -1,4 +1,4 @@
-function [params, fit] = fitCCBehavModel(adata,figs)
+function fit = fitCCBehavModel(adata,figs)
 % CCBehavModel
 %
 % Fit the contrast (naka-rushton) and coherence (linear) models to the data
@@ -25,7 +25,7 @@ fixedParams = struct;
 
 initparams.Rmax = [1 -inf inf];
 initparams.c50 = [0.5 0 1];
-initparams.n = 1;
+initparams.n = 2;
 
 initparams.slope = [1 -inf inf];
 
@@ -60,7 +60,8 @@ function [bestparams,fit] = fitModel(params,adata,f)
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams);
 
 fit.params = getParams(bestparams);
-[fit.likelihood, fit.fit] = fitBehavModel(params,adata,0);
+[fit.likelihood] = fitBehavModel(bestparams,adata,0);
+fit.BIC = 2*fit.likelihood + 7 * log(size(adata,1));
 
 function likelihood = fitBehavModel(params,adata,f)
 %%

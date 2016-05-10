@@ -11,7 +11,7 @@ analyses = {'CohxCon','Timing'};
 %% Load each file
 datas = {};
 
-for fi = 1
+for fi = incl
     load(fullfile(fdir,files(fi).name));
     datas{fi} = data;
 end
