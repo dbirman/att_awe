@@ -1,43 +1,72 @@
-function fit = fitCCBehavModel(adata,figs)
+function fit = fitCCBehavModel(adata,figs,model)
 % CCBehavModel
 %
 % Fit the contrast (naka-rushton) and coherence (linear) models to the data
 % obtained from the behavioral experiment. Roughly we will do the
 % following:
 %
-% Figure out the effect size:
-% 
-%   Rmax
-%   c50
-%   n
-%
-%   slope
-%
-%   sigma_con <- noise in the contrast response
-%   sigma_coh <- noise in the coherence response
+% Model Types:
+% 'null' : model with no effects Rmax=0 slope = 0;
+% 'con-linear'
+% 'coh-linear'
+% 'con-naka'
+% 'coh-naka'
+% 'con-n'
+% 'coh-n'
+global fixedParams
 
-% remove any NaN
 adata = adata(~any(isnan(adata),2),:);
 
-%% Parameters
-global fixedParams
 fixedParams = struct;
 
-initparams.Rmax = [1 -inf inf];
-initparams.c50 = [0.5 0 1];
-initparams.n = 2;
+%% Contrast Modeling Parameters
+if strfind(model,'null')
+    disp('(behavmodel) Fitting null contrast model');
+    initparams.conslope = 0;
+    initparams.conmodel = 1;
+elseif strfind(model,'con-linear')
+    disp('(behavmodel) Fitting linear contrast model');
+    initparams.conslope = [1 -inf inf];
+    initparams.conmodel = 1;
+elseif strfind(model,'con-naka')
+    disp('(behavmodel) Fitting naka contrast model');
+    initparams.conRmax = [1 -inf inf];
+    initparams.conc50 = [0.5 0 1];
+    initparams.conn = 1;
+%     initparams.conRmax = 0.3;
+%     initparams.conc50 = 0.52;
+    initparams.conmodel = 2;
+end
+if strfind(model,'null')
+    disp('(behavmodel) Fitting null coherence model');
+    initparams.cohslope = 0;
+    initparams.cohmodel = 1;
+elseif strfind(model,'coh-linear')
+    disp('(behavmodel) Fitting linear coherence model');
+%     initparams.cohslope = [1 -inf inf];
+    initparams.cohslope = 1;
+    initparams.cohmodel = 1;
+elseif strfind(model,'coh-naka')
+    disp('(behavmodel) Fitting naka coherence model');
+    initparams.cohRmax = [1 -inf inf];
+    initparams.cohc50 = [0.5 0 1];
+    initparams.cohn = 1;
+    initparams.cohmodel = 2;
+end
 
-initparams.slope = [1 -inf inf];
+initparams.offset = [1 0 inf];
 
-initparams.sigma = 1;
+initparams.scale = 1;
 
 initparams.alphacon = [0.9 0 1];
 initparams.alphacoh = [0.9 0 1];
+initparams.alphacon_att = [0.8 0 1];
+initparams.alphacoh_att = [0.8 0 1];
 initparams.alphacon_un = [0.8 0 1];
 initparams.alphacoh_un = [0.8 0 1];
 
-% initparams.unscalecon = [1 0 1];
-% initparams.unscalecoh = [1 0 1];
+initparams.conunatt = [0.9 0 1];
+initparams.cohunatt = [0.9 0 1];
 
 %% Prep and Call
 if ieNotDefined('figs')
@@ -67,8 +96,11 @@ function likelihood = fitBehavModel(params,adata,f)
 %%
 params = getParams(params);
 
+params.conRmax = params.conRmax * params.scale;
+params.cohslope = params.cohslope * params.scale;
+params.offset = params.offset * params.scale;
+
 % validate params
-if params.sigma < 0, params.sigma = 0; end
 if params.alphacon < 0, params.alphacon = 0; end
 if params.alphacon > 1, params.alphacon = 1; end
 if params.alphacoh <0, params.alphacoh = 0; end
@@ -84,7 +116,7 @@ if f>0
     figure(f)
     clf
     hold on
-    title(sprintf('c50: %0.2f slope: %1.2f alphacon %0.2f alphacoh %0.2f',params.c50,params.slope,params.alphacon,params.alphacoh));
+%     title(sprintf('c50: %0.2f slope: %1.2f alphacon %0.2f alphacoh %0.2f',params.c50,params.slope,params.alphacon,params.alphacoh));
 end
 
 for ai = 1:size(adata,1)
@@ -92,40 +124,7 @@ for ai = 1:size(adata,1)
     prob = -1;
     obs = adata(ai,:);
     
-    conEff = (conModel(obs(5),params)-conModel(obs(2),params)) - (conModel(obs(4),params)-conModel(obs(2),params));
-    cohEff = (cohModel(obs(7),params)-cohModel(obs(3),params)) - (cohModel(obs(6),params)-cohModel(obs(3),params));
-    conProb = normcdf(0,conEff,params.sigma);
-    cohProb = normcdf(0,cohEff,params.sigma);
-    if obs(8)
-        conProb = 1-conProb;
-        cohProb = 1-cohProb;
-    end
-    
-    switch obs(1)
-        case 1
-            %COHERENCE CONTROL
-            prob = cohProb * params.alphacoh + conProb * (1-params.alphacoh);
-        case 2
-            %CONTRAST CONTROL
-            prob = conProb * params.alphacon + cohProb * (1-params.alphacon);
-        case -1
-            % COHERENCE MAIN
-            if obs(9)==0
-                % main
-                prob = cohProb * params.alphacoh_un + conProb * (1-params.alphacoh_un);
-            elseif obs(9)==1
-                % catch
-                
-            end
-        case -2
-            % CONTRAST MAIN
-            if obs(9)==0
-                % main
-                prob = conProb * params.alphacon_un + cohProb * (1-params.alphacon_un);
-            elseif obs(9)==1
-                % catch
-            end
-    end
+    prob = getObsProb(obs,params);
     
     probs(ai) = prob;
     if prob >= 0
@@ -144,15 +143,87 @@ if f>0
 %     fcohp = 1-normcdf(0,fcoh,params.sigma_coh);
     plot(x,fcon,'Color',clist(1,:));
     plot(x,fcoh,'Color',clist(3,:));
+    % now plot the unattended curves    
+    if params.conmodel==1
+        params.conslope = params.conslope*params.conunatt;
+    else
+        params.conRmax = params.conRmax*params.conunatt;
+    end
+    if params.cohmodel==1
+        params.cohslope = params.cohslope * params.cohunatt;
+    else
+        params.cohRmax = params.cohRmax*params.cohunatt;
+    end
+    fcon = conModel(x,params);
+    fcoh = cohModel(x,params);
+    plot(x,fcon,'--','Color',clist(1,:));
+    plot(x,fcoh,'--','Color',clist(3,:));
+    title(sprintf('Offset: %2.2f',params.offset));
 end
 
-function out = conModel(con,params)
+function prob = getObsProb(obs,params)
+%%
 
-out = params.Rmax .* ((con.^params.n) ./ (con.^params.n + params.c50.^params.n)); 
+if obs(9)==1 && obs(1)==-1
+    % THIS IS A CATCH TRIAL IN A COHERENCE RUN, ADJUST CONTRAST
+    if params.conmodel==1
+        params.conslope = params.conslope*params.conunatt;
+    else
+        params.conRmax = params.conRmax*params.conunatt;
+    end
+elseif obs(9)==1 && obs(1)==-2
+    % ADJUST COHERENCE
+    if params.cohmodel==1
+        params.cohslope = params.cohslope * params.cohunatt;
+    else
+        params.cohRmax = params.cohRmax*params.cohunatt;
+    end
+end
+
+conEff = (conModel(obs(5),params)-conModel(obs(2),params)) - (conModel(obs(4),params)-conModel(obs(2),params));
+cohEff = (cohModel(obs(7),params)-cohModel(obs(3),params)) - (cohModel(obs(6),params)-cohModel(obs(3),params));
+switch obs(1) % switch condition
+    case 1
+        % coherence control
+        effect = cohEff * params.alphacoh + conEff * (1-params.alphacoh);
+    case 2
+        effect = conEff * params.alphacon + cohEff * (1-params.alphacon);
+    case -1
+        if obs(9)==0
+            % main
+            effect = cohEff * params.alphacoh_att + conEff *(1-params.alphacoh_att);
+        else
+            % catch
+            effect = conEff * params.alphacon_un + cohEff * (1-params.alphacon_un);
+        end
+    case -2
+        if obs(9)==0
+            % main
+            effect = conEff * params.alphacon_att + cohEff * (1-params.alphacon_att);
+        else
+            effect = cohEff * params.alphacoh_un + conEff * (1-params.alphacoh_un);
+        end
+end
+effect = effect + params.offset;
+% prob = normcdf(0,effect,params.sigma);
+prob = normcdf(0,effect,sqrt(effect*params.noise));
+if obs(8), prob = 1-prob; end
+    
+function out = conModel(con,params)
+if params.conmodel==1
+    out = params.conslope .* con;
+elseif params.conmodel==2
+    params.conn = round(params.conn);
+    out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
+end
 
 function out = cohModel(coh,params)
-
-out = params.slope .* coh;
+if params.cohmodel==1
+    out = params.cohslope .* coh;
+elseif params.cohmodel==2
+    params.cohn = round(params.cohn);
+    out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
+end
 
 function [initparams, minparams, maxparams] = initParams(params)
 

@@ -10,13 +10,13 @@ disp('##############');
 disp(sprintf('## SUBJ: %s',sid));
 disp('##############');
 
-behavDir = fullfile(behavTop,sid,'behav');
+behavDir = fullfile(behavTop,sid);
 if ~isdir(behavDir)
     mkdir(behavDir);
 end
 
-mfiles = dir(sprintf('%s/%s/15*.mat',volDir,sid));
-efiles = dir(sprintf('%s/%s/15*.edf',volDir,sid));
+mfiles = dir(sprintf('%s/%s/16*.mat',volDir,sid));
+efiles = dir(sprintf('%s/%s/16*.edf',volDir,sid));
 
 for mi = 1:length(mfiles)
     mfile = mfiles(mi);

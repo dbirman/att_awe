@@ -1,11 +1,10 @@
-function fit = fitCCTimecourseROIModel( timeseries, stimvol, runtrans, basecon, basecoh, stimnames, timing )
-%CCVOXELMODEL Fit the contrast coherence model to a voxel or average of
-%voxels
+function fits = fitCCTimecourseROIModel( data )
+%CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
-%       April 20,2016
+%       May 10th, 2016
 %
-%   fit = ccVoxelModel(hrfData, con, coh)
+%   fit = fitCCTimecourseROIModel(data)
 %
 %   OUTPUT:
 %   fit.r2
@@ -13,14 +12,10 @@ function fit = fitCCTimecourseROIModel( timeseries, stimvol, runtrans, basecon, 
 %   fit.full = Model output for con = 0:1 and coh 0:1
 %
 %   INPUT:
-%   timecourse = cell array {dim1,dim2} where dim1 is across experiments
-%   and dim2 is across ROIs.
-%   stimvol = each cell is a set of stimvols that will be used
-%   bases = each cell is the base con/coh for those conditions
-%   con/coh = each cell is the conditions corresponding to the stimvols
-%   timing = each cell contains for each condition the stimulus length (in
-%   250 ms volumes)
-%
+%   data.rois = rois loaded by loadROITSeries
+%   data.concatInfo = concatInfo from viewGet(v,'concatInfo')
+%   data.design = long form design matrix [vol# basecon con basecoh coh time]
+%   
 %   Based on Rees & Koch 2000 and a bunch of other stuff...
 %
 %   Assumptions:
@@ -48,259 +43,239 @@ function fit = fitCCTimecourseROIModel( timeseries, stimvol, runtrans, basecon, 
 %   such that firing rate is modeled by:
 %
 %   R = Rcon(c) + Rcoh(c)
-%
+% 
 %   exp(-time*lambda) * R
+%
+%
+%   Functionality
+%   (1) Generate prefit models, take the design, generate the effect models
+%   (prior to convolving with HRF) for the following combinations:
+%       Contrast null
+%       Contrast linear slope: small, med, large
+%       Coherence null
+%       Coherence linear slope: small, med, large
+%   (2) Run maximum likelihood to fit the HRF and its parameters
+%   (3) On each iteration of the HRF, do a grid search using correlations
+%       choose which con/coh slopes to use for each voxel. Probably best to
+%       use only the top 10% of voxels by R^2 for _all_?
+%       Compute the likelihood of each voxel and return this as the
+%       likelihood for this HRF iteration
+%   (4) After fitting the HRF function re-fit every voxel using lsqnonlin
+%       and the con-naka/coh-linear models. Best to parallelize this...
 
-% the fixedParams will help keep track of parameters that are fixed
+design = data.design;
+
+if ~iscell(data.rois)
+    data.rois{1} = data.rois;
+end
+
 global fixedParams
+fixedParams.hrf.disp = 1;
+fixedParams.vox.disp = 1;
+fixedParams.diff = 1;
 
-fixedParams.disp = 1;
-%% Parse and build long form stim matrix
-
-% stimvol - basecon - newcon - basecoh - newcoh - timing
-designs = {};
-
-for di = 1:length(timeseries)
-    design = zeros(10000,6);
-    count = 1;
-    
-    cts = timeseries{di};
-    csv = stimvol{di};
-    crt = runtrans{di};
-    cbcon = basecon{di};
-    cbcoh = basecoh{di};
-    cstimname = stimnames{di};
-    ctim = timing{di};
-    ctim = ctim/2;
-    
-    [con,coh,time] = parseNames(cstimname,'contrast=','coherence=','timing=',' and ');
-    time = time/2;
-    
-    if isempty(con)
-        con = repmat(cbcon,size(coh));
-    end
-    if isempty(coh)
-        coh = repmat(cbcoh,size(con));
-    end
-    if isempty(time)
-        time = repmat(ctim,size(con));
-    end
-
-    for ci = 1:length(csv)
-        sv = csv{ci};        
-        
-        for si = 1:length(sv)
-            design(count,:) = [sv(si) cbcon con(ci) cbcoh coh(ci) ctim(ci)];
-            count = count+1;
-        end
-    end
-    design = design(1:count,:);
-    
-    % internal validation
-    remove_idxs = logical(logical((design(:,2)-design(:,3))==0).*logical((design(:,4)-design(:,5))==0));
-    if any(remove_idxs)
-        warning('You included conditions where delta con/coh == 0, removing these so the model doesn''t try to deal with them improperly');
-        design = design(~remove_idxs,:);
-    end
-    
-    designs{di} = design;
+%% internal validation
+remove_idxs = logical(logical((design(:,2)-design(:,3))==0).*logical((design(:,4)-design(:,5))==0));
+if any(remove_idxs)
+    warning('You included conditions where delta con/coh == 0, removing these so the model doesn''t try to deal with them improperly');
+    design = design(~remove_idxs,:);
+    data.design = design;
 end
 
 %% Parameter initialization
-% one value = fixed
-% three values = optimization
-% >three values = loop across options
+global params
+
+hrfparams.amp1 = 1;
+hrfparams.tau1 = [0.45 -inf inf];
+hrfparams.timelag1 = [.7 0 3];
+hrfparams.amp2 = [-0.25 -inf 0];
+hrfparams.tau2 = [1.7 -inf inf];
+hrfparams.timelag2 = [0 0 6];
+hrfparams.exponent = 7;
+hrfparams.n = 1;
+hrfparams.Rmax = [.1 -inf inf];
+hrfparams.c50 = [0.5 0 1];
+hrfparams.slope = [0.1 -inf inf];
+hrfparams.offset = [.05 -inf inf];
 
 % Contrast Function Parameters
-initparams.n = 1; 
-initparams.Rmax = [1 0 inf];
-initparams.c50 = [0.5 0 1];
-
+voxparams.n = 1;
+voxparams.Rmax = [.1 -inf inf];
+voxparams.c50 = [0.5 0 1];
 % Coherence Function Parameters
-initparams.slope = [0.1 -inf inf];
+voxparams.slope = [0.1 -inf inf];
+% Offset
+voxparams.offset = [.05 -inf inf];
 
-% Constant Effect
-initparams.beta = 0;
+params.hrfparams = hrfparams;
+params.voxparams = voxparams;
 
-% Gamma function
-initparams.amp1 = 1;
-initparams.tau1 = [0.3 -inf inf];
-initparams.timelag1 = [1 0 3];
-initparams.amp2 = [-0.2 -1 0];
-initparams.tau2 = [1.2 -inf inf];
-initparams.timelag2 = [0 0 5];
-initparams.exponent = [7];
-fixedParams.diff = 1;
+params.num = 0;
+data.tSeries = [];
+params.r2 = [];
+params.sortindex = [];
+for i = 1:length(data.rois)
+    params.num = params.num + data.rois{i}.n;
+    params.r2 = [params.r2 data.rois{i}.r2];
+    params.sortindex = [params.sortindex data.rois{i}.sortindex];
+    data.tSeries = [data.tSeries ; data.rois{i}.tSeries];
+end
 
-initparams.offset = [0 -inf inf];
+data.tSeries = (data.tSeries-1)*100; % move into zero mean and 1% space, easier for interpretation later
 
-% Dropoff of effect
-% initparams.lambda = [0.04 -inf inf];
-initparams.lambda = 0;
+%% Time Saving stuff
+fixedParams.sstot = sum((data.tSeries-repmat(mean(data.tSeries,2),1,size(data.tSeries,2))).^2,2);
+
+%% fit HRF
+
+hrffit = fitHRFModel(data);
 
 %% Fit Model
-fit = optimFitModel(initparams,timeseries,designs,runtrans);
+fits = fitVoxelModel(data,hrffit);
 
-%% Do the deconvolution analysis on the model and the fit
-fit.orig.timeseries = timeseries;
-fit.orig.designs = designs;
-fit.orig.runtrans = runtrans;
+%% Check fit parameters and correlate w/ R^2
+Rmax = zeros(size(fits));
+c50 = zeros(size(fits));
+slope = zeros(size(fits));
+off = zeros(size(fits));
+for i = 1:length(fits)
+    Rmax(i) = fits{i}.Rmax;
+    slope(i) = fits{i}.slope;
+    c50(i) = fits{i}.c50;
+    off(i) = fits{i}.offset;
+end
 
-function fit = optimFitModel(initparams,timeseries,designs,runtrans)
+%% Correlate plots
+figure
+subplot(221)
+plot(params.r2,Rmax,'*');
+subplot(222)
+plot(params.r2,c50,'*');
+subplot(223)
+plot(params.r2,slope,'*');
+subplot(224)
+plot(params.r2,off,'*');
+function fits = fitVoxelModel(data,hrffit)
 
-global fixedParams
+global params fixedParams
 
-[initparams,minparams,maxparams] = initParams(initparams);
-maxiter = inf;
-displsqnonlin = 'off';
+strs = {'amp1','tau1','timelag1','amp2','tau2','timelag2','exponent'};
+for si = 1:length(strs)
+    params.voxparams.(strs{si}) = hrffit.params.(strs{si});
+end
+[voxparams,minparams,maxparams] = initParams(params.voxparams,'vox');
+% Fit each voxel using the HRF from before
+fits = cell(1,size(data.tSeries,1));
+optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
 
-optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',maxiter,'Display',displsqnonlin);
+% spacing = round(linspace(1,size(data.tSeries,1),10));
+% for vgroup = 1:length(spacing-1)
+%     mygroup = spacing(vgroup):(spacing(vgroup+1)-1);
+%     myfits = cell(1,length(mygroup));
+num = mlrNumWorkers(8);
+% disppercent(-inf,'Running across voxels');
+parfor vox = 1:size(data.tSeries,1)
+    mytSeries = data.tSeries(vox,:);
+    [curparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,voxparams,minparams,maxparams,optimParams,mytSeries,data.design,data.concatInfo.runTransition,'vox',-1,fixedParams);
 
-%% Do the fit
+    myparams = getParams(curparams,'vox',fixedParams);
 
-if fixedParams.disp
+%     myfits{vox-min(mygroup)+1} = myparams;
+    fits{vox} = myparams;
+%     disppercent(vox/size(data.tSeries,1));
+end
+% disppercent(inf);
+% end
+
+function fit = fitHRFModel(data)
+
+% Fit to the mean timeseries from the top R^2 values
+global params fixedParams
+[hrfparams,minparams,maxparams] = initParams(params.hrfparams,'hrf');
+
+if fixedParams.hrf.disp
     f = figure;
 else
     f = -inf;
 end
 
-if any(fixedParams.optim)
-    % Deal with the parameters that need to be optimized
-    bestparams = struct;
-    bestres = inf;
-    jacobian = [];
-    if sum(fixedParams.optim)>1, error('Can''t optimize over multiple parameters'); end
-    idx = find(fixedParams.optim,1);
-    cpvals = fixedParams.(fixedParams.strs{idx});
-    for i = 1:length(cpvals)
-        fixedParams.(fixedParams.strs{idx}) = cpvals(i);
-        fixedParams.fixed(idx) = 1;
-        [curparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@fitModel,initparams,minparams,maxparams,optimParams,timeseries,designs,runtrans,f);
-        if res < bestres
-            bestparams = curparams;
-            bestres = res;
-            jacobian = curjacob;
-        end
-    end
-else
-    [bestparams, ~, res, ~, ~, ~, jacobian] = lsqnonlin(@fitModel,initparams,minparams,maxparams,optimParams,timeseries,designs,runtrans,f);
+% Timeseries
+r2mu = mean(params.r2);
+r2std = std(params.r2);
+r2cut = r2mu + 2*r2std;
+idxs = params.sortindex(params.r2>r2cut);
+while length(idxs)<50
+    disp('(fitcctimecourseroimodel) Min voxels 50 not met');
+    idxs = params.sortindex(params.r2>(r2cut-0.5*r2std));
 end
 
-%% Compute CIs
-% jacobian = jacobian'*jacobian;
-% reducedChiSquared = (res*res')/(length(hrf)-length(initparams));
-% covar = sqrt(reducedChiSquared * inv(jacobian));
-% 
-% fit.ci_covar = nlparci(params,res,'covar',covar);
-% % fit.ci_jacobian = nlparci(bestparams,res,'jacobian',jacobian);
+tSeries = mean(data.tSeries(idxs,:));
 
-%% Get Best Fit
-[~, fit] = fitModel(bestparams,timeseries,designs,runtrans,f);
-% fit.err = reshape(err,size(hrf));
-fit.params = getParams(bestparams);
+optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
+[curparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,hrfparams,minparams,maxparams,optimParams,tSeries,data.design,data.concatInfo.runTransition,'hrf',f,fixedParams);
 
-%% Compute full
-fit.full = struct;
-fcoh = 0:.1:1;
-fcon = 0:.1:1;
+fit.params = getParams(curparams,'hrf',fixedParams);
 
-fit.full.fcon = fcon;
-fit.full.fconr = conModel(fcon,fit.params);
-fit.full.fcoh = fcoh;
-fit.full.fcohr = cohModel(fcoh,fit.params);
+function res = hrfResidual(params,tSeries,design,runtrans,flag,f,fixedParams)
 
-function [err, fit] = fitModel(params,timeseries,designs,runtrans,f)
+params = getParams(params,flag,fixedParams);
 
-global fixedParams
-
-params = getParams(params);
-
-% by default lets model in 0.5 s increments
-
-t = 0:0.5:50;
+t = 0.25:0.5:49.75;
 impulse = gamma(t,params);
 
-errs = {};
+model = zeros(size(tSeries));
 
-% For each timeseries we need to build a model timeseries. That model needs
-% to not run over the transitions between runs, so we have to do some
-% selection as we're building it up. This is a linear GLM using the impulse
-% function above. The size of the effect at each trial is:
-%
-% offset + coneff + coheff
-%
-% and this is placed at every X time points where X is defined by the
-% timing value
-%
-% that model timeseries is convolved with the impulse function computed
-% above
-%
-% err is computed as timeseries - model timeseries and then simply
-% concatenated across the runs
-%
-% stimvol - basecon - newcon - basecoh - newcoh - timing
+for run = 1:size(runtrans,1)
+    cdesign = fil(design,1,'>=',runtrans(run,1));
+    cdesign = fil(cdesign,1,'<=',runtrans(run,2));
 
-err = cell(size(timeseries));
+    for si = 1:size(cdesign,1)
+        % okay, for each stimvol, place its effect
+        sv = cdesign(si,1);
+        coneff = conModel(cdesign(si,3)-cdesign(si,2),params);
+        coheff = cohModel(cdesign(si,5)-cdesign(si,4),params);
+        effect = coneff+coheff+params.offset;
 
-out = cell(size(timeseries));
-for ti = 1:length(timeseries)
-    ts = timeseries{ti};
-    ts = (ts-1)*100;
-    model = zeros(size(ts));
-    design = designs{ti};
-    transitions = runtrans{ti};
-    
-    for run = 1:size(transitions,1)
-        cdesign = fil(design,1,'>=',transitions(run,1));
-        cdesign = fil(cdesign,1,'<=',transitions(run,2));
-        
-        for si = 1:size(cdesign,1)
-            % okay, for each stimvol, place its effect
-            sv = cdesign(si,1);
-            coneff = conModel(cdesign(si,3)-cdesign(si,2),params);
-            coheff = cohModel(cdesign(si,5)-cdesign(si,4),params);
-            effect = coneff+coheff+params.offset;
-            
-            idxs = sv:min(transitions(run,2),sv+cdesign(si,6));
-            model(idxs) = model(idxs)+effect;
+        if cdesign(si,6)>=1
+            idxs = sv:min(runtrans(run,2),sv+cdesign(si,6));
+        else
+            idxs = sv;
+            effect = effect * cdesign(si,6);
+        end
+        if length(effect)>1
+            model(:,idxs) = model(:,idxs)+repmat(effect,1,length(idxs));
+        else
+            model(:,idxs) = model(:,idxs)+repmat(effect,size(model,1),length(idxs));
         end
     end
-    modeltimeseries = conv(impulse,model);
-    modeltimeseries = modeltimeseries(1:length(ts));
-    
-    out{ti} = modeltimeseries;
-    err{ti} = ts - modeltimeseries;
-
 end
+cmt = conv(impulse,model);
+modeltimeseries = cmt(1:size(tSeries,2));
 
-err = [err{:}];
+res = tSeries-modeltimeseries;
 
-fit.out = out;
-fit.impulse = impulse;
-% 
-allts = ([timeseries{:}]-1)*100;
-ssres = sum(err.^2);
-sstot = sum((allts(:)-mean(allts(:))).^2);
-fit.r2 = 1 - ssres/sstot;
-
-if fixedParams.disp
+if f>0
     figure(f)
     clf(f)
     subplot(211)
     hold on
-    plot(ts(1:1000),'r');
-    plot(modeltimeseries(1:1000),'b');
-    title(sprintf('R^2: %0.2f Rmax: %2.2f c50: %2.2f slope: %2.2f offset: %2.2f',fit.r2,params.Rmax,params.c50,params.slope,params.offset));
+    plot(tSeries(1:1000),'b');
+    plot(modeltimeseries(1:1000),'r');
+%     title(sprintf('R^2: %0.2f Rmax: %2.2f c50: %2.2f slope: %2.2f offset: %2.2f',fit.r2,params.Rmax,params.c50,params.slope,params.offset));
     subplot(212)
     plot(t,impulse);
 end
 
+ssres = sum(res.^2);
+
+% fit.r2 = 1 - ssres/data.sstot;
+
 %%
 function out = gamma(time,params)
 
-global fixedParams
-
-if fixedParams.diff
+% global fixedParams
+% 
+% if fixedParams.diff
     n = params.exponent;
     tau1 = params.tau1;
     amp1 = params.amp1;
@@ -320,15 +295,15 @@ if fixedParams.diff
     out2 = amp2*out2;
     
     out = out1+out2;
-else
-    n = params.exponent;
-    tau = params.tau;
-    time = time-params.timelag;
-    out = ((time/tau).^(n-1).*exp(-time/tau))./(tau*factorial(n-1));
-    out(time < 0) = 0;
-    out = (out-min(out)) ./ (max(out)-min(out));
-    out = params.amplitude*out;
-end
+% else
+%     n = params.exponent;
+%     tau = params.tau;
+%     time = time-params.timelag;
+%     out = ((time/tau).^(n-1).*exp(-time/tau))./(tau*factorial(n-1));
+%     out(time < 0) = 0;
+%     out = (out-min(out)) ./ (max(out)-min(out));
+%     out = params.amplitude*out;
+% end
 
 out = out/sum(out)/2; % normalize to sum=1 for 1% signal change / s
 
@@ -340,54 +315,50 @@ function out = cohModel(coh,params)
 
 out = params.slope .* coh;
 
-function [initparams, minparams, maxparams] = initParams(params)
-
+function [initparams, minparams, maxparams] = initParams(params,flag)
+%%
 global fixedParams
 
-fixedParams.strs = fields(params);
-fixedParams.num = length(fixedParams.strs);
+fixedParams.(flag).strs = fields(params);
 
 initparams = [];
 minparams = [];
 maxparams = [];
-indexes = zeros(1,fixedParams.num);
+indexes = cell(1,length(fixedParams.(flag).strs));
 count = 1;
 
-fixed = zeros(1,fixedParams.num);
-optim = zeros(1,fixedParams.num);
-
-for i = 1:fixedParams.num
-    cvals = params.(fixedParams.strs{i});
-    
+fixed = zeros(1,length(fixedParams.(flag).strs));
+optim = zeros(1,length(fixedParams.(flag).strs));
+%%
+for i = 1:length(fixedParams.(flag).strs)
+    cvals = params.(fixedParams.(flag).strs{i});
     if length(cvals)==1
-        fixedParams.(fixedParams.strs{i}) = cvals;
+        fixedParams.(flag).(fixedParams.(flag).strs{i}) = cvals;
         fixed(i) = 1;
     elseif length(cvals)==3
         initparams = [initparams cvals(1)];
         minparams = [minparams cvals(2)];
         maxparams = [maxparams cvals(3)];
-        indexes(i) = count;
+        indexes{i} = count;
         count = count+1;
     elseif length(cvals)==2 || length(cvals)>3
         % optimizer
-        fixedParams.(fixedParams.strs{i}) = cvals;
+        fixedParams.(flag).(fixedParams.(flag).strs{i}) = cvals;
         optim(i) = 1;
     else
         error('You initialized a parameter with the wrong initial values... unable to interpret');
     end
 end
-fixedParams.optim = optim;
-fixedParams.fixed = fixed;
-fixedParams.idx = indexes;
+fixedParams.(flag).optim = optim;
+fixedParams.(flag).fixed = fixed;
+fixedParams.(flag).idx = indexes;
 
-function p = getParams(params)
+function p = getParams(params,flag,fixedParams)
 
-global fixedParams
-
-for i = 1:fixedParams.num
-    if fixedParams.fixed(i)
-        p.(fixedParams.strs{i}) = fixedParams.(fixedParams.strs{i});
+for i = 1:length(fixedParams.(flag).strs)
+    if fixedParams.(flag).fixed(i)
+        p.(fixedParams.(flag).strs{i}) = fixedParams.(flag).(fixedParams.(flag).strs{i});
     else
-        p.(fixedParams.strs{i}) = params(fixedParams.idx(i));
+        p.(fixedParams.(flag).strs{i}) = params(fixedParams.(flag).idx{i});
     end
 end

@@ -298,8 +298,6 @@ end
 %%
 function out = gamma(time,params)
 
-global fixedParams
-
 if fixedParams.diff
     n = params.exponent;
     tau1 = params.tau1;

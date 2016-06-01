@@ -9,7 +9,7 @@ for i = 1:length(pathNames)
 end
 
 mrSetPref('maxBlocksize',32000000000);
-mglSetParam('sidDatabaseFilename','/Volumes/gru/sid/sidDatabase');
+mglSetParam('sidDatabaseFilename','/Volumes/gru/sid/sidDatabase')
 
 % run user specific matlab startup. This will look for a matlab
 % script like startupkenji to run, if it finds it on the path

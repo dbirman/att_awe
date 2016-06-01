@@ -13,7 +13,7 @@ datas = {};
 
 for fi = incl
     load(fullfile(fdir,files(fi).name));
-    datas{fi} = data;
+    datas{end+1} = data;
 end
 
 %% Move everything into these convenient holders
@@ -108,26 +108,33 @@ print(fname,'-dpdf')
 
 %% Deconvolve conditions
 
-for ri = 10
+for ri = 1
     decon = cell(length(fits),length(datas));
     model = cell(length(fits),length(datas));
     for di = 1:length(datas)
-        curd = constructD(fits{ri}.orig.timeseries{di}-1,stimvol{ri}{di},0.5,15,datas{di}.pre.concatInfo,'none','deconv',0);
+        curd = constructD(fits{ri}.orig.timeseries{di},stimvol{ri}{di},0.5,15,datas{di}.pre.concatInfo,'none','deconv',0);
 
         decon{ri,di} = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
         decon{ri,di} = rmfield(decon{ri,di},'scm');
         decon{ri,di} = rmfield(decon{ri,di},'covar');
         
-        modd = constructD(fits{ri}.out{di},stimvol{ri}{di},0.5,15,datas{di}.pre.concatInfo,'none','deconv',0);
+        modd = constructD(fits{ri}.out{di}/100+1,stimvol{ri}{di},0.5,15,datas{di}.pre.concatInfo,'none','deconv',0);
 
         model{ri,di} = getr2timecourse(modd.timecourse,modd.nhdr,modd.hdrlenTR,modd.scm,modd.framePeriod,modd.verbose);
         model{ri,di} = rmfield(model{ri,di},'scm');
         model{ri,di} = rmfield(model{ri,di},'covar');
     end
 end
+%%
+figure, hold on
+plot(fits{ri}.orig.timeseries{di}-1,'b');
+min(fits{ri}.orig.timeseries{di}-1)
+plot(fits{ri}.out{di}/100,'r');
+min(fits{ri}.out{di}/100)
+max(fits{ri}.out{di}/100)
 
 %% Plot Fit Comparisons
-for ri = 10
+for ri = 1
     figure
     for di = 1:length(datas)
         subplot(length(datas),1,di), hold on
