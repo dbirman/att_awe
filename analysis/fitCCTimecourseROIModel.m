@@ -59,14 +59,14 @@ function fit = fitCCTimecourseROIModel( data )
 
 design = data.design;
 
-if ~iscell(data.rois)
-    data.rois{1} = data.rois;
+if ~iscell(data.tSeries)
+    data.tSeries{1} = data.tSeries;
 end
 
 global fixedParams
-fixedParams.hrf.disp = 1;
-fixedParams.vox.disp = 1;
+fixedParams.disp = 1;
 fixedParams.diff = 1;
+fixedParams.ROIs = data.ROIs;
 
 %% internal validation
 remove_idxs = logical(logical((design(:,2)-design(:,3))==0).*logical((design(:,4)-design(:,5))==0));
@@ -101,8 +101,6 @@ roiparams.offset = [.05 -inf inf];
 params.hrfparams = hrfparams;
 params.roiparams = roiparams;
 
-params.num = length(data.ROIs);
-
 fixedParams.sstot = 0;
 for ti = 1:length(data.tSeries)
     data.tSeries{ti} = (data.tSeries{ti}-1)*100; % move into zero mean and 1% space, easier for interpretation later
@@ -115,31 +113,19 @@ fit = fitModel(data);
 function fit = fitModel(data)
 
 % Fit to the mean timeseries from the top R^2 values
-global params fixedParams
-[hrfparams,minparams,maxparams] = initParams(params.hrfparams,'hrf');
+global fixedParams
+[initparams,minparams,maxparams] = initParams;
 
-if fixedParams.hrf.disp
+if fixedParams.disp
     f = figure;
 else
     f = -inf;
 end
 
-% Timeseries
-r2mu = mean(params.r2);
-r2std = std(params.r2);
-r2cut = r2mu + 2*r2std;
-idxs = params.sortindex(params.r2>r2cut);
-while length(idxs)<50
-    disp('(fitcctimecourseroimodel) Min voxels 50 not met');
-    idxs = params.sortindex(params.r2>(r2cut-0.5*r2std));
-end
-
-tSeries = mean(data.tSeries(idxs,:));
-
 optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
-[curparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,hrfparams,minparams,maxparams,optimParams,tSeries,data.design,data.concatInfo.runTransition,'hrf',f,fixedParams);
+[bestparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.concatInfo.runTransition,f,fixedParams);
 
-fit.params = getParams(curparams,'hrf',fixedParams);
+fit.params = getParams(bestparams);
 
 function res = hrfResidual(params,tSeries,design,runtrans,flag,f,fixedParams)
 
@@ -240,11 +226,11 @@ function out = cohModel(coh,params)
 
 out = params.slope .* coh;
 
-function [initparams, minparams, maxparams] = initParams(params,flag)
+function [initparams, minparams, maxparams] = initParams()
 %%
-global fixedParams
+global fixedParams params
 
-fixedParams.(flag).strs = fields(params);
+fixedParams.strs = fields(params.hrfparams);
 
 initparams = [];
 minparams = [];
@@ -255,10 +241,10 @@ count = 1;
 fixed = zeros(1,length(fixedParams.(flag).strs));
 optim = zeros(1,length(fixedParams.(flag).strs));
 %%
-for i = 1:length(fixedParams.(flag).strs)
-    cvals = params.(fixedParams.(flag).strs{i});
+for i = 1:length(fixedParams.strs)
+    cvals = params.(fixedParams.strs{i});
     if length(cvals)==1
-        fixedParams.(flag).(fixedParams.(flag).strs{i}) = cvals;
+        fixedParams.(flag).(fixedParams.strs{i}) = cvals;
         fixed(i) = 1;
     elseif length(cvals)==3
         initparams = [initparams cvals(1)];
