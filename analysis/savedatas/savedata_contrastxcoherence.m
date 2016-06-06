@@ -9,8 +9,15 @@ if ~isdir(fullfile(pwd,'Figures')), mkdir(fullfile(pwd,'Figures')); end
 % ROIs = {'lV1','lV2v','lV2d','lV3v','lV3d','lMT','rV1','rV2v','rV2d','rV3v','rV3d','rMT','lV3a','lV3b','rV3a','rV3b','lLO1','lLO2','lV4','rLO1','rLO2','rV4'};
 % shortROIs = {'V3a','V3b','V1','V2','V3','MT','LO1','LO2','V4'};
 
-ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','LO1','LO2','MT'};
-% ROIs = {'V1','MT'};
+% ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','LO1','LO2','MT'};
+ROIs = {'V1','MT'};
+pfxs = {'l','r'};
+allROIs = {};
+for ri = 1:length(ROIs)
+    for pi = 1:length(pfxs)
+        allROIs{end+1} = strcat(pfxs{pi},ROIs{ri});
+    end
+end
 
 %% Setup a view
 view = newView();
@@ -25,22 +32,40 @@ analysis = viewGet(view,'analysis');
 d = analysis.d{1};
 d.scanNum = 1;
 d.groupNum = view.curGroup;
-d = loadroi(d,ROIs,'keepNAN=true');
+d = loadroi(d,allROIs,'keepNAN=1');
 concatInfo = viewGet(view,'concatInfo');
-r2 = viewGet(view,'overlayData',d.scanNum);
-d.roi = getSortIndex(view,d.roi,r2);
+% d.roi = getSortIndex(view,d.roi,r2);
 
 tSeries = cell(1,length(d.roi)); % meaned tSeries
 
 scanDims = viewGet(view,'scanDims');
 
+r2 = analysis.overlays(1).data{1};
+right = analysis.overlays(2).data{1};
+left = analysis.overlays(3).data{1};
 for ri = 1:length(d.roi)
     r = d.roi{ri};
     r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
     
     r.r2 = r2(r.linearScanCoords);    
-
-    tSeries{ri} = nanmean(r.tSeries(r.r2>thresh,:));
+    rightO = right(r.linearScanCoords);
+    leftO = left(r.linearScanCoords);
+    rightO(isnan(rightO))=0;
+    leftO(isnan(leftO))=0;
+    
+%     idxs = ~any(isnan(r.tSeries),2);
+%     tSeriesnoNaN = r.tSeries;
+%     tSeriesnoNaN(isnan(tSeriesnoNaN)) = 0;
+    
+    rightMean = (rightO*r.tSeries)/sum(rightO);
+    leftMean = (leftO*r.tSeries)/sum(leftO);
+    
+    if strcmp(r.name(1),'l')
+        tSeries{ri} = rightMean;
+    else
+        tSeries{ri} = leftMean;
+    end
+%     tSeries{ri} = nanmean(r.tSeries(r.r2>thresh,:));
 end
 
 %% Get deconvolution
