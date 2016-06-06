@@ -1,4 +1,4 @@
-function fits = fitCCTimecourseROIModel( data )
+function fit = fitCCTimecourseROIModel( data )
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -12,9 +12,19 @@ function fits = fitCCTimecourseROIModel( data )
 %   fit.full = Model output for con = 0:1 and coh 0:1
 %
 %   INPUT:
-%   data.rois = rois loaded by loadROITSeries
+%   data.tSeries = tSeries from savedata_localizer
 %   data.concatInfo = concatInfo from viewGet(v,'concatInfo')
 %   data.design = long form design matrix [vol# basecon con basecoh coh time]
+%
+%   ALGORITHM:
+%   We will fit a least squares model that optimizes the HRF across ROIs
+%   but allows the contrast and coherence response functions to vary by
+%   ROI. This seems to be the best compromise. Other ideas you tried that
+%   didn't work:
+%
+%    - Fitting individual voxels
+%    - Fitting the HRF across voxels and then fitting individual voxels
+%    - Fitting to a tSeries averaged using an arbitrary R^2 cutoff
 %   
 %   Based on Rees & Koch 2000 and a bunch of other stuff...
 %
@@ -46,22 +56,6 @@ function fits = fitCCTimecourseROIModel( data )
 % 
 %   exp(-time*lambda) * R
 %
-%
-%   Functionality
-%   (1) Generate prefit models, take the design, generate the effect models
-%   (prior to convolving with HRF) for the following combinations:
-%       Contrast null
-%       Contrast linear slope: small, med, large
-%       Coherence null
-%       Coherence linear slope: small, med, large
-%   (2) Run maximum likelihood to fit the HRF and its parameters
-%   (3) On each iteration of the HRF, do a grid search using correlations
-%       choose which con/coh slopes to use for each voxel. Probably best to
-%       use only the top 10% of voxels by R^2 for _all_?
-%       Compute the likelihood of each voxel and return this as the
-%       likelihood for this HRF iteration
-%   (4) After fitting the HRF function re-fit every voxel using lsqnonlin
-%       and the con-naka/coh-linear models. Best to parallelize this...
 
 design = data.design;
 
@@ -85,6 +79,7 @@ end
 %% Parameter initialization
 global params
 
+% HRF Parameters
 hrfparams.amp1 = 1;
 hrfparams.tau1 = [0.45 -inf inf];
 hrfparams.timelag1 = [.7 0 3];
@@ -93,101 +88,31 @@ hrfparams.tau2 = [1.7 -inf inf];
 hrfparams.timelag2 = [0 0 6];
 hrfparams.exponent = 7;
 hrfparams.n = 1;
-hrfparams.Rmax = [.1 -inf inf];
-hrfparams.c50 = [0.5 0 1];
-hrfparams.slope = [0.1 -inf inf];
-hrfparams.offset = [.05 -inf inf];
 
 % Contrast Function Parameters
-voxparams.n = 1;
-voxparams.Rmax = [.1 -inf inf];
-voxparams.c50 = [0.5 0 1];
+roiparams.n = 1;
+roiparams.Rmax = [.1 -inf inf];
+roiparams.c50 = [0.5 0 1];
 % Coherence Function Parameters
-voxparams.slope = [0.1 -inf inf];
+roiparams.slope = [0.1 -inf inf];
 % Offset
-voxparams.offset = [.05 -inf inf];
+roiparams.offset = [.05 -inf inf];
 
 params.hrfparams = hrfparams;
-params.voxparams = voxparams;
+params.roiparams = roiparams;
 
-params.num = 0;
-data.tSeries = [];
-params.r2 = [];
-params.sortindex = [];
-for i = 1:length(data.rois)
-    params.num = params.num + data.rois{i}.n;
-    params.r2 = [params.r2 data.rois{i}.r2];
-    params.sortindex = [params.sortindex data.rois{i}.sortindex];
-    data.tSeries = [data.tSeries ; data.rois{i}.tSeries];
+params.num = length(data.ROIs);
+
+fixedParams.sstot = 0;
+for ti = 1:length(data.tSeries)
+    data.tSeries{ti} = (data.tSeries{ti}-1)*100; % move into zero mean and 1% space, easier for interpretation later
+    fixedParams.sstot = fixedParams.sstot + sum((data.tSeries{ti}-repmat(mean(data.tSeries{ti},2),1,size(data.tSeries{ti},2))).^2,2);
 end
-
-data.tSeries = (data.tSeries-1)*100; % move into zero mean and 1% space, easier for interpretation later
-
-%% Time Saving stuff
-fixedParams.sstot = sum((data.tSeries-repmat(mean(data.tSeries,2),1,size(data.tSeries,2))).^2,2);
 
 %% fit HRF
+fit = fitModel(data);
 
-hrffit = fitHRFModel(data);
-
-%% Fit Model
-fits = fitVoxelModel(data,hrffit);
-
-%% Check fit parameters and correlate w/ R^2
-Rmax = zeros(size(fits));
-c50 = zeros(size(fits));
-slope = zeros(size(fits));
-off = zeros(size(fits));
-for i = 1:length(fits)
-    Rmax(i) = fits{i}.Rmax;
-    slope(i) = fits{i}.slope;
-    c50(i) = fits{i}.c50;
-    off(i) = fits{i}.offset;
-end
-
-%% Correlate plots
-figure
-subplot(221)
-plot(params.r2,Rmax,'*');
-subplot(222)
-plot(params.r2,c50,'*');
-subplot(223)
-plot(params.r2,slope,'*');
-subplot(224)
-plot(params.r2,off,'*');
-function fits = fitVoxelModel(data,hrffit)
-
-global params fixedParams
-
-strs = {'amp1','tau1','timelag1','amp2','tau2','timelag2','exponent'};
-for si = 1:length(strs)
-    params.voxparams.(strs{si}) = hrffit.params.(strs{si});
-end
-[voxparams,minparams,maxparams] = initParams(params.voxparams,'vox');
-% Fit each voxel using the HRF from before
-fits = cell(1,size(data.tSeries,1));
-optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
-
-% spacing = round(linspace(1,size(data.tSeries,1),10));
-% for vgroup = 1:length(spacing-1)
-%     mygroup = spacing(vgroup):(spacing(vgroup+1)-1);
-%     myfits = cell(1,length(mygroup));
-num = mlrNumWorkers(8);
-% disppercent(-inf,'Running across voxels');
-parfor vox = 1:size(data.tSeries,1)
-    mytSeries = data.tSeries(vox,:);
-    [curparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,voxparams,minparams,maxparams,optimParams,mytSeries,data.design,data.concatInfo.runTransition,'vox',-1,fixedParams);
-
-    myparams = getParams(curparams,'vox',fixedParams);
-
-%     myfits{vox-min(mygroup)+1} = myparams;
-    fits{vox} = myparams;
-%     disppercent(vox/size(data.tSeries,1));
-end
-% disppercent(inf);
-% end
-
-function fit = fitHRFModel(data)
+function fit = fitModel(data)
 
 % Fit to the mean timeseries from the top R^2 values
 global params fixedParams

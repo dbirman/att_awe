@@ -1,4 +1,4 @@
-function cc_rightchoice( adata, fit, f )
+function f = cc_rightchoice( adata, fit, f )
 
 if ieNotDefined('f')
     f = figure;
@@ -22,7 +22,13 @@ fits = {};
 clist = brewermap(9,'PuOr');
 for ti = 1:length(types)
     for ai = 1:length(attend)
-        data = sel(adata,1,types_(ti)*attend_(ai));
+        flip = [2 1];
+        if ccatch(ti)==1
+            % this is actually the opposite condition, so flip attend
+            data = sel(adata,1,types_(ti)*flip(attend_(ai)));
+        else
+            data = sel(adata,1,types_(ti)*attend_(ai));
+        end
         data = sel(data,9,ccatch(ti));
         subplot(3,2,(ti-1)*2+ai), hold on
         title(sprintf('%s: %s, trials: %i',attend{ai},types{ti},size(data,1)));
@@ -81,25 +87,29 @@ conr = conrange(conrange>=0); % only model additive changes, flip for the negati
 baseresp = conModel(conped,fit.params);
 highresp = conModel(conped+conr,fit.params);
 diffresp = highresp-baseresp;
+if fit.params.poissonNoise
+    resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
+else
+    resp = normcdf(diffresp,0,fit.params.sigma);
+end
 % adjust the response by the condition, so using alphacon
 if attend==2
     if ccatch==-1
-        diffresp = diffresp*fit.params.alphacon;
+        resp = resp*fit.params.alphacon + .5 * (1-fit.params.alphacon);
     elseif ccatch==0
-        diffresp = diffresp*fit.params.alphacon_att;
+        resp = resp*fit.params.alphacon_att + .5 * (1-fit.params.alphacon_att);
     elseif ccatch==1
-        diffresp = diffresp*fit.params.alphacon_un;
+        resp = resp*fit.params.alphacon_un + .5 * (1-fit.params.alphacon_un);
     end
 else
     if ccatch==-1
-        diffresp = diffresp*(1-fit.params.alphacon);
+        resp = resp*(1-fit.params.alphacoh) + .5 * fit.params.alphacoh;
     elseif ccatch==0
-        diffresp = diffresp*(1-fit.params.alphacon_att);
+        resp = resp*(1-fit.params.alphacoh_att) + .5 * fit.params.alphacoh_att;
     elseif ccatch==1
-        diffresp = diffresp*(1-fit.params.alphacon_un);
+        resp = resp*(1-fit.params.alphacoh_un) + .5 * fit.params.alphacoh_un;
     end
 end
-resp = normcdf(diffresp,sqrt(diffresp*fit.params.noise));
 if mod(length(conrange),2)==0
     resp = [1-fliplr(resp) resp];
 else
@@ -121,25 +131,29 @@ cohr = cohrange(cohrange>0); % only model additive changes, flip for the negativ
 baseresp = cohModel(cohped,fit.params);
 
 highresp = cohModel(cohped+cohr,fit.params);
-diffresp = highresp-baseresp;w
+diffresp = highresp-baseresp;
+if fit.params.poissonNoise
+    resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
+else
+    resp = normcdf(diffresp,0,fit.params.sigma);
+end
 if attend==1
     if ccatch==-1
-        diffresp = diffresp*fit.params.alphacoh;
+        resp = resp*fit.params.alphacoh + .5 * (1-fit.params.alphacoh);
     elseif ccatch==0
-        diffresp = diffresp*fit.params.alphacoh_att;
+%         resp = resp*fit.params.alphacoh_att + .5 * (1-fit.params.alphacoh_att);
     elseif ccatch==1
-        diffresp = diffresp*fit.params.alphacoh_un;
+%         resp = resp*fit.params.alphacoh_un + .5 * (1-fit.params.alphacoh_un);
     end
 else
     if ccatch==-1
-        diffresp = diffresp*(1-fit.params.alphacoh);
+        resp = resp*(1-fit.params.alphacon) + .5 * fit.params.alphacon;
     elseif ccatch==0
-        diffresp = diffresp*(1-fit.params.alphacoh_att);
+        resp = resp*(1-fit.params.alphacon_att) + .5 * fit.params.alphacon_att;
     elseif ccatch==1
-        diffresp = diffresp*(1-fit.params.alphacoh_un);
+        resp = resp*(1-fit.params.alphacon_un) + .5 * fit.params.alphacon_un;
     end
 end
-resp = normcdf(diffresp,sqrt(diffresp*fit.params.noise));
 if mod(length(cohrange),2)==0
     resp = [1-fliplr(resp) resp];
 else
