@@ -125,61 +125,82 @@ end
 optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
 [bestparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.concatInfo.runTransition,f,fixedParams);
 
-fit.params = getParams(bestparams);
+fit.params = getParams(bestparams,fixedParams);
+%%
+% Generate plot for con/coh by area
+figure
+x = 0:.01:1;
+clist = brewermap(3,'PuOr');
+for ri = 1:length(fixedParams.ROIs)
+    subplot(length(fixedParams.ROIs),1,ri);
+    hold on
+    roiparams = getROIParams(fit.params,fixedParams.ROIs{ri});
+    cony = conModel(x,roiparams);
+    cohy = cohModel(x,roiparams);
+    plot(x,cony,'Color',clist(1,:));
+    plot(x,cohy,'Color',clist(3,:));
+    title(fixedParams.ROIs{ri});
+end
 
-function res = hrfResidual(params,tSeries,design,runtrans,flag,f,fixedParams)
+function res = hrfResidual(params,tSeries,design,runtrans,f,fixedParams)
 
-params = getParams(params,flag,fixedParams);
+params = getParams(params,fixedParams);
 
 t = 0.25:0.5:49.75;
 impulse = gamma(t,params);
 
-model = zeros(size(tSeries));
+res = [];
+for ri = 1:length(fixedParams.ROIs)
+    ctSeries = tSeries{ri};
+    roimodel = zeros(size(ctSeries));
+    % get just this ROIs parameters and strip out the ROI name itself
+    roiparams = getROIParams(params,fixedParams.ROIs{ri});
 
-for run = 1:size(runtrans,1)
-    cdesign = fil(design,1,'>=',runtrans(run,1));
-    cdesign = fil(cdesign,1,'<=',runtrans(run,2));
+    for run = 1:size(runtrans,1)
+        cdesign = fil(design,1,'>=',runtrans(run,1));
+        cdesign = fil(cdesign,1,'<=',runtrans(run,2));
 
-    for si = 1:size(cdesign,1)
-        % okay, for each stimvol, place its effect
-        sv = cdesign(si,1);
-        coneff = conModel(cdesign(si,3)-cdesign(si,2),params);
-        coheff = cohModel(cdesign(si,5)-cdesign(si,4),params);
-        effect = coneff+coheff+params.offset;
+        for si = 1:size(cdesign,1)
+            % okay, for each stimvol, place its effect
+            sv = cdesign(si,1);
+            coneff = conModel(cdesign(si,3)-cdesign(si,2),roiparams);
+            coheff = cohModel(cdesign(si,5)-cdesign(si,4),roiparams);
+            % TODO: adjust coneff/coheff by attention condition!
+            effect = coneff+coheff+roiparams.offset;
 
-        if cdesign(si,6)>=1
-            idxs = sv:min(runtrans(run,2),sv+cdesign(si,6));
-        else
-            idxs = sv;
-            effect = effect * cdesign(si,6);
-        end
-        if length(effect)>1
-            model(:,idxs) = model(:,idxs)+repmat(effect,1,length(idxs));
-        else
-            model(:,idxs) = model(:,idxs)+repmat(effect,size(model,1),length(idxs));
+            if cdesign(si,6)>=1
+                idxs = sv:min(runtrans(run,2),sv+cdesign(si,6));
+            else
+                idxs = sv;
+                effect = effect * cdesign(si,6);
+            end
+            if length(effect)>1
+                roimodel(:,idxs) = roimodel(:,idxs)+repmat(effect,1,length(idxs));
+            else
+                roimodel(:,idxs) = roimodel(:,idxs)+repmat(effect,size(roimodel,1),length(idxs));
+            end
         end
     end
+    cmt = conv(impulse,roimodel);
+    modeltimeseries = cmt(1:size(ctSeries,2));
+    res = [res ctSeries-modeltimeseries];
 end
-cmt = conv(impulse,model);
-modeltimeseries = cmt(1:size(tSeries,2));
 
-res = tSeries-modeltimeseries;
+ssres = sum(res.^2);
+r2 = 1 - ssres/fixedParams.sstot;
 
 if f>0
     figure(f)
     clf(f)
     subplot(211)
     hold on
-    plot(tSeries(1:1000),'b');
+    plot(ctSeries(1:1000),'b');
     plot(modeltimeseries(1:1000),'r');
-%     title(sprintf('R^2: %0.2f Rmax: %2.2f c50: %2.2f slope: %2.2f offset: %2.2f',fit.r2,params.Rmax,params.c50,params.slope,params.offset));
+    title(sprintf('R^2: %0.2f',r2));
     subplot(212)
     plot(t,impulse);
 end
 
-ssres = sum(res.^2);
-
-% fit.r2 = 1 - ssres/data.sstot;
 
 %%
 function out = gamma(time,params)
@@ -230,46 +251,86 @@ function [initparams, minparams, maxparams] = initParams()
 %%
 global fixedParams params
 
-fixedParams.strs = fields(params.hrfparams);
+%% Deal with HRF params
+fixedParams.strs = fields(params.hrfparams)';
+rfields = fields(params.roiparams);
 
 initparams = [];
 minparams = [];
 maxparams = [];
-indexes = cell(1,length(fixedParams.(flag).strs));
+indexes = cell(1,length(fixedParams.strs)+length(rfields)*length(fixedParams.ROIs));
 count = 1;
 
-fixed = zeros(1,length(fixedParams.(flag).strs));
-optim = zeros(1,length(fixedParams.(flag).strs));
-%%
+fixed = zeros(size(indexes));
+optim = zeros(size(indexes));
+
 for i = 1:length(fixedParams.strs)
-    cvals = params.(fixedParams.strs{i});
+    cvals = params.hrfparams.(fixedParams.strs{i});
     if length(cvals)==1
-        fixedParams.(flag).(fixedParams.strs{i}) = cvals;
+        fixedParams.(fixedParams.strs{i}) = cvals;
         fixed(i) = 1;
     elseif length(cvals)==3
-        initparams = [initparams cvals(1)];
-        minparams = [minparams cvals(2)];
-        maxparams = [maxparams cvals(3)];
+        initparams(end+1) = cvals(1);
+        minparams(end+1) = cvals(2);
+        maxparams(end+1) = cvals(3);
         indexes{i} = count;
         count = count+1;
     elseif length(cvals)==2 || length(cvals)>3
         % optimizer
-        fixedParams.(flag).(fixedParams.(flag).strs{i}) = cvals;
+        fixedParams.(fixedParams.strs{i}) = cvals;
         optim(i) = 1;
     else
         error('You initialized a parameter with the wrong initial values... unable to interpret');
     end
 end
-fixedParams.(flag).optim = optim;
-fixedParams.(flag).fixed = fixed;
-fixedParams.(flag).idx = indexes;
 
-function p = getParams(params,flag,fixedParams)
+%% Deal with ROI params
 
-for i = 1:length(fixedParams.(flag).strs)
-    if fixedParams.(flag).fixed(i)
-        p.(fixedParams.(flag).strs{i}) = fixedParams.(flag).(fixedParams.(flag).strs{i});
+rStrs = {};
+for ni = 1:length(rfields)
+    cvals = params.roiparams.(rfields{ni});
+    for ri = 1:length(fixedParams.ROIs)
+        pos = i+(ni-1)*length(fixedParams.ROIs)+ri;
+        rStrs{end+1} = sprintf('%s%s',fixedParams.ROIs{ri},rfields{ni});
+        if length(cvals)==1
+            fixedParams.(rStrs{end}) = cvals;
+            fixed(pos) = 1;
+        elseif length(cvals)==3
+            initparams(end+1) = cvals(1);
+            minparams(end+1) = cvals(2);
+            maxparams(end+1) = cvals(3);
+            indexes{pos} = count;
+            count = count+1;
+        elseif length(cvals)==2 || length(cvals)>3
+            error('You are not allowed to use the optimizer for ROI specific parameters...');
+        else
+            error('You initialized a parameter with the wrong initial values... unable to interpret');
+        end
+    end
+end
+
+%% Save optim/fixed/indexes
+fixedParams.strs = [fixedParams.strs rStrs];
+fixedParams.optim = optim;
+fixedParams.fixed = fixed;
+fixedParams.idx = indexes;
+
+function p = getROIParams(params,ROI)
+% just grab anything that starts with ROI
+p = struct;
+flds = fields(params);
+for fi = 1:length(flds)
+    if strfind(flds{fi},ROI)
+        p.(strrep(flds{fi},ROI,'')) = params.(flds{fi});
+    end
+end
+
+function p = getParams(params,fixedParams)
+
+for i = 1:length(fixedParams.strs)
+    if fixedParams.fixed(i)
+        p.(fixedParams.strs{i}) = fixedParams.(fixedParams.strs{i});
     else
-        p.(fixedParams.(flag).strs{i}) = params(fixedParams.(flag).idx{i});
+        p.(fixedParams.strs{i}) = params(fixedParams.idx{i});
     end
 end
