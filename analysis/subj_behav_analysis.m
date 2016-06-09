@@ -1,4 +1,4 @@
-function subj_behav_analysis( subj )
+function subj_behav_analysis( subj, refit )
 %%
 cfolder = sprintf('~/data/cohcon/%s',subj);
 % cfolder = '~/data/cohcon/s300';
@@ -9,17 +9,18 @@ if ~isdir(ffolder), mkdir(ffolder); end
 
 files = dir(fullfile(cfolder,'*.mat'));
 %% dispInfo
-
-load(fullfile(cfolder,files(end).name));
-h = ccDispInfo(stimulus,subj);
 fname = fullfile(ffolder,'performance.pdf');
-set(h,'Units','Inches');
-pos = get(h,'Position');
-set(h,'InvertHardCopy','off');
-set(gcf,'Color',[1 1 1]);
-set(gca,'Color',[1 1 1]);
-set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(fname,'-dpdf');
+if ~isfile(fname)
+    load(fullfile(cfolder,files(end).name));
+    h = ccDispInfo(stimulus,subj);
+    set(h,'Units','Inches');
+    pos = get(h,'Position');
+    set(h,'InvertHardCopy','off');
+    set(gcf,'Color',[1 1 1]);
+    set(gca,'Color',[1 1 1]);
+    set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+    print(fname,'-dpdf');
+end
 
 %% Load data
 
@@ -49,35 +50,32 @@ end
 adata = adata(~any(isnan(adata),2),:);
 
 %% Fit behav model
-fit = fitCCBehavModel(adata,1,'con-naka,coh-linear');
+if refit
+    fit = fitCCBehavModel(adata,1,'con-naka,coh-linear');
 
-%% Try other models
-% Options:
-% noalpha - doesn't fit the mixture model for split attention
-% nounatt - doesn't reduce response intensity when unattended
-% unattnoise - fits the unattended condition using larger noise
-% poisson - poisson noise rather than regular noise
-fits.noalpha = fitCCBehavModel(adata,1,'con-naka,coh-linear,noalpha');
-fits.nounatt = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt');
-% fits.unattnoise = fitCCBehavModel(adata,1,'con-naka,coh-linear,unattnoise');
-fits.poisson = fitCCBehavModel(adata,1,'con-naka,coh-linear,poisson');
+    %% Try other models
+    fits.allnaka = fitCCBehavModel(adata,1,'con-naka,coh-naka');
+    fits.alllinear = fitCCBehavModel(adata,1,'con-linear,coh-linear');
+    % Options:
+    % noalpha - doesn't fit the mixture model for split attention
+    % nounatt - doesn't reduce response intensity when unattended
+    % unattnoise - fits the unattended condition using larger noise
+    % poisson - poisson noise rather than regular noise
+    fits.nobias = fitCCBehavModel(adata,1,'con-naka,coh-linear,nobias');
+    fits.nounatt = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt');
+    % fits.unattnoise = fitCCBehavModel(adata,1,'con-naka,coh-linear,unattnoise');
+    fits.poisson = fitCCBehavModel(adata,1,'con-naka,coh-linear,poisson');
+end
 
 %% Save data
 load(sprintf('~/data/cohcon/%s_data.mat',subj));
-data.fit = fit;
-data.fits = fits;
+if refit
+    data.fit = fit;
+    data.fits = fits;
+else
+    fit = data.fit;
+end
 save(sprintf('~/data/cohcon/%s_data.mat',subj),'data');
-%% Model Comparison
-% models = {'con-linear,coh-linear','con-naka,coh-linear','con-linear,coh-naka','con-naka,coh-naka'};
-% fits = cell(size(models));
-% parfor mi = 1:length(models)
-%     fits{mi} = fitCCBehavModel(adata,0,models{mi});
-% end
-
-%% BIC Output
-% for fi = 1:length(fits)
-%     disp(sprintf('Model: %s BIC: %4.2f',models{fi},fits{fi}.BIC));
-% end
 
 %% Figure
 x = 0:.01:1;

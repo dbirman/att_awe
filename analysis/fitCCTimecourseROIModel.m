@@ -122,6 +122,7 @@ hrfparams.tau2 = [1.7 -inf inf];
 hrfparams.timelag2 = [0 0 6];
 hrfparams.exponent = 7;
 hrfparams.n = 1;
+hrfparams.offset = [.05 -inf inf];
 
 % Contrast Function Parameters
 roiparams.n = 1;
@@ -129,8 +130,6 @@ roiparams.Rmax = [.1 0 inf];
 roiparams.c50 = [0.5 0 1];
 % Coherence Function Parameters
 roiparams.slope = [0.1 -inf inf];
-% Offset
-roiparams.offset = [.05 -inf inf];
 
 if strfind(mode,'gain')
     roiparams.conatt = [1 0 inf];
@@ -183,7 +182,7 @@ optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display'
 fit.params = getParams(bestparams,fixedParams);
 fit.roiparams = cell(size(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
-    fit.roiparams({ri}) = getROIParams(fit.params,fixedParams.ROIs{ri});
+    fit.roiparams{ri} = getROIParams(fit.params,fixedParams.ROIs{ri});
 end
 % fit.roiparams = getROIParams(fit.params,fixedParams.ROIs{ri});
 fit.ROIs = fixedParams.ROIs;
@@ -216,7 +215,7 @@ impulse = gamma(t,params);
 
 res = [];
 fit.model = cell(size(fixedParams.ROIs));
-fit.tSeries = cell(size(fixedParams.ROIs));
+fit.tSeries = tSeries;
 for ri = 1:length(fixedParams.ROIs)
     % pick the indexes to use
     if strcmp(fixedParams.ROIs{ri}(1),'l')
@@ -230,38 +229,42 @@ for ri = 1:length(fixedParams.ROIs)
     roimodel = zeros(size(ctSeries));
     % get just this ROIs parameters and strip out the ROI name itself
     roiparams = getROIParams(params,fixedParams.ROIs{ri});
-
     for run = 1:size(runtrans,1)
         cdesign = fil(design,1,'>=',runtrans(run,1));
         cdesign = fil(cdesign,1,'<=',runtrans(run,2));
 
         for si = 1:size(cdesign,1)
-            % okay, for each stimvol, place its effect
-            sv = cdesign(si,1);
-            coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams);
-            coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams);
-
+            % adjust parameters according to current trial
+            % attended/unattended
             if cdesign(si,9)==1
                 % attending COHERENCE
                 if fixedParams.att==1
-                    coneff = coneff * roiparams.conunatt;
-                    coheff = coheff * roiparams.cohatt;
+                    roiparams.Rmax = roiparams.Rmax*roiparams.conunatt;
+                    roiparams.slope = roiparams.slope*roiparams.cohatt;
                 else
+                    warning('Not implemented');
+                    keyboard
                     coneff = coneff + roiparams.conunatt;
                     coheff = coheff + roiparams.cohatt;
                 end
             elseif cdesign(si,9)==2
                 % attending CONTRAST
                 if fixedParams.att==1
-                    coneff = coneff * roiparams.conatt;
-                    coheff = coheff * roiparams.cohunatt;
+                    roiparams.Rmax = roiparams.Rmax*roiparams.conatt;
+                    roiparams.slope = roiparams.slope*roiparams.cohunatt;
                 else
+                    warning('Not implemented');
+                    keyboard
                     coneff = coneff + roiparams.conatt;
                     coheff = coheff + roiparams.cohunatt;
                 end
             end
+            % okay, for each stimvol, place its effect
+            sv = cdesign(si,1);
+            coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams);
+            coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams);
             
-            effect = coneff+coheff+roiparams.offset;
+            effect = coneff+coheff+params.offset;
 
             % adjust timing
             if cdesign(si,8)>=1
@@ -275,17 +278,15 @@ for ri = 1:length(fixedParams.ROIs)
             else
                 roimodel(:,idxs) = roimodel(:,idxs)+repmat(effect,size(roimodel,1),length(idxs));
             end
-        end
+        end;
     end
     cmt = conv(impulse,roimodel);
-    modeltimeseries = cmt(1:size(ctSeries,2));
-    res = [res ctSeries-modeltimeseries];
-    fit.model{ri} = modeltimeseries;
-    fit.tSeries{ri} = ctSeries;
+    fit.model{ri} = cmt(1:size(ctSeries,2));
+    res = [res ctSeries-fit.model{ri}];
 end
 
 ssres = sum(res.^2);
-r2 = 1 - ssres/fixedParams.sstot;
+fit.r2 = 1 - ssres/fixedParams.sstot;
 
 if f>0
     figure(f)
@@ -293,12 +294,11 @@ if f>0
     subplot(211)
     hold on
     plot(ctSeries(1:1000),'b');
-    plot(modeltimeseries(1:1000),'r');
-    title(sprintf('R^2: %0.2f',r2));
+    plot(fit.model{end}(1:1000),'r');
+    title(sprintf('R^2: %0.2f',fit.r2));
     subplot(212)
     plot(t,impulse);
 end
-
 
 %%
 function out = gamma(time,params)

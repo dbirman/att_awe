@@ -49,7 +49,7 @@ end
 
 %% Save data
 fname = sprintf('~/data/cohcon/%s_data.mat',subj);
-load(fname);
+if isfile(fname), load(fname); end
 data.control = nocatch;
 data.attend = main;
 data.unattend = catch_;

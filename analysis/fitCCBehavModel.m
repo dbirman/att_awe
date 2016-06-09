@@ -136,8 +136,16 @@ function likelihood = fitBehavModel(params,adata,f)
 %%
 params = getParams(params);
 
-params.conRmax = params.conRmax * params.scale;
-params.cohslope = params.cohslope * params.scale;
+if params.conmodel==2
+    params.conRmax = params.conRmax * params.scale;
+else
+    params.conslope = params.conslope * params.scale;
+end
+if params.cohmodel==2
+    params.cohRmax = params.cohRmax * params.scale;
+else
+    params.cohslope = params.cohslope * params.scale;
+end
 
 likelihood = 0;
 % For each observation in adata, calculate log(likelihood) and sum
@@ -187,7 +195,7 @@ if f>0
     fcoh = cohModel(x,params);
     plot(x,fcon,'--','Color',clist(1,:));
     plot(x,fcoh,'--','Color',clist(3,:));
-    title(sprintf('Rmax: %2.2f c50: %2.2f Slope: %2.2f Sigma: %2.2f L: %2.3f.',params.conRmax,params.conc50,params.cohslope,params.sigma,likelihood));
+    title(sprintf('L: %2.3f.',likelihood));
 end
 
 function prob = getObsProb(obs,params)

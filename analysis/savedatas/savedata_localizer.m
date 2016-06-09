@@ -19,8 +19,8 @@ view = viewSet(view,'curScan',1); % make sure scan # is correct
 
 %% Get the mean timeseries using the reversed pRF
 view = loadAnalysis(view,sprintf('erAnal/%s','all')); % check analysis name!
-% ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','LO1','LO2','MT'};
-ROIs = {'V1'};
+ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','LO1','LO2','MT'};
+% ROIs = {'V1'};
 pfxs = {'l','r'};
 allROIs = {};
 for ri = 1:length(ROIs)

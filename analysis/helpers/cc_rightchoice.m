@@ -41,7 +41,7 @@ for ti = 1:length(types)
 %             [mu,std] = buildRcurve(dat(:,8),dat(:,5)-dat(:,4),conbins);
 %             plot(conrange,mu,'o','MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
 %             errbar(conrange,mu,std,'Color',clist(ci,:));
-            fitcon = fitCurveCon(fit,conpeds(ci),cr,attend_(ai),ccatch(ti));
+            [cr,fitcon] = fitCurveCon(fit,conpeds(ci),cr,attend_(ai),ccatch(ti));
             plot(cr,fitcon,'-','Color',clist(ci,:));
         end
         cohpeds = unique(data(:,11));
@@ -50,7 +50,7 @@ for ti = 1:length(types)
 %             cohe = max(dat(:,7)-dat(:,6));
 %             cr = -cohe+coht/2:coht:cohe-coht/2;
             cr = [-1:.01:-.01 .01:.01:1];
-            fitcoh = fitCurveCoh(fit,cohpeds(ci),cr,attend_(ai),ccatch(ti));
+            [cr,fitcoh] = fitCurveCoh(fit,cohpeds(ci),cr,attend_(ai),ccatch(ti));
             plot(cr,fitcoh,'-','Color',clist(10-ci,:));
         end
         [conmu,constd] = buildRcurve(data(:,8),data(:,5)-data(:,4),conbins);
@@ -72,7 +72,7 @@ for ti = 1:length(types)
     end
 end
 
-function resp = fitCurveCon(fit,conped,conrange,attend,ccatch)
+function [conr, resp] = fitCurveCon(fit,conped,conrange,attend,ccatch)
 %%
 if ccatch==1
     % catch trial: adjust the slope of the response function (if necessary)
@@ -85,6 +85,8 @@ end
 % get the contrast range and compute the model response
 % conr = conrange(conrange>=0); % only model additive changes, flip for the negative
 conr = conrange;
+conr = conr(conr>=0);
+conr = conr(conped+conr<1);
 baseresp = conModel(conped,fit.params);
 highresp = conModel(conped+conr,fit.params);
 diffresp = highresp-baseresp;
@@ -107,6 +109,8 @@ else
         diffresp = diffresp * (fit.params.beta_control_con_conw + fit.params.alpha_unatt_con_conw);
     end
 end
+conr = [-fliplr(conr) conr];
+diffresp = [-fliplr(diffresp) diffresp];
 diffresp = diffresp + fit.params.bias/2;
 if fit.params.poissonNoise
     resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
@@ -119,7 +123,7 @@ end
 %     resp = [1-fliplr(resp) 0.5 resp];
 % end
 
-function resp = fitCurveCoh(fit,cohped,cohrange,attend,ccatch)
+function [cohr,resp] = fitCurveCoh(fit,cohped,cohrange,attend,ccatch)
 %%
 if ccatch==1
     if fit.params.cohmodel==1
@@ -129,8 +133,10 @@ if ccatch==1
     end
 end
 
-% cohr = cohrange(cohrange>0); % only model additive changes, flip for the negative
 cohr = cohrange;
+% restrict to values >0 up to pedestal + range = 1
+cohr = cohr(cohr>=0);
+cohr = cohr(cohped+cohr<=1);
 baseresp = cohModel(cohped,fit.params);
 
 highresp = cohModel(cohped+cohr,fit.params);
@@ -152,6 +158,9 @@ else
         diffresp = diffresp * (fit.params.beta_control_coh_cohw + fit.params.alpha_unatt_coh_cohw);
     end
 end
+% reverse the diffresp to cover negative space
+cohr = [-fliplr(cohr) cohr];
+diffresp = [-fliplr(diffresp) diffresp];
 diffresp = diffresp + fit.params.bias/2;
 if fit.params.poissonNoise
     resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
