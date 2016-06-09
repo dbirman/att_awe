@@ -1,4 +1,4 @@
-function fit = fitCCTimecourseROIModel( data )
+function fit = fitCCTimecourseROIModel( data , mode)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -57,6 +57,40 @@ function fit = fitCCTimecourseROIModel( data )
 %   exp(-time*lambda) * R
 %
 
+%% Concatenate Sessions if Necessary
+if iscell(data)
+    disp('(roimodel) Concatenating what appear to be different sessions...');
+    % to run the model we really only need:
+    % data.tSeries
+    % data.design
+    % data.runtrans
+    % but we need these to be concatenated across the different sessions.
+    % We have to be a little careful here that we make sure we add the
+    % lengths of each run correctly or we'll screw ourselves over.
+    data_old = data;
+    data = struct;
+    data.ROIs = data_old{1}.ROIs;
+    % (we can do this the slow way, perf doesn't really matter
+    data.tSeries = cell(1,length(data_old{1}.ROIs));
+    length_sofar = 0;
+    for ri = 1:length(data.tSeries), data.tSeries{ri} = []; end
+    data.design = [];
+    data.runtrans = [];
+    for si = 1:length(data_old)
+        for ri = 1:length(data_old{si}.tSeries)
+            data.tSeries{ri} = [data.tSeries{ri} data_old{si}.tSeries{ri}];
+        end
+        % tweak the SV by adding 
+        cdes = data_old{si}.design;
+        cdes(:,1) = cdes(:,1) + length_sofar;
+        data.design = [data.design ; cdes];
+        data.runtrans = [data.runtrans ; data_old{si}.runtrans+length_sofar];
+        length_sofar = length_sofar + length(data_old{si}.tSeries{1});
+    end
+end
+
+%% Setup
+
 design = data.design;
 
 if ~iscell(data.tSeries)
@@ -91,12 +125,32 @@ hrfparams.n = 1;
 
 % Contrast Function Parameters
 roiparams.n = 1;
-roiparams.Rmax = [.1 -inf inf];
+roiparams.Rmax = [.1 0 inf];
 roiparams.c50 = [0.5 0 1];
 % Coherence Function Parameters
 roiparams.slope = [0.1 -inf inf];
 % Offset
 roiparams.offset = [.05 -inf inf];
+
+if strfind(mode,'gain')
+    roiparams.conatt = [1 0 inf];
+    roiparams.conunatt = [1 0 inf];
+    roiparams.cohatt = [1 0 inf];
+    roiparams.cohunatt = [1 0 inf];
+    fixedParams.att = 1;
+elseif strfind(mode,'add')
+    roiparams.conatt = [0 -inf inf];
+    roiparams.cohatt = [0 -inf inf];
+    roiparams.conunatt = [0 -inf inf];
+    roiparams.cohunatt = [0 -inf inf];
+    fixedParams.att = 0;
+else
+    roiparams.conatt = 1;
+    roiparams.cohatt = 1;
+    roiparams.conunatt = 1;
+    roiparams.cohunatt = 1;
+    fixedParams.att = 1;
+end
 
 params.hrfparams = hrfparams;
 params.roiparams = roiparams;
@@ -123,16 +177,23 @@ else
 end
 
 optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
-[bestparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.concatInfo.runTransition,f,fixedParams);
+[bestparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.runtrans,f,fixedParams);
 
+[~,fit] = hrfResidual(bestparams,data.tSeries,data.design,data.runtrans,0,fixedParams);
 fit.params = getParams(bestparams,fixedParams);
+fit.roiparams = cell(size(fixedParams.ROIs));
+for ri = 1:length(fixedParams.ROIs)
+    fit.roiparams({ri}) = getROIParams(fit.params,fixedParams.ROIs{ri});
+end
+% fit.roiparams = getROIParams(fit.params,fixedParams.ROIs{ri});
+fit.ROIs = fixedParams.ROIs;
 %%
 % Generate plot for con/coh by area
 figure
 x = 0:.01:1;
 clist = brewermap(3,'PuOr');
 for ri = 1:length(fixedParams.ROIs)
-    subplot(length(fixedParams.ROIs),1,ri);
+    subplot(ceil(length(fixedParams.ROIs)/4),4,ri);
     hold on
     roiparams = getROIParams(fit.params,fixedParams.ROIs{ri});
     cony = conModel(x,roiparams);
@@ -140,17 +201,31 @@ for ri = 1:length(fixedParams.ROIs)
     plot(x,cony,'Color',clist(1,:));
     plot(x,cohy,'Color',clist(3,:));
     title(fixedParams.ROIs{ri});
+    axis([0 1 0 0.3]);
 end
 
-function res = hrfResidual(params,tSeries,design,runtrans,f,fixedParams)
+function [res, fit] = hrfResidual(params,tSeries,design,runtrans,f,fixedParams)
 
+fit = struct;
+
+    % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
 params = getParams(params,fixedParams);
 
 t = 0.25:0.5:49.75;
 impulse = gamma(t,params);
 
 res = [];
+fit.model = cell(size(fixedParams.ROIs));
+fit.tSeries = cell(size(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
+    % pick the indexes to use
+    if strcmp(fixedParams.ROIs{ri}(1),'l')
+        conidx = 4; % use right
+        cohidx = 7;
+    else
+        conidx = 3;
+        cohidx = 6;
+    end
     ctSeries = tSeries{ri};
     roimodel = zeros(size(ctSeries));
     % get just this ROIs parameters and strip out the ROI name itself
@@ -163,16 +238,37 @@ for ri = 1:length(fixedParams.ROIs)
         for si = 1:size(cdesign,1)
             % okay, for each stimvol, place its effect
             sv = cdesign(si,1);
-            coneff = conModel(cdesign(si,3)-cdesign(si,2),roiparams);
-            coheff = cohModel(cdesign(si,5)-cdesign(si,4),roiparams);
-            % TODO: adjust coneff/coheff by attention condition!
+            coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams);
+            coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams);
+
+            if cdesign(si,9)==1
+                % attending COHERENCE
+                if fixedParams.att==1
+                    coneff = coneff * roiparams.conunatt;
+                    coheff = coheff * roiparams.cohatt;
+                else
+                    coneff = coneff + roiparams.conunatt;
+                    coheff = coheff + roiparams.cohatt;
+                end
+            elseif cdesign(si,9)==2
+                % attending CONTRAST
+                if fixedParams.att==1
+                    coneff = coneff * roiparams.conatt;
+                    coheff = coheff * roiparams.cohunatt;
+                else
+                    coneff = coneff + roiparams.conatt;
+                    coheff = coheff + roiparams.cohunatt;
+                end
+            end
+            
             effect = coneff+coheff+roiparams.offset;
 
-            if cdesign(si,6)>=1
-                idxs = sv:min(runtrans(run,2),sv+cdesign(si,6));
+            % adjust timing
+            if cdesign(si,8)>=1
+                idxs = sv:min(runtrans(run,2),sv+cdesign(si,8));
             else
                 idxs = sv;
-                effect = effect * cdesign(si,6);
+                effect = effect * cdesign(si,8);
             end
             if length(effect)>1
                 roimodel(:,idxs) = roimodel(:,idxs)+repmat(effect,1,length(idxs));
@@ -184,6 +280,8 @@ for ri = 1:length(fixedParams.ROIs)
     cmt = conv(impulse,roimodel);
     modeltimeseries = cmt(1:size(ctSeries,2));
     res = [res ctSeries-modeltimeseries];
+    fit.model{ri} = modeltimeseries;
+    fit.tSeries{ri} = ctSeries;
 end
 
 ssres = sum(res.^2);

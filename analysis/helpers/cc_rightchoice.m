@@ -83,38 +83,41 @@ if ccatch==1
     end
 end
 % get the contrast range and compute the model response
-conr = conrange(conrange>=0); % only model additive changes, flip for the negative
+% conr = conrange(conrange>=0); % only model additive changes, flip for the negative
+conr = conrange;
 baseresp = conModel(conped,fit.params);
 highresp = conModel(conped+conr,fit.params);
 diffresp = highresp-baseresp;
+% adjust the response by the condition, so using alphacon
+if attend==2
+    % CONTRAST
+    if ccatch==-1
+        diffresp = diffresp * fit.params.beta_control_con_conw;
+    elseif ccatch==0
+        diffresp = diffresp * (fit.params.beta_control_con_conw + fit.params.alpha_att_con_conw);
+    elseif ccatch==1
+        diffresp = diffresp * (fit.params.beta_control_coh_conw + fit.params.alpha_unatt_coh_conw);
+    end
+else
+    if ccatch==-1
+        diffresp = diffresp * fit.params.beta_control_coh_conw;
+    elseif ccatch==0
+        diffresp = diffresp * (fit.params.beta_control_coh_conw + fit.params.alpha_att_coh_conw);
+    elseif ccatch==1
+        diffresp = diffresp * (fit.params.beta_control_con_conw + fit.params.alpha_unatt_con_conw);
+    end
+end
+diffresp = diffresp + fit.params.bias/2;
 if fit.params.poissonNoise
     resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
 else
     resp = normcdf(diffresp,0,fit.params.sigma);
 end
-% adjust the response by the condition, so using alphacon
-if attend==2
-    if ccatch==-1
-        resp = resp*fit.params.alphacon + .5 * (1-fit.params.alphacon);
-    elseif ccatch==0
-        resp = resp*fit.params.alphacon_att + .5 * (1-fit.params.alphacon_att);
-    elseif ccatch==1
-        resp = resp*fit.params.alphacon_un + .5 * (1-fit.params.alphacon_un);
-    end
-else
-    if ccatch==-1
-        resp = resp*(1-fit.params.alphacoh) + .5 * fit.params.alphacoh;
-    elseif ccatch==0
-        resp = resp*(1-fit.params.alphacoh_att) + .5 * fit.params.alphacoh_att;
-    elseif ccatch==1
-        resp = resp*(1-fit.params.alphacoh_un) + .5 * fit.params.alphacoh_un;
-    end
-end
-if mod(length(conrange),2)==0
-    resp = [1-fliplr(resp) resp];
-else
-    resp = [1-fliplr(resp) 0.5 resp];
-end
+% if mod(length(conrange),2)==0
+%     resp = [1-fliplr(resp) resp];
+% else
+%     resp = [1-fliplr(resp) 0.5 resp];
+% end
 
 function resp = fitCurveCoh(fit,cohped,cohrange,attend,ccatch)
 %%
@@ -126,39 +129,40 @@ if ccatch==1
     end
 end
 
-cohr = cohrange(cohrange>0); % only model additive changes, flip for the negative
-
+% cohr = cohrange(cohrange>0); % only model additive changes, flip for the negative
+cohr = cohrange;
 baseresp = cohModel(cohped,fit.params);
 
 highresp = cohModel(cohped+cohr,fit.params);
 diffresp = highresp-baseresp;
+if attend==1
+    if ccatch==-1
+        diffresp = diffresp * fit.params.beta_control_coh_cohw;
+    elseif ccatch==0
+        diffresp = diffresp * (fit.params.beta_control_coh_cohw + fit.params.alpha_att_coh_cohw);
+    elseif ccatch==1
+        diffresp = diffresp * (fit.params.beta_control_con_cohw + fit.params.alpha_unatt_con_cohw);
+    end
+else
+    if ccatch==-1
+        diffresp = diffresp * fit.params.beta_control_con_cohw;
+    elseif ccatch==0
+        diffresp = diffresp * (fit.params.beta_control_con_cohw + fit.params.alpha_att_con_cohw);
+    elseif ccatch==1
+        diffresp = diffresp * (fit.params.beta_control_coh_cohw + fit.params.alpha_unatt_coh_cohw);
+    end
+end
+diffresp = diffresp + fit.params.bias/2;
 if fit.params.poissonNoise
     resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
 else
     resp = normcdf(diffresp,0,fit.params.sigma);
 end
-if attend==1
-    if ccatch==-1
-        resp = resp*fit.params.alphacoh + .5 * (1-fit.params.alphacoh);
-    elseif ccatch==0
-%         resp = resp*fit.params.alphacoh_att + .5 * (1-fit.params.alphacoh_att);
-    elseif ccatch==1
-%         resp = resp*fit.params.alphacoh_un + .5 * (1-fit.params.alphacoh_un);
-    end
-else
-    if ccatch==-1
-        resp = resp*(1-fit.params.alphacon) + .5 * fit.params.alphacon;
-    elseif ccatch==0
-        resp = resp*(1-fit.params.alphacon_att) + .5 * fit.params.alphacon_att;
-    elseif ccatch==1
-        resp = resp*(1-fit.params.alphacon_un) + .5 * fit.params.alphacon_un;
-    end
-end
-if mod(length(cohrange),2)==0
-    resp = [1-fliplr(resp) resp];
-else
-    resp = [1-fliplr(resp) 0.5 resp];
-end
+% if mod(length(cohrange),2)==0
+%     resp = [1-fliplr(resp) resp];
+% else
+%     resp = [1-fliplr(resp) 0.5 resp];
+% end
 
 function out = conModel(con,params)
 

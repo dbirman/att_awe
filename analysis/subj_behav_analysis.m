@@ -93,7 +93,11 @@ hold on
 clist = brewermap(3,'PuOr');
 plot(x,cony,'Color',clist(1,:));
 plot(x,cohy,'Color',clist(3,:));
-[hl,hp] = boundedline(x,cony,fit.params.sigma*ones(size(cony)),'alpha');
+if fit.params.poissonNoise
+    [hl,hp] = boundedline(x,cony,sqrt(fit.params.sigma*cony),'alpha');
+else
+    [hl,hp] = boundedline(x,cony,fit.params.sigma*ones(size(cony)),'alpha');
+end
 set(hl,'Color',clist(1,:));
 set(hp,'FaceColor',clist(1,:));
 [hl,hp] = boundedline(x,cony_un,fit.params.sigma*ones(size(cony)),'alpha');
@@ -120,7 +124,7 @@ set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(
 print(fname,'-dpdf');
 
 %%
-h = cc_rightchoice(adata, fits.poisson);
+h = cc_rightchoice(adata, fit);
 set(h,'Units','Inches');
 pos = get(h,'Position');
 set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])

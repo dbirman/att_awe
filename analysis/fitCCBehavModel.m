@@ -35,7 +35,7 @@ elseif strfind(model,'con-naka')
     disp('(behavmodel) Fitting naka contrast model');
     initparams.conRmax = [30 -inf inf];
     initparams.conc50 = [0.75 0 1];
-    initparams.conn = 2;
+    initparams.conn = 1;
     numParams = numParams+2;
     initparams.conmodel = 2;
 end
@@ -60,22 +60,22 @@ end
 
 initparams.scale = 1;
 
-if strfind(model,'noalpha')
-    initparams.alphacon = 1;
-    initparams.alphacoh = 1;
-    initparams.alphacon_att = 1;
-    initparams.alphacoh_att = 1;
-    initparams.alphacon_un = 1;
-    initparams.alphacoh_un = 1;
-else
-    initparams.alphacon = [0.9 0 1];
-    initparams.alphacoh = [0.9 0 1];
-    initparams.alphacon_att = [0.8 0 1];
-    initparams.alphacoh_att = [0.8 0 1];
-    initparams.alphacon_un = [0.8 0 1];
-    initparams.alphacoh_un = [0.8 0 1];
-    numParams = numParams+6;
+% beta parameters
+groups = {'control','att','unatt'};
+tasks = {'con','coh'};
+betas = {'conw','cohw'};
+for gi = 1:length(groups)
+    for ti = 1:length(tasks)
+        for bi = 1:length(betas)
+            if gi==1
+                initparams.(sprintf('beta_%s_%s_%s',groups{gi},tasks{ti},betas{bi})) = [1 -inf inf];
+            else
+                initparams.(sprintf('alpha_%s_%s_%s',groups{gi},tasks{ti},betas{bi})) = [0 -inf inf];
+            end
+        end
+    end
 end
+numParams = numParams+12;
 
 if strfind(model,'nounatt')
     initparams.conunatt = 1;
@@ -99,6 +99,13 @@ if strfind(model,'poisson')
 else
     initparams.poissonNoise = 0;
     initparams.sigma = 1;
+end
+
+if strfind(model,'nobias')
+    initparams.bias = 0;
+else
+    initparams.bias = [0 -inf inf];
+    numParams = numParams+1;
 end
 
 %% Prep and Call
@@ -132,28 +139,13 @@ params = getParams(params);
 params.conRmax = params.conRmax * params.scale;
 params.cohslope = params.cohslope * params.scale;
 
-% validate params
-if params.alphacon < 0, params.alphacon = 0; end
-if params.alphacon > 1, params.alphacon = 1; end
-if params.alphacoh <0, params.alphacoh = 0; end
-if params.alphacoh>1, params.alphacoh = 1; end
-
 likelihood = 0;
 % For each observation in adata, calculate log(likelihood) and sum
 %   task - basecon - basecoh - conL - conR - cohL - cohR - resp - catch
 
 probs = zeros(size(adata,1),1);
 
-if f>0
-    figure(f)
-    clf
-    hold on
-%     title(sprintf('c50: %0.2f slope: %1.2f alphacon %0.2f alphacoh %0.2f',params.c50,params.slope,params.alphacon,params.alphacoh));
-end
-
 for ai = 1:size(adata,1)
-    
-    prob = -10;
     obs = adata(ai,:);
     
     prob = getObsProb(obs,params);
@@ -169,6 +161,9 @@ end
 likelihood = -likelihood;
 
 if f>0
+    figure(f)
+    clf
+    hold on
     clist = brewermap(3,'PuOr');
     x = 0:.01:1;
     fcon = conModel(x,params);
@@ -227,35 +222,39 @@ end
 conEff = (conModel(obs(5),params)-conModel(obs(2),params)) - (conModel(obs(4),params)-conModel(obs(2),params));
 cohEff = (cohModel(obs(7),params)-cohModel(obs(3),params)) - (cohModel(obs(6),params)-cohModel(obs(3),params));
 
-if params.poissonNoise
-    conProb = normcdf(0,conEff,sqrt(abs(conEff*params.sigma)));
-    cohProb = normcdf(0,cohEff,sqrt(abs(cohEff*params.sigma)));
-else
-    conProb = normcdf(0,conEff,params.sigma);
-    cohProb = normcdf(0,cohEff,params.sigma);
-end
-
 switch obs(1) % switch condition
     case 1
         % coherence control
-        prob = cohProb * params.alphacoh + conProb * (1-params.alphacoh);
+        betas = [params.beta_control_coh_conw params.beta_control_coh_cohw];
     case 2
-        prob = conProb * params.alphacon + cohProb * (1-params.alphacon);
+        % contrast control
+        betas = [params.beta_control_con_conw params.beta_control_con_cohw];
     case -1
         if obs(9)==0
-            % main
-            prob = cohProb * params.alphacoh_att + conProb *(1-params.alphacoh_att);
+            % main coherence
+            betas = [params.beta_control_coh_conw + params.alpha_att_coh_conw ...
+                params.beta_control_coh_cohw + params.alpha_att_coh_cohw];
         else
             % catch
-            prob = conProb * params.alphacon_un + cohProb * (1-params.alphacon_un);
+            betas = [params.beta_control_coh_conw + params.alpha_unatt_coh_conw ...
+                params.beta_control_coh_cohw + params.alpha_unatt_coh_cohw];
         end
     case -2
         if obs(9)==0
             % main
-            prob = conProb * params.alphacon_att + cohProb * (1-params.alphacon_att);
+            betas = [params.beta_control_con_conw + params.alpha_att_con_conw ...
+                params.beta_control_con_cohw + params.alpha_att_con_cohw];
         else
-            prob = cohProb * params.alphacoh_un + conProb * (1-params.alphacoh_un);
+            betas = [params.beta_control_con_conw + params.alpha_unatt_con_conw ...
+                params.beta_control_con_cohw + params.alpha_unatt_con_cohw];
         end
+end
+effect = betas * [conEff cohEff]' + params.bias;
+
+if params.poissonNoise
+    prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)));
+else
+    prob = normcdf(0,effect,params.sigma);
 end
 
 if obs(8), prob = 1-prob; end
