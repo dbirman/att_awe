@@ -56,7 +56,9 @@ data.unattend = catch_;
 save(fname,'data');
     %% The Plot!
 map = brewermap(6,'PuOr');
-h = figure;
+
+h = figure
+subplot(4,2,7);
 hold on
 h2 = plot([0.15 0.3 0.45 0.6],nocatch(1,:),'-','Color',map(1,:));
 %     errbar([0.15 0.3 0.45 0.6],nocatch(1,:),nocatchs(1,:),'Color',map(1,:));

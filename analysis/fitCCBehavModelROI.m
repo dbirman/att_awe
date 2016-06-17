@@ -1,4 +1,4 @@
-function fit = fitCCBehavModel(adata,figs,model)
+function fit = fitCCBehavModelROI(adata,figs,model,subj)
 % CCBehavModel
 %
 % Fit the contrast (naka-rushton) and coherence (linear) models to the data
@@ -19,99 +19,75 @@ adata = adata(~any(isnan(adata),2),:);
 
 fixedParams = struct;
 
-%% Contrast Modeling Parameters
+%% Load subj data
+load(sprintf('~/data/cohcon_localizer/%s_fitroi.mat',subj));
+initparams.conRmax = mean([fitroi.roiparams{1}.Rmax fitroi.roiparams{2}.Rmax]);
+initparams.conc50 = mean([fitroi.roiparams{1}.c50 fitroi.roiparams{2}.c50]);
+initparams.conn = 1;
+initparams.conmodel = 2;
+initparams.cohslope = mean([fitroi.roiparams{19}.slope fitroi.roiparams{20}.slope]);
+initparams.cohmodel = 1;
+
+%% Setup params
 numParams = 0;
-if strfind(model,'null')
-    disp('(behavmodel) Fitting null contrast model');
-    initparams.conslope = 0;
-    numParams = numParams+1;
-    initparams.conmodel = 1;
-elseif strfind(model,'con-linear')
-    disp('(behavmodel) Fitting linear contrast model');
-    initparams.conslope = [1 -inf inf];
-    numParams = numParams+1;
-    initparams.conmodel = 1;
-elseif strfind(model,'con-naka')
-    disp('(behavmodel) Fitting naka contrast model');
-    initparams.conRmax = [30 -inf inf];
-    initparams.conc50 = [0.75 0 1];
-    initparams.conn = 1;
-    numParams = numParams+2;
-    initparams.conmodel = 2;
-end
-if strfind(model,'null')
-    disp('(behavmodel) Fitting null coherence model');
-    initparams.cohslope = 0;
-    numParams = numParams+1;
-    initparams.cohmodel = 1;
-elseif strfind(model,'coh-linear')
-    disp('(behavmodel) Fitting linear coherence model');
-    initparams.cohslope = [10 -inf inf];
-    numParams = numParams+1;
-    initparams.cohmodel = 1;
-elseif strfind(model,'coh-naka')
-    disp('(behavmodel) Fitting naka coherence model');
-    initparams.cohRmax = [1 -inf inf];
-    initparams.cohc50 = [0.5 0 1];
-    numParams = numParams+2;
-    initparams.cohn = 1;
-    initparams.cohmodel = 2;
-end
 
 initparams.scale = 1;
 
 % beta parameters
-groups = {'control','att','unatt'};
-tasks = {'con','coh'};
-betas = {'conw','cohw'};
-for gi = 1:length(groups)
-    for ti = 1:length(tasks)
-        for bi = 1:length(betas)
-            initparams.(sprintf('beta_%s_%s_%s',groups{gi},tasks{ti},betas{bi})) = [1 -inf inf];
-        end
-    end
-end
-% freeze contrast and coherence at 1 so they force the other betas to
-% similar values (i.e. sigma can't trade off with the other functions)
 initparams.beta_control_con_conw = 1;
+initparams.beta_control_con_cohw = [0 -inf inf];
+initparams.beta_control_coh_conw = [0 -inf inf];
 initparams.beta_control_coh_cohw = 1;
-numParams = numParams+10;
+initparams.beta_att_con_conw = 1;
+initparams.beta_att_con_cohw = [0 -inf inf];
+initparams.beta_att_coh_conw = [0 -inf inf];
+initparams.beta_att_coh_cohw = 1;
+initparams.beta_unatt_con_conw = [0 -inf inf];
+initparams.beta_unatt_con_cohw =1;
+initparams.beta_unatt_coh_conw =1;
+initparams.beta_unatt_coh_cohw = [0 -inf inf];
 
-if strfind(model,'unattnoise')
-    % fit the noise model, to do this we have to freeze the beta weights in
-    % the unattended condition, so that the model will use noise (rather
-    % than simply smaller beta weights) to model decreased performance.
-    initparams.beta_unatt_con_conw = 1;
-    initparams.beta_unatt_coh_cohw = 1;
+numParams = numParams+6;
+
+if strfind(model,'nounatt')
+    initparams.conunatt = 1;
+    initparams.cohunatt = 1;
+    initparams.unattNoise = 0;
+elseif strfind(model,'unattnoise')
     initparams.conunatt = [0.9 0 1];
     initparams.cohunatt = [0.9 0 1];
     numParams = numParams+2;
     initparams.unattNoise = 1;
-elseif strfind(model,'unattgain')
+else
     initparams.conunatt = [0.9 0 1];
     initparams.cohunatt = [0.9 0 1];
     numParams = numParams+2;
     initparams.unattNoise = 0;
-else
-    % pretend we're doing gain, but just freeze the outputs
-    initparams.conunatt = 1;
-    initparams.cohunatt = 1;
-    initparams.unattNoise = 0;
 end
 
-if strfind(model,'poisson')
-    initparams.poissonNoise = 1;
-    initparams.sigma = 1.25;
-else
-    initparams.poissonNoise = 0;
-    initparams.sigma = 1;
-end
-
+% if strfind(model,'poisson')
+%     initparams.poissonNoise = 1;
+%     initparams.sigma = [1.25 0 inf];
+% else
+%     initparams.poissonNoise = 0;
+%     initparams.sigma = [1 0 inf];
+% end
+initparams.sigma = 0.01088;
+initparams.poissonNoise = 0;
+    
 if strfind(model,'nobias')
     initparams.bias = 0;
 else
     initparams.bias = [0 -inf inf];
     numParams = numParams+1;
+end
+
+if strfind(model,'onlycatch')
+    fixedParams.onlycatch = 1;
+elseif strfind(model,'nocatch')
+    fixedParams.onlycatch = 0;
+else
+    fixedParams.onlycatch = -1;
 end
 
 %% Prep and Call
@@ -145,6 +121,10 @@ if any(isnan(params))
     return
 end
 params = getParams(params);
+
+if params.sigma<0.0000001, params.sigma=0.0000001; end
+if params.conunatt<0, params.conunatt = 0; end
+if params.cohunatt<0, params.cohunatt = 0;  end
 
 if params.conmodel==2
     params.conRmax = params.conRmax * params.scale;
@@ -216,29 +196,38 @@ end
 
 function prob = getObsProb(obs,params)
 %%
+global fixedParams
+
+if obs(9)==1 && fixedParams.onlycatch==0
+    % catch trial, and we don't want any catch trials
+    prob = 1; return
+elseif obs(9)==-1 && fixedParams.onlycatch==1
+    % not a catch trial, and we want only catch trials
+    prob = 1; return
+end
 
 if obs(9)==1
-    if obs(1)==-1
-        % THIS IS A CATCH TRIAL IN A COHERENCE RUN, ADJUST CONTRAST
-        if params.conmodel==1
-            params.conslope = params.conslope*params.conunatt;
-        else
-            params.conRmax = params.conRmax*params.conunatt;
-        end
-    elseif obs(1)==-2
-        % ADJUST COHERENCE
-        if params.cohmodel==1
-            params.cohslope = params.cohslope * params.cohunatt;
-        else
-            params.cohRmax = params.cohRmax*params.cohunatt;
-        end
-    end
-
     if params.unattNoise
         if obs(1)==-1
             params.sigma = params.sigma * params.conunatt;
         elseif obs(1)==-2
             params.sigma = params.sigma * params.cohunatt;
+        end
+    else     
+        if obs(1)==-1
+            % THIS IS A CATCH TRIAL IN A COHERENCE RUN, ADJUST CONTRAST
+            if params.conmodel==1
+                params.conslope = params.conslope*params.conunatt;
+            else
+                params.conRmax = params.conRmax*params.conunatt;
+            end
+        elseif obs(1)==-2
+            % ADJUST COHERENCE
+            if params.cohmodel==1
+                params.cohslope = params.cohslope * params.cohunatt;
+            else
+                params.cohRmax = params.cohRmax*params.cohunatt;
+            end
         end
     end
 end
@@ -256,17 +245,17 @@ switch obs(1) % switch condition
     case -1
         if obs(9)==0
             % main coherence
-            betas = [params.beta_att_coh_conw params.beta_att_coh_cohw];
+            betas = [params.beta_control_coh_conw params.beta_att_coh_cohw];
         else
             % catch
-            betas = [params.beta_unatt_coh_conw params.beta_unatt_coh_cohw];
+            betas = [params.beta_control_coh_conw params.beta_unatt_coh_cohw];
         end
     case -2
         if obs(9)==0
             % main
-            betas = [params.beta_att_con_conw params.beta_att_con_cohw];
+            betas = [params.beta_control_con_conw params.beta_att_con_cohw];
         else
-            betas = [params.beta_unatt_con_conw params.beta_unatt_con_cohw];
+            betas = [params.beta_control_con_conw params.beta_unatt_con_cohw];
         end
 end
 effect = betas * [conEff cohEff]' + params.bias;

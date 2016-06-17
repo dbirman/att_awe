@@ -31,7 +31,8 @@ end
 analysis = view.analyses{1};
 rois = loadROITSeries(view,allROIs,view.curScan,view.curGroup,'keepNAN=true');
 
-tSeries = cell(1,length(rois)); % meaned tSeries
+tSeries = cell(1,length(rois)); % meaned tSeries with prf
+rtSeries = cell(1,length(rois));
 r2s = cell(1,length(rois));
 rights = cell(1,length(rois));
 lefts = cell(1,length(rois));
@@ -39,6 +40,7 @@ corrs = cell(1,length(rois));
 
 scanDims = viewGet(view,'scanDims');
 
+left = []; right = []; r2 = [];
 % check which overlay is which to make sure they get sorted properly
 for i = 1:length(analysis.overlays)
     cOverlay = analysis.overlays(i);
@@ -57,6 +59,10 @@ for i = 1:length(analysis.overlays)
     end
 end
 
+if isempty(left) || isempty(right)
+    disp('(sd_loc) Failed to find the overlays, averaging across entire ROI');
+end
+
 % just incase we want this at some point?
 rois = getSortIndex(view,rois,r2);
 
@@ -64,44 +70,63 @@ for ri = 1:length(rois)
     r = rois{ri};
     r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
     
-    cr2 = r2(r.linearScanCoords);    
-    rightO = right(r.linearScanCoords);
-    leftO = left(r.linearScanCoords);
-    rightO(isnan(rightO))=0;
-    leftO(isnan(leftO))=0;
-    
-    idxs = ~any(isnan(r.tSeries),2);
-    if any(~idxs)
-        warning('Failure');
-        keyboard
-    end
-%     tSeriesnoNaN = r.tSeries;
-%     tSeriesnoNaN(isnan(tSeriesnoNaN)) = 0;
-    
-    r2s{ri} = cr2;
-    rights{ri} = rightO;
-    lefts{ri} = leftO;
-    
-    if strcmp(r.name(1),'l')
-        tSeries{ri} = (rightO*r.tSeries)/sum(rightO);
-        corrs{ri} = corr(cr2',rightO');
+    cr2 = r2(r.linearScanCoords);   
+    if ~isempty(left) && ~isempty(right) 
+        rightO = right(r.linearScanCoords);
+        leftO = left(r.linearScanCoords);
+        rightO(isnan(rightO))=0;
+        leftO(isnan(leftO))=0;
+
+        idxs = ~any(isnan(r.tSeries),2);
+        if any(~idxs)
+            warning('Failure');
+            keyboard
+        end
+    %     tSeriesnoNaN = r.tSeries;
+    %     tSeriesnoNaN(isnan(tSeriesnoNaN)) = 0;
+
+        r2s{ri} = cr2;
+        rights{ri} = rightO;
+        lefts{ri} = leftO;
+
+        if strcmp(r.name(1),'l')
+            tSeries{ri} = (rightO*r.tSeries)/sum(rightO);
+            corrs{ri} = corr(cr2',rightO');
+        else
+            tSeries{ri} = (leftO*r.tSeries)/sum(leftO);
+            corrs{ri} = corr(cr2',leftO');
+        end
     else
-        tSeries{ri} = (leftO*r.tSeries)/sum(leftO);
-        corrs{ri} = corr(cr2',leftO');
+        tSeries{ri} = mean(r.tSeries);
+        corrs{ri} = 0;
+        rights{ri} = [];
+        lefts{ri} = [];
+        r2s{ri} = cr2;
     end
+    r2cutoff = 0.5;
+    while sum(cr2>r2cutoff)<25
+        r2cutoff = r2cutoff-0.001;
+    end
+    rtSeries{ri} = mean(r.tSeries(cr2>r2cutoff,:));
 end
 
-% % % %% testing
-% % % clf, hold on
-% % % point5 = mean(r.tSeries(cr2>0.02,:));
-% % % rightO = left(r.linearScanCoords);
-% % % rightO = rightO;
-% % % rightO(isnan(rightO))=0;
-% % % rightf = (rightO*r.tSeries)/sum(rightO);
-% % % plot(point5(1000:2200));
-% % % plot(rightf(1000:2200),'r');
-% % % a = axis;
-% % % axis([a(1) a(2) .95 1.05]);
+%% testing
+% r = rois{19};    r.linearScanCoords = sub2ind(scanDims,r.scanCoords(1,:),r.scanCoords(2,:),r.scanCoords(3,:));
+% cr2 = r2(r.linearScanCoords);
+% clf, hold on
+% r2cutoff = 0.5;
+% while sum(cr2>r2cutoff)<25
+%     r2cutoff = r2cutoff-0.001;
+% end
+% point5 = mean(r.tSeries(cr2>r2cutoff,:));
+% rightO = left(r.linearScanCoords);
+% rightO = rightO;
+% rightO(isnan(rightO))=0;
+% rightf = (rightO*r.tSeries)/sum(rightO);
+% plot(point5(1000:2200));
+% plot(rightf(1000:2200),'r');
+% a = axis;
+% axis([a(1) a(2) .95 1.05]);
 
 %% Pull Stimvols
 [lConvol, lConconds, ~] = getStimvol(view,'lCon','taskNum=1','phaseNum=2');
@@ -224,6 +249,7 @@ fname = sprintf('%s_data.mat',cfolder);
 fname = fullfile(savefolder,fname);
 
 data.tSeries = tSeries;
+data.rtSeries = rtSeries;
 data.ROIs = allROIs;
 data.roi.r2 = r2s;
 data.roi.right = rights;
@@ -234,6 +260,7 @@ data.basecon = basecon;
 data.basecoh = basecoh;
 concatInfo = viewGet(view,'concatInfo');
 data.runtrans = concatInfo.runTransition;
+data.concatInfo = concatInfo;
 data.TR = 0.5;
 
 save(fname,'data');

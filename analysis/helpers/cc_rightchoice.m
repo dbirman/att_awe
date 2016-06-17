@@ -4,8 +4,8 @@ if ieNotDefined('f')
     f = figure;
 end
 %%
-figure(f);
-clf
+figure(f)
+
 cone = max(adata(:,5)); cohe = max(adata(:,7)); cont = 0.05; coht = 0.1;
 conbins = -cone:cont:cone; conrange = -cone+cont/2:cont:cone-cont/2;
 cohbins = -cohe:coht:cohe; cohrange = -cohe+coht/2:coht:cohe-coht/2;
@@ -30,7 +30,7 @@ for ti = 1:length(types)
             data = sel(adata,1,types_(ti)*attend_(ai));
         end
         data = sel(data,9,ccatch(ti));
-        subplot(3,2,(ti-1)*2+ai), hold on
+        subplot(4,2,(ti-1)*2+ai), hold on
         title(sprintf('%s: %s, trials: %i',attend{ai},types{ti},size(data,1)));
         conpeds = unique(data(:,10));
         for ci = 1:length(conpeds)
@@ -96,17 +96,33 @@ if attend==2
     if ccatch==-1
         diffresp = diffresp * fit.params.beta_control_con_conw;
     elseif ccatch==0
-        diffresp = diffresp * (fit.params.beta_control_con_conw + fit.params.alpha_att_con_conw);
+        if isfield(fit.params,'alpha_att_con_conw')
+            diffresp = diffresp * (fit.params.beta_control_con_conw + fit.params.alpha_att_con_conw);
+        else
+            diffresp = diffresp * fit.params.beta_att_con_conw;
+        end
     elseif ccatch==1
-        diffresp = diffresp * (fit.params.beta_control_coh_conw + fit.params.alpha_unatt_coh_conw);
+        if isfield(fit.params,'alpha_unatt_coh_conw')
+            diffresp = diffresp * (fit.params.beta_control_coh_conw + fit.params.alpha_unatt_coh_conw);
+        else
+            diffresp = diffresp * fit.params.beta_unatt_coh_conw;
+        end
     end
 else
     if ccatch==-1
         diffresp = diffresp * fit.params.beta_control_coh_conw;
     elseif ccatch==0
-        diffresp = diffresp * (fit.params.beta_control_coh_conw + fit.params.alpha_att_coh_conw);
+        if isfield(fit.params,'alpha_att_coh_conw')
+            diffresp = diffresp * (fit.params.beta_control_coh_conw + fit.params.alpha_att_coh_conw);
+        else
+            diffresp = diffresp * fit.params.beta_att_coh_conw;
+        end
     elseif ccatch==1
-        diffresp = diffresp * (fit.params.beta_control_con_conw + fit.params.alpha_unatt_con_conw);
+        if isfield(fit.params,'alpha_unatt_con_conw')
+            diffresp = diffresp * (fit.params.beta_control_con_conw + fit.params.alpha_unatt_con_conw);
+        else
+            diffresp = diffresp * fit.params.beta_unatt_con_conw;
+        end
     end
 end
 conr = [-fliplr(conr) conr];
@@ -145,17 +161,33 @@ if attend==1
     if ccatch==-1
         diffresp = diffresp * fit.params.beta_control_coh_cohw;
     elseif ccatch==0
-        diffresp = diffresp * (fit.params.beta_control_coh_cohw + fit.params.alpha_att_coh_cohw);
+        if isfield(fit.params,'alpha_att_coh_cohw')
+            diffresp = diffresp * (fit.params.beta_control_coh_cohw + fit.params.alpha_att_coh_cohw);
+        else
+            diffresp = diffresp * fit.params.beta_att_coh_cohw;
+        end
     elseif ccatch==1
-        diffresp = diffresp * (fit.params.beta_control_con_cohw + fit.params.alpha_unatt_con_cohw);
+        if isfield(fit.params,'alpha_unatt_con_cohw')
+            diffresp = diffresp * (fit.params.beta_control_con_cohw + fit.params.alpha_unatt_con_cohw);
+        else
+            diffresp = diffresp * fit.params.beta_unatt_con_cohw;
+        end
     end
 else
     if ccatch==-1
         diffresp = diffresp * fit.params.beta_control_con_cohw;
     elseif ccatch==0
-        diffresp = diffresp * (fit.params.beta_control_con_cohw + fit.params.alpha_att_con_cohw);
+        if isfield(fit.params,'alpha_att_con_cohw')
+            diffresp = diffresp * (fit.params.beta_control_con_cohw + fit.params.alpha_att_con_cohw);
+        else
+            diffresp = diffresp * fit.params.beta_att_con_cohw;
+        end
     elseif ccatch==1
-        diffresp = diffresp * (fit.params.beta_control_coh_cohw + fit.params.alpha_unatt_coh_cohw);
+        if isfield(fit.params,'alpha_unatt_coh_cohw')
+            diffresp = diffresp * (fit.params.beta_control_coh_cohw + fit.params.alpha_unatt_coh_cohw);
+        else
+            diffresp = diffresp * fit.params.beta_unatt_coh_cohw;
+        end
     end
 end
 % reverse the diffresp to cover negative space

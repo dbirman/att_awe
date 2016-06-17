@@ -8,19 +8,6 @@ if ~isdir(ffolder), mkdir(ffolder); end
 
 
 files = dir(fullfile(cfolder,'*.mat'));
-%% dispInfo
-fname = fullfile(ffolder,'performance.pdf');
-if ~isfile(fname)
-    load(fullfile(cfolder,files(end).name));
-    h = ccDispInfo(stimulus,subj);
-    set(h,'Units','Inches');
-    pos = get(h,'Position');
-    set(h,'InvertHardCopy','off');
-    set(gcf,'Color',[1 1 1]);
-    set(gca,'Color',[1 1 1]);
-    set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-    print(fname,'-dpdf');
-end
 
 %% Load data
 
@@ -45,30 +32,27 @@ for fi = 1:length(files)
             e.randVars.contrast', e.randVars.coherence',e.randVars.correct']];
     end
 end
+disp(sprintf('%s trials %i',subj,size(adata,1)));
 
 %% Remove NaN
 adata = adata(~any(isnan(adata),2),:);
 
 %% Fit behav model
 if refit
-    fit = fitCCBehavModel(adata,1,'con-naka,coh-linear');
+    fit = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt,nobias'); % uses beta weights to fit the unattended conditions
 
     %% Try other models
-    fits.allnaka = fitCCBehavModel(adata,1,'con-naka,coh-naka');
-    fits.alllinear = fitCCBehavModel(adata,1,'con-linear,coh-linear');
-    % Options:
-    % noalpha - doesn't fit the mixture model for split attention
-    % nounatt - doesn't reduce response intensity when unattended
-    % unattnoise - fits the unattended condition using larger noise
-    % poisson - poisson noise rather than regular noise
-    fits.nobias = fitCCBehavModel(adata,1,'con-naka,coh-linear,nobias');
-    fits.nounatt = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt');
-    % fits.unattnoise = fitCCBehavModel(adata,1,'con-naka,coh-linear,unattnoise');
-    fits.poisson = fitCCBehavModel(adata,1,'con-naka,coh-linear,poisson');
+    fits.allnaka = fitCCBehavModel(adata,1,'con-naka,coh-naka,nounatt,nobias');
+    fits.alllinear = fitCCBehavModel(adata,1,'con-linear,coh-linear,nounatt,nobias');
+    fits.bias = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt');
+    fits.unattnoise = fitCCBehavModel(adata,1,'con-naka,coh-linear,unattnoise');
+    fits.poisson = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt,poisson');
 end
 
 %% Save data
-load(sprintf('~/data/cohcon/%s_data.mat',subj));
+if isfile(sprintf('~/data/cohcon/%s_data.mat',subj))
+    load(sprintf('~/data/cohcon/%s_data.mat',subj));
+end
 if refit
     data.fit = fit;
     data.fits = fits;
@@ -77,6 +61,10 @@ else
 end
 save(sprintf('~/data/cohcon/%s_data.mat',subj),'data');
 
+%% dispInfo
+fname = fullfile('~/data/cohcon/',sprintf('%s_plots.pdf',subj));
+load(fullfile(cfolder,files(end).name));
+h1 = ccDispInfo(stimulus,subj);
 %% Figure
 x = 0:.01:1;
 con = x;
@@ -86,7 +74,7 @@ cony_un = (fit.params.conRmax * fit.params.conunatt) .* ((con.^fit.params.conn) 
 cohy = fit.params.cohslope*x;
 cohy_un = fit.params.cohslope*x*fit.params.cohunatt;
 
-h=figure;
+subplot(4,2,8)
 hold on
 clist = brewermap(3,'PuOr');
 plot(x,cony,'Color',clist(1,:));
@@ -112,25 +100,36 @@ xlabel('Contrast / Coherence (%)');
 ylabel('Response (a.u.)');
 
 drawPublishAxis
-fname = fullfile(ffolder,'response.pdf');
-set(h,'Units','Inches');
-pos = get(h,'Position');
-set(h,'InvertHardCopy','off');
-set(gcf,'Color',[1 1 1]);
-set(gca,'Color',[1 1 1]);
-set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(fname,'-dpdf');
+% fname = fullfile(ffolder,'response.pdf');
+% set(h2,'Units','Inches');
+% pos = get(h2,'Position');
+% set(h2,'InvertHardCopy','off');
+% set(gcf,'Color',[1 1 1]);
+% set(gca,'Color',[1 1 1]);
+% set(h2,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+% print(fname,'-dpdf');
 
 %%
-h = cc_rightchoice(adata, fit);
-set(h,'Units','Inches');
-pos = get(h,'Position');
-set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-title(sprintf('BIC: %4.2f',fit.BIC));
-fname = fullfile(ffolder,'rightchoice.pdf');
-set(h,'InvertHardCopy','off');
+cc_rightchoice(adata, fit,h1);
+% set(h3,'Units','Inches');
+% pos = get(h3,'Position');
+% set(h3,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+% title(sprintf('BIC: %4.2f',fit.BIC));
+% fname = fullfile(ffolder,'rightchoice.pdf');
+% set(h3,'InvertHardCopy','off');
+% set(gcf,'Color',[1 1 1]);
+% set(gca,'Color',[1 1 1]);
+% print(fname,'-dpdf');
+
+%%
+input('Fix the figure and then press enter to save!');
+
+set(h1,'Units','Inches');
+pos = get(h1,'Position');
+set(h1,'InvertHardCopy','off');
 set(gcf,'Color',[1 1 1]);
 set(gca,'Color',[1 1 1]);
+set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
 print(fname,'-dpdf');
 %% Thresholds over time
 % thresholdTimePlot(stimulus);

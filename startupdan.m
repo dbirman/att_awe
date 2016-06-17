@@ -4,7 +4,7 @@ pathNames = {'~/proj/att_awe'};
 
 for i = 1:length(pathNames)
   if isdir(pathNames{i})
-    addpath(genpath_exclude(pathNames{i}));
+    addpath(genpath_exclude(pathNames{i},{'.git','.svm'}));
   end
 end
 
