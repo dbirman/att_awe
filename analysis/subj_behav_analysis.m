@@ -1,57 +1,30 @@
 function subj_behav_analysis( subj, refit )
+
+disp(sprintf('Started running for %s',subj));
 %%
-cfolder = sprintf('~/data/cohcon/%s',subj);
-% cfolder = '~/data/cohcon/s300';
-
-ffolder = fullfile(cfolder,'figures');
-if ~isdir(ffolder), mkdir(ffolder); end
-
-
-files = dir(fullfile(cfolder,'*.mat'));
 
 %% Load data
+adata = loadadata(subj);
 
-% format:
-%     1       2         3        4      5      6     7      8       9
-%   task - basecon - basecoh - conL - conR - cohL - cohR - resp - catch -
-%      10      11        12
-%   pedcon - pedcoh - correct
-
-adata = [];
-for fi = 1:length(files)
-    load(fullfile(cfolder,files(fi).name));
-    e = getTaskParameters(myscreen,task);
-    if length(e{1})==2
-        e = e{1}(2);
-        flip = [-1 1];
-        adata = [adata ; [repmat(stimulus.runs.curTask*flip(stimulus.nocatch+1),length(e.response),1), ...
-            repmat(stimulus.baseCon,length(e.response),1), repmat(stimulus.baseCoh,length(e.response),1), ...
-            e.randVars.lCon', e.randVars.rCon',...
-            e.randVars.lCoh', e.randVars.rCoh',...
-            (e.response-1)', (e.parameter.catch)',...
-            e.randVars.contrast', e.randVars.coherence',e.randVars.correct']];
-    end
-end
-disp(sprintf('%s trials %i',subj,size(adata,1)));
-
-%% Remove NaN
-adata = adata(~any(isnan(adata),2),:);
-
+%% Fit Contrast/Coherence response models (just to control condition)
+out = fitCCBehavControlModel(adata);
 %% Fit behav model
+fit = struct;
+fits = struct;
 if refit
-    fit = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt,nobias'); % uses beta weights to fit the unattended conditions
+    fit = fitCCBehavModel(adata,0,'con-naka,coh-linear,nounatt'); % uses beta weights to fit the unattended conditions
 
     %% Try other models
-    fits.allnaka = fitCCBehavModel(adata,1,'con-naka,coh-naka,nounatt,nobias');
-    fits.alllinear = fitCCBehavModel(adata,1,'con-linear,coh-linear,nounatt,nobias');
-    fits.bias = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt');
-    fits.unattnoise = fitCCBehavModel(adata,1,'con-naka,coh-linear,unattnoise');
-    fits.poisson = fitCCBehavModel(adata,1,'con-naka,coh-linear,nounatt,poisson');
+    fits.allnaka = fitCCBehavModel(adata,0,'con-naka,coh-naka,nounatt');
+    fits.alllinear = fitCCBehavModel(adata,0,'con-linear,coh-linear,nounatt');
+    fits.nobias = fitCCBehavModel(adata,0,'con-naka,coh-linear,nounatt,nobias');
+    fits.unattnoise = fitCCBehavModel(adata,0,'con-naka,coh-linear,unattnoise');
+    fits.poisson = fitCCBehavModel(adata,0,'con-naka,coh-linear,nounatt,poisson');
 end
 
 %% Save data
-if isfile(sprintf('~/data/cohcon/%s_data.mat',subj))
-    load(sprintf('~/data/cohcon/%s_data.mat',subj));
+if exist(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)))==2
+    load(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)));
 end
 if refit
     data.fit = fit;
@@ -59,13 +32,24 @@ if refit
 else
     fit = data.fit;
 end
-save(sprintf('~/data/cohcon/%s_data.mat',subj),'data');
+save(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)),'data');
+
+return
 
 %% dispInfo
-fname = fullfile('~/data/cohcon/',sprintf('%s_plots.pdf',subj));
 load(fullfile(cfolder,files(end).name));
 h1 = ccDispInfo(stimulus,subj);
+fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_threshold.pdf',subj));
+
+set(h1,'Units','Inches');
+pos = get(h1,'Position');
+set(h1,'InvertHardCopy','off');
+set(gcf,'Color',[1 1 1]);
+set(gca,'Color',[1 1 1]);
+set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+print(fname,'-dpdf');
 %% Figure
+h1 = figure;
 x = 0:.01:1;
 con = x;
 cony = fit.params.conRmax .* ((con.^fit.params.conn) ./ (con.^fit.params.conn + fit.params.conc50.^fit.params.conn));
@@ -74,8 +58,6 @@ cony_un = (fit.params.conRmax * fit.params.conunatt) .* ((con.^fit.params.conn) 
 cohy = fit.params.cohslope*x;
 cohy_un = fit.params.cohslope*x*fit.params.cohunatt;
 
-subplot(4,2,8)
-hold on
 clist = brewermap(3,'PuOr');
 plot(x,cony,'Color',clist(1,:));
 plot(x,cohy,'Color',clist(3,:));
@@ -108,9 +90,19 @@ drawPublishAxis
 % set(gca,'Color',[1 1 1]);
 % set(h2,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
 % print(fname,'-dpdf');
+fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_response.pdf',subj));
+
+set(h1,'Units','Inches');
+pos = get(h1,'Position');
+set(h1,'InvertHardCopy','off');
+set(gcf,'Color',[1 1 1]);
+set(gca,'Color',[1 1 1]);
+set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+print(fname,'-dpdf');
+
 
 %%
-cc_rightchoice(adata, fit,h1);
+h1 = cc_rightchoice(adata, fit);
 % set(h3,'Units','Inches');
 % pos = get(h3,'Position');
 % set(h3,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
@@ -122,7 +114,7 @@ cc_rightchoice(adata, fit,h1);
 % print(fname,'-dpdf');
 
 %%
-input('Fix the figure and then press enter to save!');
+fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_rightchoice.pdf',subj));
 
 set(h1,'Units','Inches');
 pos = get(h1,'Position');
@@ -131,8 +123,9 @@ set(gcf,'Color',[1 1 1]);
 set(gca,'Color',[1 1 1]);
 set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
 print(fname,'-dpdf');
-%% Thresholds over time
-% thresholdTimePlot(stimulus);
+
+%%
+disp(sprintf('Finished running for %s',subj));
 
 %% Check for stay/switch bias
 % generate a matrix that is:

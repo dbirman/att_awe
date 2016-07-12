@@ -1,10 +1,10 @@
-function f = cc_rightchoice( adata, fit, f )
+function f = cc_rightchoice( adata, fit)
 
 if ieNotDefined('f')
     f = figure;
 end
 %%
-figure(f)
+f = figure;
 
 cone = max(adata(:,5)); cohe = max(adata(:,7)); cont = 0.05; coht = 0.1;
 conbins = -cone:cont:cone; conrange = -cone+cont/2:cont:cone-cont/2;
@@ -30,7 +30,7 @@ for ti = 1:length(types)
             data = sel(adata,1,types_(ti)*attend_(ai));
         end
         data = sel(data,9,ccatch(ti));
-        subplot(4,2,(ti-1)*2+ai), hold on
+        subplot(3,2,(ti-1)*2+ai), hold on
         title(sprintf('%s: %s, trials: %i',attend{ai},types{ti},size(data,1)));
         conpeds = unique(data(:,10));
         for ci = 1:length(conpeds)

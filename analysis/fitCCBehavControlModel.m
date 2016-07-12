@@ -1,18 +1,11 @@
-function fit = fitCCBehavModel(adata,figs,model)
+function fit = fitCCBehavControlModel(adata,figs,model)
 % CCBehavModel
 %
 % Fit the contrast (naka-rushton) and coherence (linear) models to the data
-% obtained from the behavioral experiment. Roughly we will do the
-% following:
-%
-% Model Types:
-% 'null' : model with no effects Rmax=0 slope = 0;
-% 'con-linear'
-% 'coh-linear'
-% 'con-naka'
-% 'coh-naka'
-% 'con-n'
-% 'coh-n'
+% obtained from the behavioral experiment. Use only the control condition
+% data. This is just to compare linear vs. non-linear and constant vs.
+% decreasing noise.
+
 global fixedParams
 
 adata = adata(~any(isnan(adata),2),:);
@@ -74,37 +67,17 @@ end
 % freeze contrast and coherence at 1 so they force the other betas to
 % similar values (i.e. sigma can't trade off with the other functions)
 initparams.beta_control_con_conw = 1;
+initparams.beta_control_con_cohw = [0 -inf inf];
 initparams.beta_control_coh_cohw = 1;
-numParams = numParams+10;
-
-if strfind(model,'unattnoise')
-    % fit the noise model, to do this we have to freeze the beta weights in
-    % the unattended condition, so that the model will use noise (rather
-    % than simply smaller beta weights) to model decreased performance.
-    initparams.beta_unatt_con_conw = 1;
-    initparams.beta_unatt_coh_cohw = 1;
-    initparams.conunatt = [0.9 0 1];
-    initparams.cohunatt = [0.9 0 1];
-    numParams = numParams+2;
-    initparams.unattNoise = 1;
-elseif strfind(model,'unattgain')
-    initparams.conunatt = [0.9 0 1];
-    initparams.cohunatt = [0.9 0 1];
-    numParams = numParams+2;
-    initparams.unattNoise = 0;
-else
-    % pretend we're doing gain, but just freeze the outputs
-    initparams.conunatt = 1;
-    initparams.cohunatt = 1;
-    initparams.unattNoise = 0;
-end
+initparams.beta_control_coh_conw = [0 -inf inf];
+numParams = numParams+2;
 
 if strfind(model,'poisson')
     initparams.poissonNoise = 1;
-    initparams.sigma = 1;
+    initparams.sigma = 1.25;
 else
     initparams.poissonNoise = 0;
-    initparams.sigma = 1;
+    initparams.sigma = 1.25;
 end
 
 if strfind(model,'nobias')

@@ -1,4 +1,4 @@
-function deconCohCon( data, fit, roinum )
+function deconCohCon( data, fit, roinum ,subj)
 %DECONCOHCON Deconvolve the cohxcon experiment
 
 %% Concatenate Sessions if Necessary
@@ -88,13 +88,13 @@ model = rmfield(model,'covar');
 
 %% Time plot
 clist = brewermap(30,'PuOr');
-figure
+h = figure;
 % 5 plots
 subplot(4,2,1:4), hold on
 title('Contrast +0%');
 idxs = find(conidxs==0.25);
 for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
     plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
 end
@@ -103,7 +103,7 @@ subplot(4,2,5), hold on
 title('Contrast +25% Coherence +0%');
 idxs = find((conidxs==0.5).*(cohidxs==0.25));
 for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
     plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
 end
@@ -112,7 +112,7 @@ subplot(4,2,6), hold on
 title('Contrast +25% Coherence +100%');
 idxs = find((conidxs==0.5).*(cohidxs==1));
 for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
     plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
 end
@@ -120,7 +120,7 @@ subplot(4,2,7), hold on
 title('Contrast +75% Coherence +0%');
 idxs = find((conidxs==1).*(cohidxs==0.25));
 for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
     plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
 end
@@ -128,10 +128,22 @@ subplot(4,2,8), hold on
 title('Contrast +75% Coherence +100%');
 idxs = find((conidxs==1).*(cohidxs==1));
 for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
     plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
 end
+
+%drawPublishAxis
+%% Print Figure #1
+title(sprintf('%s: %s',subj,data.ROIs{roinum}));
+fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_%s_timeplot.pdf',subj,data.ROIs{roinum}));
+set(h,'Units','Inches');
+pos = get(h,'Position');
+set(h,'InvertHardCopy','off');
+set(gcf,'Color',[1 1 1]);
+set(gca,'Color',[1 1 1]);
+set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+print(fname,'-dpdf');
 %% CohxCon
 contrast = cohxcondesign(:,3); ucon = unique(contrast);
 coherence = cohxcondesign(:,6); ucoh = unique(coherence);
@@ -159,12 +171,12 @@ model = rmfield(model,'scm');
 model = rmfield(model,'covar');
 
 clist = brewermap(10,'PuOr');
-figure
+h= figure;
 % plot #1: contrast against 0% coherence (no change)
 lconidx = find(cohidx==0);
 subplot(2,1,1), hold on
 for i = 1:4
-    plot(decon.time,decon.ehdr(lconidx(i),:),'o','MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(lconidx(i),:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(lconidx(i),:),decon.ehdrste(lconidx(i),:),'Color',clist(i,:));
 end
 for i = 1:4
@@ -175,10 +187,23 @@ legend({'Contrast=+0%','Contrast=+25%','Contrast=+50%','Contrast=+75%'});
 lcohidx = find(conidx==0.25);
 subplot(2,1,2), hold on
 for i=1:5
-    plot(decon.time,decon.ehdr(lcohidx(i),:),'o','MarkerFaceColor',clist(i+5,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(lcohidx(i),:),'o','MarkerSize',3,'MarkerFaceColor',clist(i+5,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(lcohidx(i),:),decon.ehdrste(lcohidx(i),:),'Color',clist(i+5,:));
 end
 for i = 1:5
     plot(model.time,model.ehdr(lcohidx(i),:),'Color',clist(i+5,:));
 end
 legend({'Coherence+0%','Coherence+25%','Coherence+50%','Coherence+75%','Coherence+100%'});
+
+%% Print Figure #2
+%drawPublishAxis
+title(sprintf('%s: %s',subj,data.ROIs{roinum}));
+
+fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_%s_cohconplot.pdf',subj,data.ROIs{roinum}));
+set(h,'Units','Inches');
+pos = get(h,'Position');
+set(h,'InvertHardCopy','off');
+set(gcf,'Color',[1 1 1]);
+set(gca,'Color',[1 1 1]);
+set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
+print(fname,'-dpdf');

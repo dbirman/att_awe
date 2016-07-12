@@ -20,7 +20,11 @@ adata = adata(~any(isnan(adata),2),:);
 fixedParams = struct;
 
 %% Load subj data
-load(sprintf('~/data/cohcon_localizer/%s_fitroi.mat',subj));
+if strfind(getenv('OS'),'Windows')
+    load(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_fitroi.mat',subj)));
+else
+    load(sprintf('~/data/cohcon_localizer/%s_fitroi.mat',subj));
+end
 initparams.conRmax = mean([fitroi.roiparams{1}.Rmax fitroi.roiparams{2}.Rmax]);
 initparams.conc50 = mean([fitroi.roiparams{1}.c50 fitroi.roiparams{2}.c50]);
 initparams.conn = 1;
@@ -43,8 +47,8 @@ initparams.beta_att_con_cohw = [0 -inf inf];
 initparams.beta_att_coh_conw = [0 -inf inf];
 initparams.beta_att_coh_cohw = 1;
 initparams.beta_unatt_con_conw = [0 -inf inf];
-initparams.beta_unatt_con_cohw =1;
-initparams.beta_unatt_coh_conw =1;
+initparams.beta_unatt_con_cohw = 1;
+initparams.beta_unatt_coh_conw = 1;
 initparams.beta_unatt_coh_cohw = [0 -inf inf];
 
 numParams = numParams+6;
@@ -65,15 +69,15 @@ else
     initparams.unattNoise = 0;
 end
 
-% if strfind(model,'poisson')
-%     initparams.poissonNoise = 1;
-%     initparams.sigma = [1.25 0 inf];
-% else
-%     initparams.poissonNoise = 0;
-%     initparams.sigma = [1 0 inf];
-% end
-initparams.sigma = 0.01088;
-initparams.poissonNoise = 0;
+if strfind(model,'poisson')
+    initparams.poissonNoise = 1;
+    initparams.sigma = [1.25 0 inf];
+else
+    initparams.poissonNoise = 0;
+    initparams.sigma = [1 0 inf];
+end
+% initparams.sigma = 0.01088;
+% initparams.poissonNoise = 0;
     
 if strfind(model,'nobias')
     initparams.bias = 0;

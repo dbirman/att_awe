@@ -116,7 +116,6 @@ if ~isempty(strfind(mode,'fitroi'))||~isempty(strfind(mode,'fitatt'))
     if length(data.ROIs)>1
         nfit.r2 = zeros(size(data.ROIs));
         nfit.likelihoods = zeros(size(data.ROIs));
-        nfit.chi2s = zeros(size(data.ROIs));
         for ri = 1:length(data.ROIs)
             disp(sprintf('(roimodel) Fitting %s',data.ROIs{ri}));
             rdata = data;
@@ -132,7 +131,6 @@ if ~isempty(strfind(mode,'fitroi'))||~isempty(strfind(mode,'fitatt'))
             nfit.model{ri} = rfit.model{1};
             nfit.roiparams{ri} = rfit.roiparams{1};
             nfit.likelihoods(ri) = rfit.likelihood;
-%             nfit.chi2s(ri) = rfit.chi2;
             afields = fields(rfit);
             for ai = 1:length(afields)
                 if strfind(afields{ai},data.ROIs{ri})
@@ -193,10 +191,10 @@ elseif strfind(mode,'fitatt')
     roiparams = copyroiparams(fit); 
     roiparams.attgain = 0; roiparams.attoff = 0;
     if strfind(mode,'gain')
-        roiparams.conatt_congain = [1 0 inf];
-        roiparams.conatt_cohgain = [1 0 inf];
-        roiparams.cohatt_congain = [1 0 inf];
-        roiparams.cohatt_cohgain = [1 0 inf];
+        roiparams.conatt_gaincon = [1 0 inf];
+        roiparams.conatt_gaincoh = [1 0 inf];
+        roiparams.cohatt_gaincon = [1 0 inf];
+        roiparams.cohatt_gaincoh = [1 0 inf];
         roiparams.attgain = 1;
     end
     if strfind(mode,'add')
@@ -327,21 +325,13 @@ for ri = 1:length(fixedParams.ROIs)
             if ((cdesign(si,conidx)-cdesign(si,2))+(cdesign(si,cohidx)-cdesign(si,5)))>0
                 if fixedParams.fitroi || fixedParams.fitatt
                     if fixedParams.fitatt
-                        coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,cdesign(si,9),1);
-                        coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,cdesign(si,9),1);
+                        coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,cdesign(si,9));
+                        coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,cdesign(si,9));
                     else
-                        coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,0,1);
-                        coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,0,1);
+                        coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,0);
+                        coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,0);
                     end
-                    effect = coneff+coheff+roiparams.offset;
-                    if fixedParams.fitatt && roiparams.attoff
-                        if cdesign(si,9)==1
-                            % contrast attended
-                            effect = effect + roiparams.cohattoff;
-                        elseif cdesign(si,9)==2
-                            effect = effect + roiparams.conattoff;
-                        end
-                    end
+                    effect = coneff+coheff;
                  
                     % adjust timing
                     if cdesign(si,8)>=1
@@ -376,9 +366,9 @@ ssres = sum(res.^2);
 fit.r2 = 1 - ssres/fixedParams.sstot;
 
 fit.likelihood = ssres;
-% allmodel = fit.model{:};
-% allmodel(allmodel==0) = eps;
-% fit.chi2 = sum(res.^2 ./ allmodel);
+allmodel = fit.model{:};
+allmodel(allmodel==0) = eps;
+fit.chi2 = sum(res.^2 ./ allmodel);
 
 if f>0
     if fixedParams.fithrf

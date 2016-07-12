@@ -48,8 +48,8 @@ for task = 1:2
 end
 
 %% Save data
-fname = sprintf('~/data/cohcon/%s_data.mat',subj);
-if isfile(fname), load(fname); end
+fname = fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj));
+if exist(fname)==2, load(fname); end
 data.control = nocatch;
 data.attend = main;
 data.unattend = catch_;
@@ -57,8 +57,7 @@ save(fname,'data');
     %% The Plot!
 map = brewermap(6,'PuOr');
 
-h = figure
-subplot(4,2,7);
+h = figure;
 hold on
 h2 = plot([0.15 0.3 0.45 0.6],nocatch(1,:),'-','Color',map(1,:));
 %     errbar([0.15 0.3 0.45 0.6],nocatch(1,:),nocatchs(1,:),'Color',map(1,:));
