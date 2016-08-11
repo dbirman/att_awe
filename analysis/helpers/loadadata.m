@@ -5,18 +5,12 @@ function adata = loadadata(subj)
 %      10      11        12
 %   pedcon - pedcoh - correct
 
-if strfind(getenv('OS'),'Windows')
-    cfolder = sprintf('C:/Users/Dan/proj/COHCON_DATA/%s',subj);
-else
-    cfolder = sprintf('~/proj/data/cohcon/%s',subj);
-end
-
-files = dir(fullfile(cfolder,'*.mat'));
+files = dir(fullfile(datafolder,subj,'*.mat'));
 
 %% 
 adata = [];
 for fi = 1:length(files)
-    load(fullfile(cfolder,files(fi).name));
+    load(fullfile(datafolder,subj,files(fi).name));
     e = getTaskParameters(myscreen,task);
     if length(e{1})==2
         e = e{1}(2);

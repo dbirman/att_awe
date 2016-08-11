@@ -1,45 +1,64 @@
 function subj_behav_analysis( subj, refit )
 
 disp(sprintf('Started running for %s',subj));
-%%
+%% Get files
+files = dir(fullfile(datafolder,subj));
 
 %% Load data
 adata = loadadata(subj);
 
 %% Fit Contrast/Coherence response models (just to control condition)
-out = fitCCBehavControlModel(adata);
-%% Fit behav model
-fit = struct;
-fits = struct;
-if refit
-    fit = fitCCBehavModel(adata,0,'con-naka,coh-linear,nounatt'); % uses beta weights to fit the unattended conditions
-
-    %% Try other models
-    fits.allnaka = fitCCBehavModel(adata,0,'con-naka,coh-naka,nounatt');
-    fits.alllinear = fitCCBehavModel(adata,0,'con-linear,coh-linear,nounatt');
-    fits.nobias = fitCCBehavModel(adata,0,'con-naka,coh-linear,nounatt,nobias');
-    fits.unattnoise = fitCCBehavModel(adata,0,'con-naka,coh-linear,unattnoise');
-    fits.poisson = fitCCBehavModel(adata,0,'con-naka,coh-linear,nounatt,poisson');
+strs = {'con-naka,coh-linear','con-linear,coh-linear','con-naka,coh-naka'};
+poiss = {'',',poisson'};
+fits = cell(length(strs),length(poiss));
+likelihoods = zeros(size(fits));
+minl = inf; bestmodelstr = '';
+for si = 1:3
+    for pi = 1:2
+        modelstr = sprintf('%s%s',strs{si},poiss{pi});
+        fits{si,pi} = fitCCBehavControlModel(adata,0,modelstr);
+        likelihoods(si,pi) = fits{si,pi}.likelihood;
+        if fits{si,pi}.likelihood < minl
+            minl = fits{si,pi}.likelihood;
+            bestmodelstr = modelstr;
+        end
+    end
 end
 
+%% Select base model
+% test nobias, unattnoise, lapse rate, and stay/switch bias
+fit = fitCCBehavModel(adata,0,bestmodelstr);
+
+tests = {',nobias',',unattnoise',',lapse',',stayswitch'};
+flag = false(size(tests));
+for ti = 1:length(tests)
+    tfit = fitCCBehavModel(adata,0,sprintf('%s%s',bestmodelstr,tests{ti}));
+    if tfit.likelihood < fit.likelihood
+        flag(ti) = true;
+    end
+end
+finalmodelstr = [bestmodelstr tests{flag}];
+if any(flag)
+    fit = fitCCBehavModel(adata,0,finalmodelstr);
+end
 %% Save data
-if exist(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)))==2
-    load(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)));
-end
-if refit
-    data.fit = fit;
-    data.fits = fits;
-else
-    fit = data.fit;
-end
-save(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)),'data');
-
-return
+% if exist(fullfile(datafolder,sprintf('%s_data.mat',subj)))==2
+%     load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
+% end
+% if refit
+%     data.fit = fit;
+%     data.fits = fits;
+% else
+%     fit = data.fit;
+% end
+% save(fullfile(datafolder,sprintf('%s_data.mat',subj)),'data');
+% 
+% return
 
 %% dispInfo
-load(fullfile(cfolder,files(end).name));
+load(fullfile(datafolder,sprintf('%s',subj),files(end).name));
 h1 = ccDispInfo(stimulus,subj);
-fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_threshold.pdf',subj));
+fname = fullfile(datafolder,sprintf('%s_threshold.pdf',subj));
 
 set(h1,'Units','Inches');
 pos = get(h1,'Position');
@@ -48,6 +67,8 @@ set(gcf,'Color',[1 1 1]);
 set(gca,'Color',[1 1 1]);
 set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
 print(fname,'-dpdf');
+
+return
 %% Figure
 h1 = figure;
 x = 0:.01:1;
@@ -90,7 +111,7 @@ drawPublishAxis
 % set(gca,'Color',[1 1 1]);
 % set(h2,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
 % print(fname,'-dpdf');
-fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_response.pdf',subj));
+fname = fullfile(datafolder,sprintf('%s_response.pdf',subj));
 
 set(h1,'Units','Inches');
 pos = get(h1,'Position');
@@ -99,7 +120,6 @@ set(gcf,'Color',[1 1 1]);
 set(gca,'Color',[1 1 1]);
 set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
 print(fname,'-dpdf');
-
 
 %%
 h1 = cc_rightchoice(adata, fit);
@@ -114,7 +134,7 @@ h1 = cc_rightchoice(adata, fit);
 % print(fname,'-dpdf');
 
 %%
-fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_rightchoice.pdf',subj));
+fname = fullfile(datafolder,sprintf('%s_rightchoice.pdf',subj));
 
 set(h1,'Units','Inches');
 pos = get(h1,'Position');

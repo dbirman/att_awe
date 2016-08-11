@@ -48,7 +48,7 @@ for task = 1:2
 end
 
 %% Save data
-fname = fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj));
+fname = fullfile(sprintf('C:/Users/Dan/Documents/Box Sync/COHCON_DATA/%s_data.mat',subj));
 if exist(fname)==2, load(fname); end
 data.control = nocatch;
 data.attend = main;

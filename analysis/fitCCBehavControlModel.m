@@ -9,8 +9,12 @@ function fit = fitCCBehavControlModel(adata,figs,model)
 global fixedParams
 
 adata = adata(~any(isnan(adata),2),:);
+osize = size(adata,1);
 
 fixedParams = struct;
+
+adata = adata(adata(:,9)==-1,:);
+disp(sprintf('Reducing data to %i control trials from %i',size(adata,1),osize));
 
 %% Contrast Modeling Parameters
 numParams = 0;
@@ -74,10 +78,10 @@ numParams = numParams+2;
 
 if strfind(model,'poisson')
     initparams.poissonNoise = 1;
-    initparams.sigma = 1.25;
+    initparams.sigma = 1;
 else
     initparams.poissonNoise = 0;
-    initparams.sigma = 1.25;
+    initparams.sigma = 1;
 end
 
 if strfind(model,'nobias')
@@ -100,6 +104,8 @@ else
 end
 
 [~, fit] = fitModel(initparams,adata,f,numParams);
+
+fit.modelstr = model;
 
 function [bestparams,fit] = fitModel(params,adata,f,numParams)
 
@@ -174,20 +180,6 @@ if f>0
     plot(x,fcon,'Color',clist(1,:));
     plot(x,fcoh,'Color',clist(3,:));
     % now plot the unattended curves    
-    if params.conmodel==1
-        params.conslope = params.conslope*params.conunatt;
-    else
-        params.conRmax = params.conRmax*params.conunatt;
-    end
-    if params.cohmodel==1
-        params.cohslope = params.cohslope * params.cohunatt;
-    else
-        params.cohRmax = params.cohRmax*params.cohunatt;
-    end
-    fcon = conModel(x,params);
-    fcoh = cohModel(x,params);
-    plot(x,fcon,'--','Color',clist(1,:));
-    plot(x,fcoh,'--','Color',clist(3,:));
     title(sprintf('L: %2.3f.',likelihood));
 end
 
