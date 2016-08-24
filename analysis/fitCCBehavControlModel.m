@@ -33,8 +33,13 @@ elseif strfind(model,'con-naka')
     initparams.conRmax = [30 -inf inf];
     initparams.conc50 = [0.75 0 1];
     initparams.conn = 1;
-    numParams = numParams+2;
+    numParams = numParams+3;
     initparams.conmodel = 2;
+elseif strfind(model,'con-exp')
+    disp('(behavmodel) Fitting exp contrast model');
+    initparams.conalpha = [30 -inf inf];
+    initparams.conkappa = [0.5 0 1];
+    numParams = numParams+2;
 end
 if strfind(model,'null')
     disp('(behavmodel) Fitting null coherence model');
@@ -50,9 +55,15 @@ elseif strfind(model,'coh-naka')
     disp('(behavmodel) Fitting naka coherence model');
     initparams.cohRmax = [1 -inf inf];
     initparams.cohc50 = [0.5 0 1];
-    numParams = numParams+2;
+    numParams = numParams+3;
     initparams.cohn = 1;
     initparams.cohmodel = 2;
+elseif strfind(model,'coh-exp')
+    disp('(behavmodel) Fitting exp coherence model');
+    initparams.cohmodel = 3;
+    initparams.cohalpha = [30 -inf inf];
+    initparams.cohkappa = [0.5 0 1];
+    numParams = numParams+2;
 end
 
 initparams.scale = 1;
