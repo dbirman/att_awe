@@ -21,6 +21,11 @@ if isfield(params,'conmodel')
         end
         params.conn = round(params.conn);
         out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
+    elseif params.conmodel==3
+        if isfield(params,'attgain')
+            warning('attgain not implemented for exponential model');
+        end
+        out = -params.conalpha * exp(-params.conkappa*con);
     end
 else
     warning('failure: no model selected');

@@ -1,5 +1,5 @@
 function cc_copyFiles(sid)
-
+% Input sid as 's300'
 
 volDir = '/Volumes/data/cohcon';
 if ~isdir(volDir)

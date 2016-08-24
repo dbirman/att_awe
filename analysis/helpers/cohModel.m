@@ -20,6 +20,11 @@ if isfield(params,'cohmodel')
         end
         params.cohn = round(params.cohn);
         out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
+    elseif params.cohmodel ==3
+        if isfield(params,'attgain')
+            warning('attgain not implemented for exponential model');
+        end
+        out = -params.cohalpha * exp(-params.cohkappa*con);
     end
 else
     warning('failure: no model selected');

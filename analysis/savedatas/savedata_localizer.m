@@ -1,4 +1,4 @@
-function savedata_localizer(cfolder)
+function savedata_localizer(cfolder,version)
 
 % Generic function to save data from localizer runs
 
@@ -11,7 +11,15 @@ function savedata_localizer(cfolder)
 %% Move to Data WD
 mrQuit
 cd(fullfile('~/data/cohcon_localizer/',cfolder));
-
+folders = dir(pwd);
+skip = 1;
+for fi = 1:length(folders)
+    if ~isempty(strfind(folders(fi).name,'Concatenation')), skip = 0; end
+end
+if skip
+    disp(sprintf('Data folder %s has not been prepared for analysis',cfolder));
+    return
+end
 %% Setup a view + Load Concatenation
 view = newView();
 view = viewSet(view,'curGroup','Concatenation');
@@ -28,8 +36,16 @@ for ri = 1:length(ROIs)
         allROIs{end+1} = strcat(pfxs{pi},ROIs{ri});
     end
 end
+if ~isfield(view,'analyses') || isempty(view.analyses)
+    disp(sprintf('Data folder %s has not been prepared for analysis',cfolder));
+    return
+end    
 analysis = view.analyses{1};
 rois = loadROITSeries(view,allROIs,view.curScan,view.curGroup,'keepNAN=true');
+if isempty(rois)
+    disp(sprintf('Data folder %s has not been prepared for analysis',cfolder));
+    return
+end    
 
 tSeries = cell(1,length(rois)); % meaned tSeries with prf
 rtSeries = cell(1,length(rois));
@@ -139,8 +155,17 @@ end
 [taskvol, taskconds, ~] = getStimvol(view,'task','taskNum=1','phaseNum=2');
 [correctvol, correctconds, ~] = getStimvol(view,'correct','taskNum=1','phaseNum=2');
 if ~isempty(correctvol)
-    warning('ADD CORRECT CHECKS!');
-    stop = 1;
+    % get no response volumes
+    cc = cellfun(@(x) ~isempty(strfind(x,'correct=NaN')),correctconds,'UniformOutput',false);
+    cc = [cc{:}];
+    if any(cc)
+        norespvols = correctvol{cc};
+    else
+        norespvols = [];
+    end
+    disp(sprintf('Found %i unresponded trials: removing trials',length(norespvols)));
+else
+    norespvols=[];
 end
 [conval,cohval,timval,lconval,rconval,lcohval,rcohval,taskval] = parseIndivNames(conconds,cohconds,timconds,lConconds,rConconds,lCohconds,rCohconds,taskconds);
 timval = timval*2; % use the .5s versions
@@ -177,64 +202,71 @@ count = 1;
 
 for ci = 1:length(allsv)
     csv = allsv(ci);
-    % this lCon event, find its rCon, lCoh, rCoh, tim, and task
-    conidx = condata(:,1)==csv;
-    cohidx = cohdata(:,1)==csv;
-    lConidx = find(lcondata(:,1)==csv);
-    if isempty(lConidx)
-        lCon = condata(conidx,2);
-    else
-        lCon = lcondata(lConidx,2);
-    end
-    % get rCon
-    rConidx = find(rcondata(:,1)==csv);
-    if isempty(rConidx)
-        rCon = condata(conidx,2);
-    else
-        rCon = rcondata(rConidx,2);
-    end
-    % get lCoh
-    lCohidx = find(lcohdata(:,1)==csv);
-    if isempty(lCohidx)
-        lCoh = cohdata(cohidx,2);
-    else
-        lCoh = lcohdata(lCohidx,2);
-    end
-    % get rCoh
-    rCohidx = find(rcohdata(:,1)==csv);
-    if isempty(rCohidx)
-        rCoh = cohdata(cohidx,2);
-    else
-        rCoh = rcohdata(rCohidx,2);
-    end
-    % get tim
-    timidx = find(timdata(:,1)==csv);
-    if ~isempty(timidx)
-        tim = timdata(timidx,2);
-    else
-        % figure out what kind of trial this is (cohxcon or cohxcon+att)
-        if lCon==rCon
-            tim = 5;
+    
+    % if we find the stimvol in norespvols (i.e. resp was NaN) we will just
+    % ignore this trial. This means that we won't model the response at all
+    % (this isn't ideal as a solution... better might be to blank out the data for the duration of the trial
+    % but it's reasonable since these trials are rare).
+    if ~any(norespvols==csv)
+        % this lCon event, find its rCon, lCoh, rCoh, tim, and task
+        conidx = condata(:,1)==csv;
+        cohidx = cohdata(:,1)==csv;
+        lConidx = find(lcondata(:,1)==csv);
+        if isempty(lConidx)
+            lCon = condata(conidx,2);
         else
-            tim = 1;
+            lCon = lcondata(lConidx,2);
         end
-    end
-    % get task
-    taskidx = find(taskdata(:,1)==csv);
-    if ~isempty(taskidx)
-        task = taskdata(taskidx,2);
-    else
-        % no task information, so this trial must be a fixation task
-        if lCon==rCon
-            task = 0;
+        % get rCon
+        rConidx = find(rcondata(:,1)==csv);
+        if isempty(rConidx)
+            rCon = condata(conidx,2);
         else
-            warning('Shouldn''t be able to get here...');
-            keyboard
+            rCon = rcondata(rConidx,2);
         end
+        % get lCoh
+        lCohidx = find(lcohdata(:,1)==csv);
+        if isempty(lCohidx)
+            lCoh = cohdata(cohidx,2);
+        else
+            lCoh = lcohdata(lCohidx,2);
+        end
+        % get rCoh
+        rCohidx = find(rcohdata(:,1)==csv);
+        if isempty(rCohidx)
+            rCoh = cohdata(cohidx,2);
+        else
+            rCoh = rcohdata(rCohidx,2);
+        end
+        % get tim
+        timidx = find(timdata(:,1)==csv);
+        if ~isempty(timidx)
+            tim = timdata(timidx,2);
+        else
+            % figure out what kind of trial this is (cohxcon or cohxcon+att)
+            if lCon==rCon
+                tim = 5;
+            else
+                tim = 1;
+            end
+        end
+        % get task
+        taskidx = find(taskdata(:,1)==csv);
+        if ~isempty(taskidx)
+            task = taskdata(taskidx,2);
+        else
+            % no task information, so this trial must be a fixation task
+            if lCon==rCon
+                task = 0;
+            else
+                warning('Shouldn''t be able to get here...');
+                keyboard
+            end
+        end
+        design(count,:) = [csv basecon lCon rCon basecoh lCoh rCoh tim task];
+        % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
+        count = count+1;
     end
-    design(count,:) = [csv basecon lCon rCon basecoh lCoh rCoh tim task];
-    % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
-    count = count+1;
 end
 design = design(1:count-1,:);
 
@@ -262,6 +294,7 @@ concatInfo = viewGet(view,'concatInfo');
 data.runtrans = concatInfo.runTransition;
 data.concatInfo = concatInfo;
 data.TR = 0.5;
+data.version = version;
 
 save(fname,'data');
 
