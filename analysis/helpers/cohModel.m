@@ -1,5 +1,11 @@
 
 function out = cohModel(coh,params,att,fitflag)
+if ~exist('att','var')
+    att=0;
+end
+if ~exist('fitflag','var')
+    fitflag=0;
+end
 if isfield(params,'cohmodel')
     if params.cohmodel==1
         if isfield(params,'attgain') && params.attgain
@@ -34,6 +40,10 @@ if fitflag==0
     % setting fitflag = 0 means you're just trying to compute the response
     % model, but you're not fitting it. (This is so you can see the curves
     % and compare them)
+    if ~isfield(params,'offset')
+        % this is probably the behavioral model, just return
+        return
+    end
     out = out + params.offset;
     if isfield(params,'attoff') && params.attoff
         if att==0

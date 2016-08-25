@@ -1,8 +1,5 @@
 function f = cc_rightchoice( adata, fit)
 
-if ieNotDefined('f')
-    f = figure;
-end
 %%
 f = figure;
 
@@ -16,8 +13,6 @@ attend_ = [1 2];
 types = {'Control','Attend','Unattend'};
 types_ = [1 -1 -1];
 ccatch = [-1 0 1];
-
-fits = {};
 
 clist = brewermap(9,'PuOr');
 for ti = 1:length(types)
@@ -68,6 +63,10 @@ for ti = 1:length(types)
 %         catch
 %         end
         axis([-1 1 0 1]);
+        
+        % set(ax,'XTickLabel',{'-3pi','-2pi','-pi','0','pi','2pi','3pi'})
+        set(gca,'XTickLabel',{'-100','-50','0','50','100'});
+        set(gca,'YTickLabel',{'0','','100%'});
         drawPublishAxis
     end
 end
@@ -127,17 +126,12 @@ else
 end
 conr = [-fliplr(conr) conr];
 diffresp = [-fliplr(diffresp) diffresp];
-diffresp = diffresp + fit.params.bias/2;
+diffresp = diffresp + fit.params.bias;
 if fit.params.poissonNoise
-    resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
+    resp = normcdf(diffresp,0,sqrt(abs(diffresp*fit.params.sigma)));
 else
     resp = normcdf(diffresp,0,fit.params.sigma);
 end
-% if mod(length(conrange),2)==0
-%     resp = [1-fliplr(resp) resp];
-% else
-%     resp = [1-fliplr(resp) 0.5 resp];
-% end
 
 function [cohr,resp] = fitCurveCoh(fit,cohped,cohrange,attend,ccatch)
 %%
@@ -195,7 +189,7 @@ cohr = [-fliplr(cohr) cohr];
 diffresp = [-fliplr(diffresp) diffresp];
 diffresp = diffresp + fit.params.bias/2;
 if fit.params.poissonNoise
-    resp = normcdf(diffresp,0,sqrt(diffresp*fit.params.sigma));
+    resp = normcdf(diffresp,0,sqrt(abs(diffresp*fit.params.sigma)));
 else
     resp = normcdf(diffresp,0,fit.params.sigma);
 end
@@ -205,18 +199,18 @@ end
 %     resp = [1-fliplr(resp) 0.5 resp];
 % end
 
-function out = conModel(con,params)
-
-if params.conmodel==1
-    out = params.conslope .* con;
-elseif params.conmodel==2
-    out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
-end
-
-function out = cohModel(coh,params)
-
-if params.cohmodel==1
-    out = params.cohslope .* coh;
-elseif params.cohmodel==2
-    out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
-end
+% % function out = conModel(con,params)
+% % 
+% % if params.conmodel==1
+% %     out = params.conslope .* con;
+% % elseif params.conmodel==2
+% %     out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
+% % end
+% % 
+% % function out = cohModel(coh,params)
+% % 
+% % if params.cohmodel==1
+% %     out = params.cohslope .* coh;
+% % elseif params.cohmodel==2
+% %     out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
+% % end

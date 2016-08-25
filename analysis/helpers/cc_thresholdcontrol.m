@@ -18,7 +18,7 @@ end
 
 adata = loadadata(subj);
 
-fit = data.fits.allnaka;
+fit = data.fit;
 
 %%
 x = 0:.001:3;

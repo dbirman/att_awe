@@ -102,6 +102,13 @@ else
     numParams = numParams+1;
 end
 
+if strfind(model,'stayswitch')
+    initparams.right_correct = [0 -inf inf];
+    initparams.right_incorr = [0 inf inf];
+    initparams.left_correct = [0 -inf inf];
+    initparams.left_incorr = [0 -inf inf];
+end
+
 %% Prep and Call
 if ieNotDefined('figs')
     figs = 0;
@@ -156,7 +163,11 @@ probs = zeros(size(adata,1),1);
 for ai = 1:size(adata,1)
     obs = adata(ai,:);
     
-    prob = getObsProb(obs,params);
+    if ai>1
+        prob = getObsProb(obs,params,adata(ai-1,:));
+    else
+        prob = getObsProb(obs,params,[]);
+    end
     
     probs(ai) = prob;
     if prob >= 0
@@ -194,7 +205,7 @@ if f>0
     title(sprintf('L: %2.3f.',likelihood));
 end
 
-function prob = getObsProb(obs,params)
+function prob = getObsProb(obs,params,pobs)
 %%
 
 if obs(9)==1
@@ -262,7 +273,16 @@ switch obs(1) % switch condition
             betas = [params.beta_unatt_con_conw params.beta_unatt_con_cohw];
         end
 end
-effect = betas * [conEff cohEff]' + params.bias;
+if isfield(params,'right_correct') && ~isempty(pobs)
+%     if pobs(
+%     initparams.right_correct = [0 -inf inf];
+%     initparams.right_incorr = [0 inf inf];
+%     initparams.left_correct = [0 -inf inf];
+%     initparams.left_incorr = [0 -inf inf];
+warning('code not written yet');
+else
+    effect = betas * [conEff cohEff]' + params.bias;
+end
 
 if params.poissonNoise
     prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)));

@@ -86,6 +86,13 @@ model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.fr
 model = rmfield(model,'scm');
 model = rmfield(model,'covar');
 
+%% Save timing data
+time = logical(decon.time>4.5.*decon.time<7.5);
+decondata.time.conidxs = conidxs;
+decondata.time.cohidxs = cohidxs;
+decondata.time.timidxs = timidxs;
+decondata.time.resp = decon.ehdr(:,time);
+save(fullfile(datafolder,sprintf('%sdecon.mat',subj)),'decondata');
 %% Time plot
 clist = brewermap(30,'PuOr');
 h = figure;
@@ -170,6 +177,12 @@ model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.fr
 model = rmfield(model,'scm');
 model = rmfield(model,'covar');
 
+%% save cohxcon data
+decondata.cc.conidxs = conidx;
+decondata.cc.cohidxs = cohidx;
+decondata.cc.resp = decon.ehdr(:,time);
+save(fullfile(datafolder,sprintf('%sdecon.mat',subj)),'decondata');
+%%
 clist = brewermap(10,'PuOr');
 h= figure;
 % plot #1: contrast against 0% coherence (no change)

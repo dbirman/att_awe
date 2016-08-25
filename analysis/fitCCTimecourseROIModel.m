@@ -362,7 +362,7 @@ for ri = 1:length(fixedParams.ROIs)
                     else
                         idxs = sv;
                     end
-                    roimodel(:,idxs) = 0.5; % why 0.5? Our TR is 500 ms, so 0.5 means that the HRF will be scaled such that it approximates 1% signal change / sec
+                    roimodel(:,idxs) = 1; % why 0.5? Our TR is 500 ms, so 0.5 means that the HRF will be scaled such that it approximates 1% signal change / sec
                 end
             end
         end
@@ -443,7 +443,7 @@ function out = gamma(time,params)
 %     out = params.amplitude*out;
 % end
 
-out = out/sum(out)/2; % normalize to sum=1 for 1% signal change / s
+out = out/sum(out)/2; % normalize to sum=0.5 for 1% signal change / s
 
 function [initparams, minparams, maxparams] = initParams()
 %%

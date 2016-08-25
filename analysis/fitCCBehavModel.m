@@ -296,24 +296,6 @@ end
 
 if obs(8), prob = 1-prob; end
     
-function out = conModel(con,params)
-if con==0, out=0; return; end
-if params.conmodel==1
-    out = params.conslope .* con;
-elseif params.conmodel==2
-    params.conn = round(params.conn);
-    out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
-end
-
-function out = cohModel(coh,params)
-if coh==0, out=0; return; end
-if params.cohmodel==1
-    out = params.cohslope .* coh;
-elseif params.cohmodel==2
-    params.cohn = round(params.cohn);
-    out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
-end
-
 function [initparams, minparams, maxparams] = initParams(params)
 
 global fixedParams

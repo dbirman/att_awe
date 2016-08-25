@@ -1,5 +1,11 @@
 
 function out = conModel(con,params,att,fitflag)
+if ~exist('att','var')
+    att=0;
+end
+if ~exist('fitflag','var')
+    fitflag=0;
+end
 
 if isfield(params,'conmodel')
     if params.conmodel==1
@@ -32,6 +38,10 @@ else
     keyboard
 end
 if fitflag==0
+    if ~isfield(params,'offset')
+        % this is probably the behavioral model, just return
+        return
+    end
     out = out + params.offset;
     if isfield(params,'attoff') && params.attoff
         if att==0
