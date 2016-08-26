@@ -21,7 +21,6 @@ numParams = 0;
 if strfind(model,'null')
     disp('(behavmodel) Fitting null contrast model');
     initparams.conslope = 0;
-    numParams = numParams+1;
     initparams.conmodel = 1;
 elseif strfind(model,'con-linear')
     disp('(behavmodel) Fitting linear contrast model');
@@ -38,7 +37,8 @@ elseif strfind(model,'con-naka')
 elseif strfind(model,'con-exp')
     disp('(behavmodel) Fitting exp contrast model');
     initparams.conalpha = [30 -inf inf];
-    initparams.conkappa = [0.5 0 1];
+    initparams.conkappa = [0.5 0 inf];
+    initparams.conmodel = 3;
     numParams = numParams+2;
 end
 if strfind(model,'null')
@@ -62,23 +62,10 @@ elseif strfind(model,'coh-exp')
     disp('(behavmodel) Fitting exp coherence model');
     initparams.cohmodel = 3;
     initparams.cohalpha = [30 -inf inf];
-    initparams.cohkappa = [0.5 0 1];
+    initparams.cohkappa = [0.5 0 inf];
     numParams = numParams+2;
 end
 
-initparams.scale = 1;
-
-% beta parameters
-groups = {'control','att','unatt'};
-tasks = {'con','coh'};
-betas = {'conw','cohw'};
-for gi = 1:length(groups)
-    for ti = 1:length(tasks)
-        for bi = 1:length(betas)
-            initparams.(sprintf('beta_%s_%s_%s',groups{gi},tasks{ti},betas{bi})) = [1 -inf inf];
-        end
-    end
-end
 % freeze contrast and coherence at 1 so they force the other betas to
 % similar values (i.e. sigma can't trade off with the other functions)
 initparams.beta_control_con_conw = 1;
@@ -86,7 +73,7 @@ initparams.beta_control_con_cohw = [0 -inf inf];
 initparams.beta_control_coh_cohw = 1;
 initparams.beta_control_coh_conw = [0 -inf inf];
 numParams = numParams+2;
-
+    
 if strfind(model,'poisson')
     initparams.poissonNoise = 1;
     initparams.sigma = 1;
@@ -104,9 +91,10 @@ end
 
 if strfind(model,'stayswitch')
     initparams.right_correct = [0 -inf inf];
-    initparams.right_incorr = [0 inf inf];
+    initparams.right_incorr = [0 -inf inf];
     initparams.left_correct = [0 -inf inf];
     initparams.left_incorr = [0 -inf inf];
+    numParams = numParams+4;
 end
 
 %% Prep and Call
@@ -124,6 +112,7 @@ end
 [~, fit] = fitModel(initparams,adata,f,numParams);
 
 fit.modelstr = model;
+fit.numParams = numParams;
 
 function [bestparams,fit] = fitModel(params,adata,f,numParams)
 
@@ -143,20 +132,13 @@ if any(isnan(params))
 end
 params = getParams(params);
 
-if params.conmodel==2
-    params.conRmax = params.conRmax * params.scale;
-else
-    params.conslope = params.conslope * params.scale;
-end
-if params.cohmodel==2
-    params.cohRmax = params.cohRmax * params.scale;
-else
-    params.cohslope = params.cohslope * params.scale;
-end
-
 likelihood = 0;
 % For each observation in adata, calculate log(likelihood) and sum
-%   task - basecon - basecoh - conL - conR - cohL - cohR - resp - catch
+
+%     1       2         3        4      5      6     7      8       9
+%   task - basecon - basecoh - conL - conR - cohL - cohR - resp - catch -
+%      10      11        12
+%   pedcon - pedcoh - correct
 
 probs = zeros(size(adata,1),1);
 
@@ -207,33 +189,6 @@ end
 
 function prob = getObsProb(obs,params,pobs)
 %%
-
-if obs(9)==1
-    if obs(1)==-1
-        % THIS IS A CATCH TRIAL IN A COHERENCE RUN, ADJUST CONTRAST
-        if params.conmodel==1
-            params.conslope = params.conslope*params.conunatt;
-        else
-            params.conRmax = params.conRmax*params.conunatt;
-        end
-    elseif obs(1)==-2
-        % ADJUST COHERENCE
-        if params.cohmodel==1
-            params.cohslope = params.cohslope * params.cohunatt;
-        else
-            params.cohRmax = params.cohRmax*params.cohunatt;
-        end
-    end
-
-    if params.unattNoise
-        if obs(1)==-1
-            params.sigma = params.sigma * params.conunatt;
-        elseif obs(1)==-2
-            params.sigma = params.sigma * params.cohunatt;
-        end
-    end
-end
-
 % check differences, adjust if necessary (to reflect actual visual amount shown)
 if (obs(5)-obs(2))>(1-obs(2))
     keyboard;
@@ -273,13 +228,19 @@ switch obs(1) % switch condition
             betas = [params.beta_unatt_con_conw params.beta_unatt_con_cohw];
         end
 end
+
 if isfield(params,'right_correct') && ~isempty(pobs)
-%     if pobs(
-%     initparams.right_correct = [0 -inf inf];
-%     initparams.right_incorr = [0 inf inf];
-%     initparams.left_correct = [0 -inf inf];
-%     initparams.left_incorr = [0 -inf inf];
-warning('code not written yet');
+    extra = 0;
+    if pobs(12)==1 && pobs(8)==1 % left correct
+        extra = params.left_correct;
+    elseif pobs(12)==1 && pobs(8)==2 % right correct
+        extra = params.right_correct;
+    elseif pobs(12)==0 && pobs(8)==1
+        extra = params.left_incorr;
+    elseif pobs(12)==0 && pobs(8)==2
+        extra = params.right_incorr;
+    end
+    effect = betas * [conEff cohEff]' + params.bias + extra;
 else
     effect = betas * [conEff cohEff]' + params.bias;
 end
@@ -291,24 +252,6 @@ else
 end
 
 if obs(8), prob = 1-prob; end
-    
-function out = conModel(con,params)
-if con==0, out=0; return; end
-if params.conmodel==1
-    out = params.conslope .* con;
-elseif params.conmodel==2
-    params.conn = round(params.conn);
-    out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
-end
-
-function out = cohModel(coh,params)
-if coh==0, out=0; return; end
-if params.cohmodel==1
-    out = params.cohslope .* coh;
-elseif params.cohmodel==2
-    params.cohn = round(params.cohn);
-    out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
-end
 
 function [initparams, minparams, maxparams] = initParams(params)
 

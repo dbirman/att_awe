@@ -1,4 +1,3 @@
-
 function out = conModel(con,params,att,fitflag)
 if ~exist('att','var')
     att=0;
@@ -27,7 +26,7 @@ if isfield(params,'conmodel')
         end
         params.conn = round(params.conn);
         out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
-    elseif params.conmodel==3
+    else % exp model
         if isfield(params,'attgain')
             warning('attgain not implemented for exponential model');
         end
@@ -40,6 +39,9 @@ end
 if fitflag==0
     if ~isfield(params,'offset')
         % this is probably the behavioral model, just return
+        if isfield(params,'conalpha')
+            out = out+params.conalpha; % add the alpha parameter so that the function starts at zero
+        end
         return
     end
     out = out + params.offset;

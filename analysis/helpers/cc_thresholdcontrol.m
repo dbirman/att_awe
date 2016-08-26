@@ -31,33 +31,45 @@ coh = cohModel(x,fit.params);
 conped = unique(adata(:,10));
 cohped = unique(adata(:,11));
 
-%% compute the thresholds for contrast
-cont = zeros(size(conped));
-for ci = 1:length(conped)
-    cped = conped(ci);
-    baseResp = conModel(cped,fit.params);
-    % threshold = sigma
-    if fit.params.poissonNoise
-        cont(ci) = sqrt(fit.params.sigma*cped);
-    else
-        cont(ci) = fit.params.sigma;
-    end
-    % go find this value 
-    cont(ci) = x(find(con>=(cont(ci)+baseResp),1))-cped;
-end
+% %% compute the thresholds for contrast
+% cont = zeros(size(conped));
+% for ci = 1:length(conped)
+%     cped = conped(ci);
+%     baseResp = conModel(cped,fit.params);
+%     % threshold = sigma
+%     if fit.params.poissonNoise
+%         cont(ci) = sqrt(fit.params.sigma*cped);
+%     else
+%         cont(ci) = fit.params.sigma;
+%     end
+%     % go find this value 
+%     cont(ci) = x(find(con>=(cont(ci)+baseResp),1))-cped;
+% end
+% 
+% %% compute for coherence
+% coht = zeros(size(cohped));
+% for ci = 1:length(cohped)
+%     cped = cohped(ci);
+%     baseResp = cohModel(cped,fit.params);
+%     if fit.params.poissonNoise
+%         noise = sqrt(fit.params.sigma*cped);
+%     else
+%         noise = fit.params.sigma;
+%     end
+%     coht(ci) = x(find(coh>=noise+baseResp,1))-cped;
+% end
 
-%% compute for coherence
-coht = zeros(size(cohped));
-for ci = 1:length(cohped)
-    cped = cohped(ci);
-    baseResp = cohModel(cped,fit.params);
-    if fit.params.poissonNoise
-        noise = sqrt(fit.params.sigma*cped);
-    else
-        noise = fit.params.sigma;
-    end
-    coht(ci) = x(find(coh>=noise+baseResp,1))-cped;
-end
+
+%% Compute derivatives
+acon = fit.params.conalpha;
+acoh = fit.params.cohalpha;
+kcon = fit.params.conkappa;
+kcoh = fit.params.cohkappa;
+
+xcon = min(conped):.01:max(conped);
+xcoh = min(cohped):.01:max(cohped);
+cont = 1./(acon*kcon*exp(-kcon*xcon));
+coht = 1./(acoh*kcoh*exp(-kcoh*xcoh));
 
 data.control(data.control<=0) = NaN;
 %% plot
@@ -65,8 +77,8 @@ data.control(data.control<=0) = NaN;
 map = brewermap(6,'PuOr');
 h = figure; hold on
 
-plot(conped,cont,'-','Color',map(1,:));
-plot(cohped,coht,'-','Color',map(6,:));
+plot(xcon,cont,'-','Color',map(1,:));
+plot(xcoh,coht,'-','Color',map(6,:));
 h1 = plot(conped,data.control(2,:),'o','MarkerSize',15);
 set(h1(1),'MarkerEdgeColor',[1 1 1],'MarkerFaceColor',map(1,:),'LineWidth',1.5);
 h1 = plot(cohped,data.control(1,:),'o','MarkerSize',15);
@@ -76,6 +88,8 @@ title(sprintf('Model Fit for Naka-Con, Linear-Coh, no Bias, Subject: %s',subj));
 xlabel('Contrast/Coherence Pedestal (%)');
 ylabel('Just Noticeable Difference (% Con/Coh)');
 drawPublishAxis
+
+%% Print
 
 
 fname = fullfile('C:/Users/Dan/proj/COHCON_DATA',sprintf('%s_thresholdmodel.pdf',subj));

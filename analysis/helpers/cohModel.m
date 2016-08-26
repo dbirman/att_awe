@@ -30,7 +30,7 @@ if isfield(params,'cohmodel')
         if isfield(params,'attgain')
             warning('attgain not implemented for exponential model');
         end
-        out = -params.cohalpha * exp(-params.cohkappa*con);
+        out = -params.cohalpha * exp(-params.cohkappa*coh);
     end
 else
     warning('failure: no model selected');
@@ -42,6 +42,9 @@ if fitflag==0
     % and compare them)
     if ~isfield(params,'offset')
         % this is probably the behavioral model, just return
+        if isfield(params,'cohalpha')
+            out = out + params.cohalpha;
+        end
         return
     end
     out = out + params.offset;

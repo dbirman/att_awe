@@ -7,41 +7,21 @@ files = dir(fullfile(datafolder,subj));
 %% Load data
 adata = loadadata(subj);
 
+%% Fit Models
 if strfind(modes,'refit')
     %% Fit Contrast/Coherence response models (just to control condition)
-    strs = {'con-naka,coh-naka'}; %
-    poiss = {''}; % ,',poisson' removed, doesn't fit well
-    fits = cell(length(strs),length(poiss));
-    likelihoods = zeros(size(fits));
-    minl = inf; bestmodelstr = '';
+    strs = {'con-exp,coh-exp','con-naka,coh-linear','con-exp,coh-exp,stayswitch'}; %
+    fits = cell(1,length(strs));
+    BICs = zeros(size(fits));
+    minl = inf;
     for si = 1:length(strs)
-        for pi = 1:length(poiss)
-            modelstr = sprintf('%s%s',strs{si},poiss{pi});
-            fits{si,pi} = fitCCBehavControlModel(adata,0,modelstr);
-            likelihoods(si,pi) = fits{si,pi}.likelihood;
-            if fits{si,pi}.likelihood < minl
-                minl = fits{si,pi}.likelihood;
-                bestmodelstr = modelstr;
-            end
+        fits{si} = fitCCBehavControlModel(adata,0,strs{si});
+        BICs(si) = fits{si}.BIC;
+        if fits{si}.BIC < minl
+            minl = fits{si}.BIC;
+            fit = fits{si};
         end
     end
-
-    %% Select base model
-    % test nobias, unattnoise, lapse rate, and stay/switch bias
-    fit = fitCCBehavModel(adata,0,bestmodelstr);
-
-    % % tests = {',nobias'}; % test lapse rate? test ',stayswitch'
-    % % flag = false(size(tests));
-    % % for ti = 1:length(tests)
-    % %     tfit = fitCCBehavModel(adata,0,sprintf('%s%s',bestmodelstr,tests{ti}));
-    % %     if tfit.likelihood < fit.likelihood
-    % %         flag(ti) = true;
-    % %     end
-    % % end
-    % % finalmodelstr = [bestmodelstr tests{flag}];
-    % % if any(flag)
-    % %     fit = fitCCBehavModel(adata,0,finalmodelstr);
-    % % end
 end
 %% Save data
 if exist(fullfile(datafolder,sprintf('%s_data.mat',subj)))==2
@@ -50,7 +30,8 @@ end
 if strfind(modes,'refit')
     data.fit = fit;
     data.fits = fits;
-    data.likelihoods = likelihoods;
+    data.BICs = BICs;
+    data.strs = strs;
 else
     fit = data.fit;
 end
@@ -58,6 +39,7 @@ save(fullfile(datafolder,sprintf('%s_data.mat',subj)),'data');
 % 
 % return
 
+%%
 if strfind(modes,'disp')
     %% dispInfo
     load(fullfile(datafolder,sprintf('%s',subj),files(end).name));
@@ -126,7 +108,7 @@ if strfind(modes,'disp')
 end
 %%
 if strfind(modes,'right')
-    h1 = cc_rightchoice(adata, fit);
+    h1 = cc_rightchoicecontrol(adata, fit);
     % set(h3,'Units','Inches');
     % pos = get(h3,'Position');
     % set(h3,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
