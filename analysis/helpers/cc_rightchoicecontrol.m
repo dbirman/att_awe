@@ -18,7 +18,7 @@ clist = brewermap(9,'PuOr');
 for ai = 1:length(attend)
     data = sel(adata,1,attend_(ai));
     subplot(1,2,ai), hold on
-    title(sprintf('Attending %s, trials: %i',attend{ai},size(data,1)));
+    title(sprintf('%s, n=%i',attend{ai},size(data,1)));
     conpeds = unique(data(:,10));
     for ci = 1:length(conpeds)
         %             dat = sel(data,10,conpeds(ci));
@@ -59,7 +59,7 @@ for ai = 1:length(attend)
     % set(ax,'XTickLabel',{'-3pi','-2pi','-pi','0','pi','2pi','3pi'})
     set(gca,'XTickLabel',{'-100','-50','0','50','100'});
     set(gca,'YTick',[0 0.5 1],'YTickLabel',{'0','','100%'});
-    xlabel('Stimulus Difference (Right - Left, %)');
+    xlabel('Stimulus Strength (Right - Left, %)');
     ylabel('Right Choice Probability');
     drawPublishAxis
 end
