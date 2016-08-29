@@ -32,7 +32,7 @@ for ni = 1:length(aSIDs)
 end
 
 %% Run savedata_localizers
-version = 1;
+version = 2;
 for ni = 1:length(nSIDs)
     % get folders
     subj = nSIDs(ni);
