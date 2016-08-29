@@ -27,7 +27,7 @@ view = viewSet(view,'curScan',1); % make sure scan # is correct
 
 %% Get the mean timeseries using the reversed pRF
 view = loadAnalysis(view,sprintf('erAnal/%s','all')); % check analysis name!
-ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','LO1','LO2','MT'};
+ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
 % ROIs = {'V1'};
 pfxs = {'l','r'};
 allROIs = {};
@@ -123,7 +123,13 @@ for ri = 1:length(rois)
     while sum(cr2>r2cutoff)<25
         r2cutoff = r2cutoff-0.001;
     end
-    rtSeries{ri} = mean(r.tSeries(cr2>r2cutoff,:));
+    rtSeries25{ri} = mean(r.tSeries(cr2>r2cutoff,:));
+    r2cutoff = 0.5;
+    while sum(cr2>r2cutoff)<2
+        r2cutoff = r2cutoff-0.001;
+    end
+    rtSeries2{ri} = mean(r.tSeries(cr2>r2cutoff,:));
+    rtSeriesAll{ri} = mean(r.tSeries,1);
 end
 
 %% testing
@@ -281,7 +287,9 @@ fname = sprintf('%s_data.mat',cfolder);
 fname = fullfile(savefolder,fname);
 
 data.tSeries = tSeries;
-data.rtSeries = rtSeries;
+data.rtSeriesAll = rtSeriesAll;
+data.rtSeries2 = rtSeries2;
+data.rtSeries25 = rtSeries25;
 data.ROIs = allROIs;
 data.roi.r2 = r2s;
 data.roi.right = rights;
