@@ -1,4 +1,4 @@
-function fit = fitCCBehavModelROI_control(adata,figs,model,subj,subjb)
+function fit = fitCCBehavModelROI_control(adata,figs,subj,subjb)
 % CCBehavModel
 %
 % Fit the contrast (naka-rushton) and coherence (linear) models to the data
@@ -14,6 +14,7 @@ function fit = fitCCBehavModelROI_control(adata,figs,model,subj,subjb)
 % 'con-n'
 % 'coh-n'
 global fixedParams
+fixedParams.fitting = 0;
 
 adata = adata(~any(isnan(adata),2),:);
 osize = size(adata,1);
@@ -23,21 +24,29 @@ disp(sprintf('Reducing data to %i control trials from %i',size(adata,1),osize));
 fixedParams = struct;
 
 %% Load subj data
-if strfind(getenv('OS'),'Windows')
-    load(fullfile(datafolder,sprintf('%s_fitroi.mat',subj)));
-else
-    load(sprintf('~/data/cohcon_localizer/%s_fitroi.mat',subj));
-end
+load(fullfile(datafolder,sprintf('%s_fitroi.mat',subj)));
 
 x = 0:.001:2;
-con_lv1 = conModel(x,fitroi.roiparams{1})-(fitroi.roiparams{1}.offset-fitroi.roiparams{1}.conalpha);
-con_rv1 = conModel(x,fitroi.roiparams{2})-(fitroi.roiparams{2}.offset-fitroi.roiparams{2}.conalpha);
-coh_lmt = cohModel(x,fitroi.roiparams{19})-(fitroi.roiparams{19}.offset-fitroi.roiparams{19}.cohalpha);
-coh_rmt = cohModel(x,fitroi.roiparams{2})-(fitroi.roiparams{20}.offset-fitroi.roiparams{20}.cohalpha);
+conroi = 'V1';
+%con
+fixedParams.con = [];
+roinums = cellfun(@(x) ~isempty(strfind(x,conroi)),fitroi.ROIs,'UniformOutput',false);
+roinums = find([roinums{:}]);
+for ri = 1:length(roinums)
+    fixedParams.con = [fixedParams.con ; conModel(x,fitroi.roiparams{roinums(ri)})-fitroi.roiparams{roinums(ri)}.offset];
+end
+% coh
+cohroi = 'MT';
+fixedParams.coh = [];
+roinums = cellfun(@(x) ~isempty(strfind(x,cohroi)),fitroi.ROIs,'UniformOutput',false);
+roinums = find([roinums{:}]);
+for ri = 1:length(roinums)
+    fixedParams.coh = [fixedParams.coh ; cohModel(x,fitroi.roiparams{roinums(ri)})-fitroi.roiparams{roinums(ri)}.offset];
+end
 
 fixedParams.x = x;
-fixedParams.con = mean([con_lv1;con_rv1]);
-fixedParams.coh = mean([coh_lmt;coh_rmt]);
+fixedParams.con = mean(fixedParams.con,1);
+fixedParams.coh = mean(fixedParams.coh,1);
 
 %% Setup params
 numParams = 0;

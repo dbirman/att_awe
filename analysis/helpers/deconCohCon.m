@@ -22,11 +22,7 @@ if iscell(data)
     data.runtrans = [];
     for si = 1:length(data_old)
         for ri = 1:length(data_old{si}.tSeries)
-            if fit.useprf
-                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.tSeries{ri}];
-            else
-                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.rtSeries{ri}];
-            end
+            data.tSeries{ri} = [data.tSeries{ri} data_old{si}.(fit.tSeriesname){ri}];
         end
         % tweak the SV by adding 
         cdes = data_old{si}.design;
@@ -121,40 +117,32 @@ decondata.(roiname).time.conidxs = conidxs;
 decondata.(roiname).time.cohidxs = cohidxs;
 decondata.(roiname).time.timidxs = timidxs;
 decondata.(roiname).time.resp = mean(decon.ehdr(:,time),2);
+decondata.(roiname).time.mresp = mean(model.ehdr(:,time),2);
 save(fname,'decondata');
 %% Time plot
-clist = brewermap(11,'PuOr');
+clist = brewermap(5,'Greys');
 f = figure; hold on
 % first plot will be contrast timing, when contrast goes up to 50% or 100%,
 % we'll draw each of these with increasing contrast colors
-subplot(211); hold on
+conopts = [0.50 0.50 1 1];
+cohopts = [0.25 1 0.25 1];
 flip = [0.5 1 2 4 8];
-colpos = [5 4 3 2 1];
-title('Contrast +50/100%');
-% first let's plot the +50 conditions
-idxs = find((conidxs==0.50)+(conidxs==1));
-for i = idxs
-    ci = colpos(find(flip==timidxs(i),1));
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
-    plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
+colpos = [1 2 3 4 5];
+for sub = 1:4
+    subplot(2,2,sub); hold on
+    title(sprintf('Con: %i%% Coh: %i%%',conopts(sub)*100,cohopts(sub)*100));
+    idxs = find(logical(conidxs==conopts(sub)).*logical(cohidxs==cohopts(sub)));
+    for i = idxs
+        ci = colpos(find(flip==timidxs(i),1));
+        plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',10,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
+        errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
+        plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
+    end
+    xlabel('Time (s)');
+    ylabel('Response (%signal/s)');
+    axis([0 15 -2 5]);
+    drawPublishAxis
 end
-a = axis;
-axis([0 14 a(3) a(4)]);
-drawPublishAxis
-colpos = [7 8 9 10 11];
-subplot(212); hold on
-title('Coherence +25/100%');
-idxs = find((cohidxs==0.25)+(cohidxs==1));
-for i = idxs
-    ci = colpos(find(flip==timidxs(i),1));
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
-    plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
-end
-a = axis;
-axis([0 14 a(3) a(4)]);
-drawPublishAxis
 
 %% Print Figure #1
 title(sprintf('%s: %s',subj,roiname));
@@ -191,6 +179,7 @@ if exist(fname,'file')==2, load(fname); end
 decondata.(roiname).cc.conidxs = conidx;
 decondata.(roiname).cc.cohidxs = cohidx;
 decondata.(roiname).cc.resp = mean(decon.ehdr(:,time),2);
+decondata.(roiname).cc.mresp = mean(model.ehdr(:,time),2);
 save(fname,'decondata');
 %%
 clist = brewermap(10,'PuOr');
@@ -202,7 +191,7 @@ colmap = [4 3 2 1];
 subplot(2,1,1), hold on
 for i = 1:4
     ci = colmap(find(convalues==conidx(lconidx(i)),1));
-    plot(decon.time,decon.ehdr(lconidx(i),:),'o','MarkerSize',3,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(lconidx(i),:),'o','MarkerSize',10,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(lconidx(i),:),decon.ehdrste(lconidx(i),:),'Color',clist(ci,:));
 end
 for i = 1:4
@@ -217,7 +206,7 @@ axis([0 14 a(3) a(4)]);
 drawPublishAxis
 subplot(2,1,2), hold on
 for i=1:5
-    plot(decon.time,decon.ehdr(lcohidx(i),:),'o','MarkerSize',3,'MarkerFaceColor',clist(i+5,:),'MarkerEdgeColor',[1 1 1]);
+    plot(decon.time,decon.ehdr(lcohidx(i),:),'o','MarkerSize',10,'MarkerFaceColor',clist(i+5,:),'MarkerEdgeColor',[1 1 1]);
     errbar(decon.time,decon.ehdr(lcohidx(i),:),decon.ehdrste(lcohidx(i),:),'Color',clist(i+5,:));
 end
 for i = 1:5

@@ -57,6 +57,15 @@ function fit = fitCCTimecourseROIModel( data , mode, fit)
 %   exp(-time*lambda) * R
 %
 
+%% Choose tSeries
+if strfind(mode,'useprf')
+    disp('(roimodel) Using pRF based averages');
+    tSeriesname = 'tSeries';
+else
+    disp('(roimodel) Using top 25 voxel averages (per ROI)');
+    tSeriesname = 'rtSeries25';
+end
+
 %% Concatenate Sessions if Necessary
 if iscell(data)
     disp('(roimodel) Concatenating what appear to be different sessions...');
@@ -76,18 +85,9 @@ if iscell(data)
     for ri = 1:length(data.tSeries), data.tSeries{ri} = []; end
     data.design = [];
     data.runtrans = [];
-    if strfind(mode,'useprf')
-        disp('(roimodel) Using pRF based averages');
-    else
-        disp('(roimodel) Using top 25 voxel averages (per ROI)');
-    end
     for si = 1:length(data_old)
         for ri = 1:length(data_old{si}.tSeries)
-            if strfind(mode,'useprf')
-                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.tSeries{ri}];
-            else
-                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.rtSeries25{ri}];
-            end
+            data.tSeries{ri} = [data.tSeries{ri} data_old{si}.(tSeriesname){ri}];
         end
         % tweak the SV by adding 
         cdes = data_old{si}.design;
@@ -109,9 +109,11 @@ fixedParams = struct;
 fixedParams.disp = 1;
 fixedParams.diff = 1;
 fixedParams.ROIs = data.ROIs;
+fixedParams.fitting = 0;
 
 %% If fitroi or fitatt, run by ROI
 if ~isempty(strfind(mode,'fitroi'))||~isempty(strfind(mode,'fitatt'))
+    fixedParams.fitting = 1;
     nfit = fit;
     if length(data.ROIs)>1
         nfit.r2 = zeros(size(data.ROIs));
@@ -171,6 +173,8 @@ elseif strfind(mode,'fithrf')
     hrfparams.exponent = 7;
     hrfparams.n = 1;
     hrfparams.offset = 0;
+    % estimates how much the hrf drops off per stimvol
+    hrfparams.adaptation = [0.95 0 1];
     roiparams.betas = [1 0 inf];
     fixedParams.fithrf = 1;
 elseif strfind(mode,'fitroi')
@@ -188,7 +192,9 @@ elseif strfind(mode,'fitroi')
     % Offset
     roiparams.offset = [0 -inf inf];
     fixedParams.fitroi = 1;
-elseif strfind(mode,'fitatt')  
+elseif strfind(mode,'fitatt') 
+    warning('This code does not run!!');
+    keyboard
     hrfparams = copyhrfparams(fit);
     roiparams = copyroiparams(fit); 
     roiparams.attgain = 0; roiparams.attoff = 0;
@@ -228,11 +234,11 @@ end
 
 %% fit HRF
 fit = fitModel(data);
-if strfind(mode,'useprf')
-    fit.useprf = 1;
-else
-    fit.useprf = 0;
-end
+
+fit.tSeriesname = tSeriesname;
+
+% reset fixedParams so it doesn't fuck us over later
+fixedParams.fitting = 0;
 
 function hrfparams = copyhrfparams(fit)
 hrfparams.amp1 = fit.params.amp1;
@@ -244,6 +250,7 @@ hrfparams.timelag2 = fit.params.timelag2;
 hrfparams.exponent = fit.params.exponent;
 hrfparams.n = fit.params.n;
 hrfparams.offset = fit.params.offset;
+hrfparams.adaptation = fit.params.adaptation;
 function roiparams = copyroiparams(fit)
 if length(fit.roiparams)>1
     warning('fuckfuckfuck?');
@@ -298,9 +305,10 @@ if fixedParams.fithrf
     canonImpulse = impulse;
 end
 
-res = [];
 fit.model = cell(size(fixedParams.ROIs));
 fit.tSeries = tSeries;
+timepoints = length(tSeries{1});
+res = zeros(1,timepoints*length(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
     roiparams = getROIParams(params,fixedParams.ROIs{ri});
     if fixedParams.fithrf
@@ -345,43 +353,43 @@ for ri = 1:length(fixedParams.ROIs)
                  
                     % adjust timing
                     if cdesign(si,8)>=1
-                        idxs = sv:min(runtrans(run,2),sv+cdesign(si,8));
+                        idxs = sv:min(runtrans(run,2),sv+(cdesign(si,8)-1));
                     else
                         idxs = sv;
-                        effect = effect * cdesign(si,8);
+                        effect = effect * cdesign(si,8)/params.adaptation;
                     end
-                    if length(effect)>1
-                        roimodel(:,idxs) = roimodel(:,idxs)+repmat(effect,1,length(idxs));
-                    else
-                        roimodel(:,idxs) = roimodel(:,idxs)+repmat(effect,size(roimodel,1),length(idxs));
-                    end
+                    
+                    roimodel(:,idxs) = roimodel(:,idxs)+ effect * params.adaptation.^(0:(length(idxs)-1));
 
                 else
+                    % we're just fitting the general model
                     if cdesign(si,8)>=1
-                        idxs = sv:min(runtrans(run,2),sv+cdesign(si,8));
+                        idxs = sv:min(runtrans(run,2),sv+(cdesign(si,8)-1));
+                        effect = 1;
                     else
                         idxs = sv;
+                        effect = 0.5/params.adaptation;
                     end
-                    roimodel(:,idxs) = 1; % why 0.5? Our TR is 500 ms, so 0.5 means that the HRF will be scaled such that it approximates 1% signal change / sec
+                    roimodel(:,idxs) = effect * params.adaptation.^(0:(length(idxs)-1));
                 end
             end
         end
     end
     cmt = conv(impulse,roimodel);
     fit.model{ri} = cmt(1:size(ctSeries,2));
-    res = [res ctSeries-fit.model{ri}];
+    res((ri-1)*timepoints+1:(ri-1)*timepoints+timepoints) = ctSeries-fit.model{ri};
 end
 
 ssres = sum(res.^2);
 fit.r2 = 1 - ssres/fixedParams.sstot;
 
 fit.likelihood = ssres;
-% allmodel = fit.model{:};
-% allmodel(allmodel==0) = eps;
-% fit.chi2 = sum(res.^2 ./ allmodel);
 
 if f>0
     if fixedParams.fithrf
+        disp(sprintf('Skipping plot: ss = %4.2f',fit.likelihood));
+        disp(sprintf('Adaptation: %0.2f',params.adaptation));
+        return
         figure(f)
         clf(f), hold on
         curd = constructD(fit.tSeries{1}/100+1,fixedParams.sv,0.5,25,fixedParams.concatInfo,'none','deconv',0);
@@ -414,39 +422,27 @@ end
 %%
 function out = gamma(time,params)
 
-% global fixedParams
-% 
-% if fixedParams.diff
-    n = params.exponent;
-    tau1 = params.tau1;
-    amp1 = params.amp1;
-    tau2 = params.tau2;
-    amp2 = params.amp2;
-    
-    time1 = time-params.timelag1;
-    out1 = ((time1/tau1).^(n-1).*exp(-time1/tau1))./(tau1*factorial(n-1));
-    out1(time1<0) = 0;
-    out1 = (out1-min(out1))./ (max(out1)-min(out1));
-    out1 = amp1*out1;
-    
-    time2 = time-params.timelag2;
-    out2 = ((time2/tau2).^(n-1).*exp(-time2/tau2))./(tau2*factorial(n-1));
-    out2(time2<0) = 0;
-    out2 = (out2-min(out2))./(max(out2)-min(out2));
-    out2 = amp2*out2;
-    
-    out = out1+out2;
-% else
-%     n = params.exponent;
-%     tau = params.tau;
-%     time = time-params.timelag;
-%     out = ((time/tau).^(n-1).*exp(-time/tau))./(tau*factorial(n-1));
-%     out(time < 0) = 0;
-%     out = (out-min(out)) ./ (max(out)-min(out));
-%     out = params.amplitude*out;
-% end
+n = params.exponent;
+tau1 = params.tau1;
+amp1 = params.amp1;
+tau2 = params.tau2;
+amp2 = params.amp2;
 
-out = out/sum(out)/2; % normalize to sum=0.5 for 1% signal change / s
+time1 = time-params.timelag1;
+out1 = ((time1/tau1).^(n-1).*exp(-time1/tau1))./(tau1*factorial(n-1));
+out1(time1<0) = 0;
+out1 = (out1-min(out1))./ (max(out1)-min(out1));
+out1 = amp1*out1;
+
+time2 = time-params.timelag2;
+out2 = ((time2/tau2).^(n-1).*exp(-time2/tau2))./(tau2*factorial(n-1));
+out2(time2<0) = 0;
+out2 = (out2-min(out2))./(max(out2)-min(out2));
+out2 = amp2*out2;
+
+out = out1+out2;
+
+out = out/sum(out); % normalize to sum=1 for 1% signal change / s
 
 function [initparams, minparams, maxparams] = initParams()
 %%
