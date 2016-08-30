@@ -178,13 +178,13 @@ elseif strfind(mode,'fitroi')
     hrfparams = copyhrfparams(fit);
     hrfparams = rmfield(hrfparams,'offset');
     % Contrast Function Parameters
-    roiparams.conn = 1;
-    roiparams.conRmax = [.1 0 inf];
-    roiparams.conc50 = [0.5 0 1];
-    roiparams.conmodel = 2;
+    roiparams.conalpha = [1 -inf inf];
+    roiparams.conkappa = [1 -inf inf];
+    roiparams.conmodel = 3;
     % Coherence Function Parameters
-    roiparams.cohslope = [0.1 -inf inf];
-    roiparams.cohmodel = 1;
+    roiparams.cohalpha = [1 -inf inf];
+    roiparams.cohkappa = [1 -inf inf];
+    roiparams.cohmodel = 3;
     % Offset
     roiparams.offset = [0 -inf inf];
     fixedParams.fitroi = 1;
@@ -403,8 +403,11 @@ if f>0
         plot(ctSeries(1:1000),'b');
         plot(fit.model{end}(1:1000),'r');
         title(sprintf('R^2: %0.2f',fit.r2));
-        subplot(212)
-        plot(t,impulse);
+        subplot(212), hold on
+        cmap = brewermap(7,'PuOr');
+        x = 0:.01:1;
+        plot(x,conModel(x,roiparams),'Color',cmap(2,:));
+        plot(x,cohModel(x,roiparams),'Color',cmap(6,:));
     end
 end
 
@@ -421,7 +424,7 @@ function out = gamma(time,params)
     amp2 = params.amp2;
     
     time1 = time-params.timelag1;
-    out1 = ((time1/tau1).^(n-1).*exp(-time1/tau1))./(tau2*factorial(n-1));
+    out1 = ((time1/tau1).^(n-1).*exp(-time1/tau1))./(tau1*factorial(n-1));
     out1(time1<0) = 0;
     out1 = (out1-min(out1))./ (max(out1)-min(out1));
     out1 = amp1*out1;

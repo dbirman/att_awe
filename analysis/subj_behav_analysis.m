@@ -17,7 +17,7 @@ if strfind(modes,'refit')
     for si = 1:length(strs)
         fits{si} = fitCCBehavControlModel(adata,0,strs{si});
         BICs(si) = fits{si}.BIC;
-        if fits{si}.BIC < minl
+        if fits{si}.BIC < (minl-5)
             minl = fits{si}.BIC;
             fit = fits{si};
         end

@@ -83,7 +83,7 @@ else
 end
 conr = [-fliplr(conr) conr];
 diffresp = [-fliplr(diffresp) diffresp];
-diffresp = diffresp + fit.params.bias;
+diffresp = diffresp + fit.params.bias*fit.params.sigma;
 if fit.params.poissonNoise
     resp = normcdf(diffresp,0,sqrt(abs(diffresp*fit.params.sigma)));
 else
@@ -109,7 +109,7 @@ end
 % reverse the diffresp to cover negative space
 cohr = [-fliplr(cohr) cohr];
 diffresp = [-fliplr(diffresp) diffresp];
-diffresp = diffresp + fit.params.bias/2;
+diffresp = diffresp + fit.params.bias*fit.params.sigma;
 if fit.params.poissonNoise
     resp = normcdf(diffresp,0,sqrt(abs(diffresp*fit.params.sigma)));
 else

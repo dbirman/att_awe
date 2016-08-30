@@ -118,7 +118,8 @@ function [bestparams,fit] = fitModel(params,adata,f,numParams)
 
 [initparams, minparams, maxparams] = initParams(params);
 
-bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams);
+options = optimoptions('fmincon','TolFun',0.05); % set a limit or it goes on foreeeeeeeeeeeever
+bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
 fit.params = getParams(bestparams);
 [fit.likelihood] = fitBehavModel(bestparams,adata,0);
@@ -149,6 +150,11 @@ for ai = 1:size(adata,1)
         prob = getObsProb(obs,params,adata(ai-1,:));
     else
         prob = getObsProb(obs,params,[]);
+    end
+    
+    if prob==0
+        warning('probably returned zero')
+        prob = eps;
     end
     
     probs(ai) = prob;
@@ -246,12 +252,18 @@ else
 end
 
 if params.poissonNoise
+    warning('deprecated'); keyboard
     prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)));
 else
-    prob = normcdf(0,effect,params.sigma);
+    if obs(8)==1
+        prob = normcdf(0,effect,params.sigma,'upper');
+    elseif obs(8)==0
+        prob = normcdf(0,effect,params.sigma);
+    else warning('failure'); keyboard
+    end
 end
 
-if obs(8), prob = 1-prob; end
+% if obs(8)==1, prob = 1-prob; end
 
 function [initparams, minparams, maxparams] = initParams(params)
 

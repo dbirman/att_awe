@@ -1,5 +1,7 @@
 
 function out = cohModel(coh,params,att,fitflag)
+global fixedParams
+
 if ~exist('att','var')
     att=0;
 end
@@ -31,6 +33,12 @@ if isfield(params,'cohmodel')
             warning('attgain not implemented for exponential model');
         end
         out = -params.cohalpha * exp(-params.cohkappa*coh);
+    elseif params.cohmodel==4
+        out = zeros(size(coh));
+        for ci = 1:length(coh)
+            out(ci) = fixedParams.coh(find(fixedParams.x>=coh(ci),1));
+        end
+        return
     end
 else
     warning('failure: no model selected');

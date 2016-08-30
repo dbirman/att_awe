@@ -1,4 +1,4 @@
-function deconCohCon( data, fit, roinum ,subj)
+function deconCohCon( data, fit, roiname ,subj)
 %DECONCOHCON Deconvolve the cohxcon experiment
 
 %% Concatenate Sessions if Necessary
@@ -37,18 +37,45 @@ if iscell(data)
     end
 end
 
+%% Concatenate multiple ROIs when requested
+roinums = cellfun(@(x) ~isempty(strfind(x,roiname)),data.ROIs,'UniformOutput',false);
+roinums = find([roinums{:}]);
+
+if length(roinums)==2
+    disp('Using two ROIs concatenated');
+    tSeries = [data.tSeries{roinums(1)} data.tSeries{roinums(2)}];
+    % double the design
+    design2 = data.design;
+    design2(:,1) = design2(:,1)+length(data.tSeries{1}); % add to stimvols
+    design = [data.design ; design2];
+    % model tseries
+    mtSeries = [fit.model{roinums(1)} fit.model{roinums(2)}];
+    % run transitions
+    runtrans2 = data.runtrans+length(data.tSeries{1});
+    runtrans = [data.runtrans ; runtrans2];
+else
+    tSeries = data.tSeries{roinum};
+    mtSeries = fit.model{roinum};
+    design = data.design;
+    runtrans = data.runtrans;
+end
+
 %%
 % Split the design into TIMING, CONTRAST_x_COHERENCE, and TASK
 % This assumes that the design is already concatenated (i.e. can't deal
 % with {datas} structure
 
-task_idxs = logical(~(data.design(:,9)==0));
-cohxcon_idxs = logical(logical(data.design(:,8)==5).*logical(~task_idxs));
-timing_idxs = logical((data.design(:,8)~=5).*~task_idxs);
+% [csv basecon lCon rCon basecoh lCoh rCoh tim task];
+% for task, remove everything where no task was given (fixation task)
+task_idxs = logical(~(design(:,9)==0));
+% for cohcon, remove anything where the time differs from 2.5 s
+cohxcon_idxs = logical(logical(design(:,8)==5).*logical(~task_idxs));
+% for timing, take what's left
+timing_idxs = logical((design(:,8)~=5).*~task_idxs);
 
-taskdesign = data.design(task_idxs,:);
-cohxcondesign = data.design(cohxcon_idxs,:);
-timingdesign = data.design(timing_idxs,:);
+taskdesign = design(task_idxs,:);
+cohxcondesign = design(cohxcon_idxs,:);
+timingdesign = design(timing_idxs,:);
 
 designs = {cohxcondesign,timingdesign,taskdesign};
 
@@ -76,81 +103,62 @@ for coni = 1:length(ucon)
         end
     end
 end
-concatInfo.runTransition = data.runtrans;
-curd = constructD(data.tSeries{roinum},timing_sv,0.5,30,concatInfo,'none','deconv',0);
+concatInfo.runTransition = runtrans;
+curd = constructD(tSeries,timing_sv,0.5,30,concatInfo,'none','deconv',0);
 decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
 decon = rmfield(decon,'scm');
 decon = rmfield(decon,'covar');
-curd = constructD(fit.model{roinum}/100+1,timing_sv,0.5,30,concatInfo,'none','deconv',0);
+curd = constructD(mtSeries/100+1,timing_sv,0.5,30,concatInfo,'none','deconv',0);
 model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
 model = rmfield(model,'scm');
 model = rmfield(model,'covar');
 
 %% Save timing data
+fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
+if exist(fname,'file')==2, load(fname); end
 time = logical(decon.time>4.5.*decon.time<7.5);
-decondata.time.conidxs = conidxs;
-decondata.time.cohidxs = cohidxs;
-decondata.time.timidxs = timidxs;
-decondata.time.resp = decon.ehdr(:,time);
-save(fullfile(datafolder,sprintf('%sdecon.mat',subj)),'decondata');
+decondata.(roiname).time.conidxs = conidxs;
+decondata.(roiname).time.cohidxs = cohidxs;
+decondata.(roiname).time.timidxs = timidxs;
+decondata.(roiname).time.resp = mean(decon.ehdr(:,time),2);
+save(fname,'decondata');
 %% Time plot
-clist = brewermap(30,'PuOr');
-h = figure;
-% 5 plots
-subplot(4,2,1:4), hold on
-title('Contrast +0%');
-idxs = find(conidxs==0.25);
+clist = brewermap(11,'PuOr');
+f = figure; hold on
+% first plot will be contrast timing, when contrast goes up to 50% or 100%,
+% we'll draw each of these with increasing contrast colors
+subplot(211); hold on
+flip = [0.5 1 2 4 8];
+colpos = [5 4 3 2 1];
+title('Contrast +50/100%');
+% first let's plot the +50 conditions
+idxs = find((conidxs==0.50)+(conidxs==1));
 for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
-    plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
+    ci = colpos(find(flip==timidxs(i),1));
+    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
+    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
+    plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
 end
+a = axis;
+axis([0 14 a(3) a(4)]);
+drawPublishAxis
+colpos = [7 8 9 10 11];
+subplot(212); hold on
+title('Coherence +25/100%');
+idxs = find((cohidxs==0.25)+(cohidxs==1));
+for i = idxs
+    ci = colpos(find(flip==timidxs(i),1));
+    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
+    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
+    plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
+end
+a = axis;
+axis([0 14 a(3) a(4)]);
+drawPublishAxis
 
-subplot(4,2,5), hold on
-title('Contrast +25% Coherence +0%');
-idxs = find((conidxs==0.5).*(cohidxs==0.25));
-for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
-    plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
-end
-
-subplot(4,2,6), hold on
-title('Contrast +25% Coherence +100%');
-idxs = find((conidxs==0.5).*(cohidxs==1));
-for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
-    plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
-end
-subplot(4,2,7), hold on
-title('Contrast +75% Coherence +0%');
-idxs = find((conidxs==1).*(cohidxs==0.25));
-for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
-    plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
-end
-subplot(4,2,8), hold on
-title('Contrast +75% Coherence +100%');
-idxs = find((conidxs==1).*(cohidxs==1));
-for i = idxs
-    plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(i,:));
-    plot(model.time,model.ehdr(i,:),'Color',clist(i,:));
-end
-
-%drawPublishAxis
 %% Print Figure #1
-title(sprintf('%s: %s',subj,data.ROIs{roinum}));
-fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_%s_timeplot.pdf',subj,data.ROIs{roinum}));
-set(h,'Units','Inches');
-pos = get(h,'Position');
-set(h,'InvertHardCopy','off');
-set(gcf,'Color',[1 1 1]);
-set(gca,'Color',[1 1 1]);
-set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(fname,'-dpdf');
+title(sprintf('%s: %s',subj,roiname));
+savepdf(f,fullfile(datafolder,sprintf('%s_%s_timeplot.pdf',subj,roiname)));
 %% CohxCon
 contrast = cohxcondesign(:,3); ucon = unique(contrast);
 coherence = cohxcondesign(:,6); ucoh = unique(coherence);
@@ -167,37 +175,46 @@ for coni = 1:length(ucon)
         cohidx(end+1) = ucoh(cohi);
     end
 end
-concatInfo.runTransition = data.runtrans;
-curd = constructD(data.tSeries{roinum},cohxcon_sv,0.5,30,concatInfo,'none','deconv',0);
+concatInfo.runTransition = runtrans;
+curd = constructD(tSeries,cohxcon_sv,0.5,30,concatInfo,'none','deconv',0);
 decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
 decon = rmfield(decon,'scm');
 decon = rmfield(decon,'covar');
-curd = constructD(fit.model{roinum}/100+1,cohxcon_sv,0.5,30,concatInfo,'none','deconv',0);
+curd = constructD(mtSeries/100+1,cohxcon_sv,0.5,30,concatInfo,'none','deconv',0);
 model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
 model = rmfield(model,'scm');
 model = rmfield(model,'covar');
 
 %% save cohxcon data
-decondata.cc.conidxs = conidx;
-decondata.cc.cohidxs = cohidx;
-decondata.cc.resp = decon.ehdr(:,time);
-save(fullfile(datafolder,sprintf('%sdecon.mat',subj)),'decondata');
+fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
+if exist(fname,'file')==2, load(fname); end
+decondata.(roiname).cc.conidxs = conidx;
+decondata.(roiname).cc.cohidxs = cohidx;
+decondata.(roiname).cc.resp = mean(decon.ehdr(:,time),2);
+save(fname,'decondata');
 %%
 clist = brewermap(10,'PuOr');
-h= figure;
+f= figure;
 % plot #1: contrast against 0% coherence (no change)
 lconidx = find(cohidx==0);
+convalues = [0.25 0.5 0.75 1];
+colmap = [4 3 2 1];
 subplot(2,1,1), hold on
 for i = 1:4
-    plot(decon.time,decon.ehdr(lconidx(i),:),'o','MarkerSize',3,'MarkerFaceColor',clist(i,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(lconidx(i),:),decon.ehdrste(lconidx(i),:),'Color',clist(i,:));
+    ci = colmap(find(convalues==conidx(lconidx(i)),1));
+    plot(decon.time,decon.ehdr(lconidx(i),:),'o','MarkerSize',3,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
+    errbar(decon.time,decon.ehdr(lconidx(i),:),decon.ehdrste(lconidx(i),:),'Color',clist(ci,:));
 end
 for i = 1:4
-    plot(model.time,model.ehdr(lconidx(i),:),'Color',clist(i,:));
+    ci = colmap(find(convalues==conidx(lconidx(i)),1));
+    plot(model.time,model.ehdr(lconidx(i),:),'Color',clist(ci,:));
 end
-legend({'Contrast=+0%','Contrast=+25%','Contrast=+50%','Contrast=+75%'});
+% legend({'Contrast=+0%','Contrast=+25%','Contrast=+50%','Contrast=+75%'});
 % plot #2: coherence against 25% contrast (no change)
 lcohidx = find(conidx==0.25);
+a = axis;
+axis([0 14 a(3) a(4)]);
+drawPublishAxis
 subplot(2,1,2), hold on
 for i=1:5
     plot(decon.time,decon.ehdr(lcohidx(i),:),'o','MarkerSize',3,'MarkerFaceColor',clist(i+5,:),'MarkerEdgeColor',[1 1 1]);
@@ -206,17 +223,12 @@ end
 for i = 1:5
     plot(model.time,model.ehdr(lcohidx(i),:),'Color',clist(i+5,:));
 end
-legend({'Coherence+0%','Coherence+25%','Coherence+50%','Coherence+75%','Coherence+100%'});
+% legend({'Coherence+0%','Coherence+25%','Coherence+50%','Coherence+75%','Coherence+100%'});
 
+a = axis;
+axis([0 14 a(3) a(4)]);
+drawPublishAxis
 %% Print Figure #2
-%drawPublishAxis
-title(sprintf('%s: %s',subj,data.ROIs{roinum}));
 
-fname = fullfile('C:/Users/Dan/proj/COHCON_DATA/',sprintf('%s_%s_cohconplot.pdf',subj,data.ROIs{roinum}));
-set(h,'Units','Inches');
-pos = get(h,'Position');
-set(h,'InvertHardCopy','off');
-set(gcf,'Color',[1 1 1]);
-set(gca,'Color',[1 1 1]);
-set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(fname,'-dpdf');
+fname = fullfile(datafolder,sprintf('%s_%s_cohconplot.pdf',subj,roiname));
+savepdf(f,fname);

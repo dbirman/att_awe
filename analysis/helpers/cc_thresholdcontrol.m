@@ -11,14 +11,14 @@ function cc_thresholdcontrol( subj )
 %   pedcon - pedcoh - correct
 
 if strfind(getenv('OS'),'Windows')
-    load(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)));
+    load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
 else
     warning('not implemented');
 end
 
 adata = loadadata(subj);
 
-fit = data.fit;
+fit = data.fits{1};
 
 %%
 x = 0:.001:3;
@@ -92,7 +92,7 @@ drawPublishAxis
 %% Print
 
 
-fname = fullfile('C:/Users/Dan/proj/COHCON_DATA',sprintf('%s_thresholdmodel.pdf',subj));
+fname = fullfile(datafolder,sprintf('%s_thresholdmodel.pdf',subj));
 set(h,'Units','Inches');
 pos = get(h,'Position');
 set(h,'InvertHardCopy','off');
@@ -101,11 +101,13 @@ set(gca,'Color',[1 1 1]);
 set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
 print(fname,'-dpdf');
 %%
+data.contx = xcon;
 data.cont = cont;
+data.cohtx = xcoh;
 data.coht = coht;
 
 if strfind(getenv('OS'),'Windows')
-    save(fullfile(sprintf('C:/Users/Dan/proj/COHCON_DATA/%s_data.mat',subj)),'data');
+    save(fullfile(datafolder,sprintf('%s_data.mat',subj)),'data');
 else
     warning('not implemented');
 end

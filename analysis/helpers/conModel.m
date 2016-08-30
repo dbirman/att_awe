@@ -1,4 +1,6 @@
 function out = conModel(con,params,att,fitflag)
+global fixedParams
+
 if ~exist('att','var')
     att=0;
 end
@@ -26,11 +28,18 @@ if isfield(params,'conmodel')
         end
         params.conn = round(params.conn);
         out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
-    else % exp model
+    elseif params.conmodel==3 % exp model
         if isfield(params,'attgain')
             warning('attgain not implemented for exponential model');
         end
         out = -params.conalpha * exp(-params.conkappa*con);
+    elseif params.conmodel==4
+        % interpolation using existin gdata
+        out = zeros(size(con));
+        for ci = 1:length(con)
+            out(ci) = fixedParams.con(find(fixedParams.x>=con(ci),1));
+        end
+        return
     end
 else
     warning('failure: no model selected');
