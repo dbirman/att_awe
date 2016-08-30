@@ -86,7 +86,7 @@ if iscell(data)
             if strfind(mode,'useprf')
                 data.tSeries{ri} = [data.tSeries{ri} data_old{si}.tSeries{ri}];
             else
-                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.rtSeries{ri}];
+                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.rtSeries25{ri}];
             end
         end
         % tweak the SV by adding 
