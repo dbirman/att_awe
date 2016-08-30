@@ -64,8 +64,6 @@ for ni = 1:length(nSIDs)
     files = dir(fullfile(nData,sprintf(nSuffix,subj)));
     for fi = 1:length(files)
         fname = fullfile(nData,files(fi).name);
-        if ~isfile(fullfile(boxsync,files(fi).name))
-            copyfile(fname,fullfile(boxsync,files(fi).name));
-        end
+        copyfile(fname,fullfile(boxsync,files(fi).name));
     end
 end
