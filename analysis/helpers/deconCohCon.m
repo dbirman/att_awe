@@ -112,12 +112,11 @@ model = rmfield(model,'covar');
 %% Save timing data
 fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
 if exist(fname,'file')==2, load(fname); end
-time = logical(decon.time>4.5.*decon.time<7.5);
 decondata.(roiname).time.conidxs = conidxs;
 decondata.(roiname).time.cohidxs = cohidxs;
 decondata.(roiname).time.timidxs = timidxs;
-decondata.(roiname).time.resp = mean(decon.ehdr(:,time),2);
-decondata.(roiname).time.mresp = mean(model.ehdr(:,time),2);
+decondata.(roiname).time.resp = decon.ehdr;
+decondata.(roiname).time.mresp = model.ehdr;
 save(fname,'decondata');
 %% Time plot
 clist = brewermap(5,'Greys');
@@ -178,8 +177,8 @@ fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
 if exist(fname,'file')==2, load(fname); end
 decondata.(roiname).cc.conidxs = conidx;
 decondata.(roiname).cc.cohidxs = cohidx;
-decondata.(roiname).cc.resp = mean(decon.ehdr(:,time),2);
-decondata.(roiname).cc.mresp = mean(model.ehdr(:,time),2);
+decondata.(roiname).cc.resp = decon.ehdr;
+decondata.(roiname).cc.mresp = model.ehdr;
 save(fname,'decondata');
 %%
 clist = brewermap(10,'PuOr');

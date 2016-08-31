@@ -46,7 +46,7 @@ else
 end
 
 out = out+params.cohalpha; % add the alpha parameter so that the function starts at zero
-
+return
 if ~isfield(fixedParams,'fitting') || fixedParams.fitting==0
     out = out + params.offset; % adds the offset, it'll do this equally for contrast and coherence which isn't strictly true, but for
     % visualization purposes it's a reasonable approximation
