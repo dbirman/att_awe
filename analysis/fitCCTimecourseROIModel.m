@@ -175,6 +175,7 @@ elseif strfind(mode,'fithrf')
     hrfparams.offset = 0;
     % estimates how much the hrf drops off per stimvol
     hrfparams.adaptation = [0.95 0 1];
+%     hrfparams.adaptationint = [10 -inf inf];
     roiparams.betas = [1 0 inf];
     fixedParams.fithrf = 1;
 elseif strfind(mode,'fitroi')
@@ -251,6 +252,7 @@ hrfparams.exponent = fit.params.exponent;
 hrfparams.n = fit.params.n;
 hrfparams.offset = fit.params.offset;
 hrfparams.adaptation = fit.params.adaptation;
+% hrfparams.adaptationint = fit.params.adaptationint;
 function roiparams = copyroiparams(fit)
 if length(fit.roiparams)>1
     warning('fuckfuckfuck?');
@@ -341,7 +343,7 @@ for ri = 1:length(fixedParams.ROIs)
                         coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,0,1);
                         coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,0,1);
                     end
-                    effect = coneff+coheff+roiparams.offset;
+                    effect = coneff+coheff;
                     if fixedParams.fitatt && roiparams.attoff
                         if cdesign(si,9)==1
                             % contrast attended
@@ -356,10 +358,18 @@ for ri = 1:length(fixedParams.ROIs)
                         idxs = sv:min(runtrans(run,2),sv+(cdesign(si,8)-1));
                     else
                         idxs = sv;
-                        effect = effect * cdesign(si,8)/params.adaptation;
+                        effect = effect * cdesign(si,8);
                     end
                     
-                    roimodel(:,idxs) = roimodel(:,idxs)+ effect * params.adaptation.^(0:(length(idxs)-1));
+%                     afunc = 1-(1./(1+exp(-params.adaptation*((0:(length(idxs)-1))-params.adaptationint))))+1/(1+exp(params.adaptation*params.adaptationint));
+%                     afunc = 1-params.adaptation*(0:(length(idxs)-1)).^2;
+%                     roimodel(:,idxs) = roimodel(:,idxs)+ effect * params.adaptation.^(0:(length(idxs)-1));                    
+%                     afunc = [1 1/2 1/4 1/4 1/8 1/8 1/8 1/8];
+%                     afunc = afunc(1:length(idxs));
+                    afunc = params.adaptation.^(0:(length(idxs)-1));
+
+                    roimodel(:,idxs) = roimodel(:,idxs)+ effect * afunc;
+                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + roiparams.offset;
 
                 else
                     % we're just fitting the general model
@@ -368,9 +378,16 @@ for ri = 1:length(fixedParams.ROIs)
                         effect = 1;
                     else
                         idxs = sv;
-                        effect = 0.5/params.adaptation;
+                        effect = 0.5;
                     end
-                    roimodel(:,idxs) = effect * params.adaptation.^(0:(length(idxs)-1));
+%                     afunc = 1-(1./(1+exp(-params.adaptation*((0:(length(idxs)-1))-params.adaptationint))))+1/(1+exp(params.adaptation*params.adaptationint));
+%                     afunc = [1 1/2 1/4 1/4 1/8 1/8 1/8 1/8];
+%                     afunc = afunc(1:length(idxs));
+                    afunc = params.adaptation.^(0:(length(idxs)-1));
+%                     afunc = 1-params.adaptation*(0:(length(idxs)-1)).^2;
+                    roimodel(:,idxs) = roimodel(:,idxs)+ effect * afunc;
+                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + params.offset;
+%                     roimodel(:,idxs) = effect * params.adaptation.^(0:(length(idxs)-1));
                 end
             end
         end
@@ -388,7 +405,7 @@ fit.likelihood = ssres;
 if f>0
     if fixedParams.fithrf
         disp(sprintf('Skipping plot: ss = %4.2f',fit.likelihood));
-        disp(sprintf('Adaptation: %0.2f',params.adaptation));
+        disp(sprintf('Adaptation: %0.2f Offset: %1.2f',params.adaptation,params.offset));
         return
         figure(f)
         clf(f), hold on
