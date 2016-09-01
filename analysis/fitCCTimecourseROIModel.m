@@ -45,7 +45,7 @@ function fit = fitCCTimecourseROIModel( data , mode, fit)
 %
 %   HRF(con,coh) = conv(Rcon(c) + Rcoh(c) + offset,Canonical)
 %
-%   Where Canonical is a gamma function with three parameters: exponent,
+%   Where Canonical is a cc_gamma function with three parameters: exponent,
 %   tau, and timelag.
 %
 %   (4) The impulse response function corresponds to a 500 ms stimulus in
@@ -159,9 +159,15 @@ roiparams = struct;
 fixedParams.fithrf = 0;
 fixedParams.fitroi = 0;
 fixedParams.fitatt = 0;
-if strfind(mode,'fitall')
-    warning('not implemented');
-    keyboard
+fixedParams.refithrf = 0;
+fixedParams.refitroi = 0;
+if strfind(mode,'refithrf')
+    disp('Refitting HRF parameters');
+    % add the min/max to the hrf params so that they will be fit
+    hrfparams = copyhrfparams_refit(fit);
+    % copy all the roi parameters
+    roiparams = fit.roiparams;
+    fixedParams.refithrf = 1;
 elseif strfind(mode,'fithrf')
     % HRF Parameters
     hrfparams.amp1 = 1;
@@ -170,18 +176,24 @@ elseif strfind(mode,'fithrf')
     hrfparams.amp2 = [-0.25 -inf 0];
     hrfparams.tau2 = [1.7 -inf inf];
     hrfparams.timelag2 = [0 0 6];
-    hrfparams.exponent = 7;
-    hrfparams.n = 1;
+    hrfparams.exponent = 9;
     hrfparams.offset = 0;
     % estimates how much the hrf drops off per stimvol
     hrfparams.adaptation = [0.95 0 1];
 %     hrfparams.adaptationint = [10 -inf inf];
     roiparams.betas = [1 0 inf];
     fixedParams.fithrf = 1;
+elseif strfind(mode,'refitroi')
+    % get hrf params
+    hrfparams = copyhrfparams(fit);
+    % also get the roi params, but initialize them to be refit
+    fixedParams.refitroi = 1;
+    roiparams = copyroiparams(fit);
+    fixedParams.fitroi = 1;
 elseif strfind(mode,'fitroi')
     % get hrf params
     hrfparams = copyhrfparams(fit);
-    hrfparams = rmfield(hrfparams,'offset');
+    if isfield(hrfparams,'offset'), hrfparams = rmfield(hrfparams,'offset'); end
     % Contrast Function Parameters
     roiparams.conalpha = [1 -inf inf];
     roiparams.conkappa = [1 -inf inf];
@@ -243,29 +255,60 @@ fixedParams.fitting = 0;
 
 function hrfparams = copyhrfparams(fit)
 hrfparams.amp1 = fit.params.amp1;
+if ~(hrfparams.amp1==1), warning('Amplitude is wrong?');keyboard; end
 hrfparams.tau1 = fit.params.tau1;
 hrfparams.timelag1 = fit.params.timelag1;
 hrfparams.amp2 = fit.params.amp2;
 hrfparams.tau2 = fit.params.tau2;
 hrfparams.timelag2 = fit.params.timelag2;
 hrfparams.exponent = fit.params.exponent;
-hrfparams.n = fit.params.n;
-hrfparams.offset = fit.params.offset;
 hrfparams.adaptation = fit.params.adaptation;
-% hrfparams.adaptationint = fit.params.adaptationint;
+
+function hrfparams = copyhrfparams_refit(fit)
+hrfparams.amp1 = fit.params.amp1; % should be one
+if ~(hrfparams.amp1==1), warning('Amplitude is wrong?');keyboard; end
+hrfparams.tau1 = [fit.params.tau1 -inf inf];
+hrfparams.timelag1 = [fit.params.timelag1 0 3];
+hrfparams.amp2 = [fit.params.amp2 -inf 0];
+hrfparams.tau2 = [fit.params.tau2 -inf inf];
+hrfparams.timelag2 = [fit.params.timelag2 0 6];
+hrfparams.exponent = fit.params.exponent;
+hrfparams.adaptation = fit.params.adaptation;
+    
 function roiparams = copyroiparams(fit)
+global fixedParams
+
 if length(fit.roiparams)>1
-    warning('fuckfuckfuck?');
-    keyboard
+    warning('shouldn''t get here!'); keyboard
+    for ri = 1:length(fit.roiparams)
+        p = fit.roiparams{ri};
+        f = fields(p);
+        for fi = 1:length(f)
+            if fixedParams.refitroi
+                roiparams{ri}.(cfield) = [p.(cfield) -inf inf];
+            else
+                roiparams{ri}.(cfield) = p.(cfield);
+            end
+            % overwrite so that these don't get fit
+            roiparams{ri}.conmodel = p.conmodel;
+            roiparams{ri}.cohmodel = p.cohmodel;
+        end
+    end
+    return
 end
 p = fit.roiparams{1};
 f = fields(p);
 roiparams = struct;
 for fi = 1:length(f)
     cfield = f{fi};
-%     if any(cellfun(@(x) ~isempty(strfind(cfield,x)),fit.ROIs))
+    if fixedParams.refitroi
+        roiparams.(cfield) = [p.(cfield) -inf inf];
+    else
         roiparams.(cfield) = p.(cfield);
-%     end
+    end
+    % overwrite so that these don't get fit
+    roiparams.conmodel = p.conmodel;
+    roiparams.cohmodel = p.cohmodel;
 end
 
 function fit = fitModel(data)
@@ -300,7 +343,7 @@ fit = struct;
 params = getParams(params,fixedParams);
 
 t = 0.25:0.5:49.75;
-impulse = gamma(t,params);
+impulse = cc_gamma(t,params);
 fit.impulse = impulse;
 fit.t = t;
 if fixedParams.fithrf
@@ -335,7 +378,7 @@ for ri = 1:length(fixedParams.ROIs)
             % okay, for each stimvol, place its effect
             sv = cdesign(si,1);
             if ((cdesign(si,conidx)-cdesign(si,2))+(cdesign(si,cohidx)-cdesign(si,5)))>0
-                if fixedParams.fitroi || fixedParams.fitatt
+                if fixedParams.fitroi || fixedParams.fitatt || fixedParams.refithrf
                     if fixedParams.fitatt
                         coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,cdesign(si,9),1);
                         coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,cdesign(si,9),1);
@@ -402,10 +445,15 @@ fit.r2 = 1 - ssres/fixedParams.sstot;
 
 fit.likelihood = ssres;
 
-if f>0
-    if fixedParams.fithrf
-        disp(sprintf('Skipping plot: ss = %4.2f',fit.likelihood));
-        disp(sprintf('Adaptation: %0.2f Offset: %1.2f',params.adaptation,params.offset));
+if false % f>0
+    if fixedParams.refithrf
+        figure(f)
+        plot(impulse);
+%         disp(sprintf('Skipping plot: ss = %4.2f',fit.likelihood));
+%         disp(sprintf('Adaptation: %0.2f',params.adaptation));
+    elseif fixedParams.fithrf
+%         disp(sprintf('Skipping plot: ss = %4.2f',fit.likelihood));
+%         disp(sprintf('Adaptation: %0.2f Offset: %1.2f',params.adaptation,params.offset));
         return
         figure(f)
         clf(f), hold on
@@ -422,7 +470,6 @@ if f>0
         title(sprintf('Amp1: %1.2f Tau1: %1.2f TL1: %1.2f Amp2: %1.2f Tau2: %1.2f TL2: %1.2f ',params.amp1,params.tau1,params.timelag1,params.amp2,params.tau2,params.timelag2));
     else
         figure(f)
-        clf(f)
         subplot(211)
         hold on
         plot(ctSeries(1:1000),'b');
@@ -436,38 +483,12 @@ if f>0
     end
 end
 
-%%
-function out = gamma(time,params)
-
-n = params.exponent;
-tau1 = params.tau1;
-amp1 = params.amp1;
-tau2 = params.tau2;
-amp2 = params.amp2;
-
-time1 = time-params.timelag1;
-out1 = ((time1/tau1).^(n-1).*exp(-time1/tau1))./(tau1*factorial(n-1));
-out1(time1<0) = 0;
-out1 = (out1-min(out1))./ (max(out1)-min(out1));
-out1 = amp1*out1;
-
-time2 = time-params.timelag2;
-out2 = ((time2/tau2).^(n-1).*exp(-time2/tau2))./(tau2*factorial(n-1));
-out2(time2<0) = 0;
-out2 = (out2-min(out2))./(max(out2)-min(out2));
-out2 = amp2*out2;
-
-out = out1+out2;
-
-out = out/sum(out); % normalize to sum=1 for 1% signal change / s
-
 function [initparams, minparams, maxparams] = initParams()
 %%
 global fixedParams params
 
 %% Deal with HRF params
 fixedParams.strs = fields(params.hrfparams)';
-rfields = fields(params.roiparams);
 
 initparams = [];
 minparams = [];
@@ -503,41 +524,58 @@ for i = 1:length(fixedParams.strs)
 end
 
 %% Deal with ROI params
-
-rStrs = {};
-for ni = 1:length(rfields)
-    cvals = params.roiparams.(rfields{ni});
-    % check if this name includes an ROI already, if so, just copy it in
-    % directly
-    cfield = rfields{ni};
-    if any(cellfun(@(x) ~isempty(strfind(cfield,x)),fixedParams.ROIs))
-        % just copy directly
-        rStrs{end+1} = cfield;
-        fixedParams.(rStrs{end}) = cvals;
-        fixed(end+1) = 1;
-        indexes{end+1} = [];
-    else
-        % replicate for every ROI
-        for ri = 1:length(fixedParams.ROIs)
-            rStrs{end+1} = sprintf('%s%s',fixedParams.ROIs{ri},rfields{ni});
-            if length(cvals)==1
-                fixedParams.(rStrs{end}) = cvals;
-                fixed(end+1) = 1;
-                indexes{end+1} = [];
-            elseif length(cvals)==3
-                initparams(end+1) = cvals(1);
-                minparams(end+1) = cvals(2);
-                maxparams(end+1) = cvals(3);
-                indexes{end+1} = count;
-                count = count+1;
-                fixed(end+1) = 0;
-            elseif length(cvals)==2 || length(cvals)>3
-                error('You are not allowed to use the optimizer for ROI specific parameters...');
-            else
-                error('You initialized a parameter with the wrong initial values... unable to interpret');
-            end
+if iscell(params.roiparams)
+    rStrs = {};
+    disp('ROI parameters were passed in as a cell: interpreting as fixed values');
+    for ri = 1:length(fixedParams.ROIs)
+        % get the fields
+        crfields = fields(params.roiparams{ri});
+        % copy each field with this ROIs prefix
+        for ci = 1:length(crfields)
+            rStrs{end+1} = sprintf('%s%s',fixedParams.ROIs{ri},crfields{ci});
+            fixedParams.(rStrs{end}) = params.roiparams{ri}.(crfields{ci});
+            fixed(end+1) = 1;
+            indexes{end+1} = [];
         end
     end
+else
+    rfields = fields(params.roiparams);
+
+    rStrs = {};
+    for ni = 1:length(rfields)
+        cvals = params.roiparams.(rfields{ni});
+        % check if this name includes an ROI already, if so, just copy it in
+        % directly
+        cfield = rfields{ni};
+        if any(cellfun(@(x) ~isempty(strfind(cfield,x)),fixedParams.ROIs))
+            % just copy directly
+            rStrs{end+1} = cfield;
+            fixedParams.(rStrs{end}) = cvals;
+            fixed(end+1) = 1;
+            indexes{end+1} = [];
+        else
+            % replicate for every ROI
+            for ri = 1:length(fixedParams.ROIs)
+                rStrs{end+1} = sprintf('%s%s',fixedParams.ROIs{ri},rfields{ni});
+                if length(cvals)==1
+                    fixedParams.(rStrs{end}) = cvals;
+                    fixed(end+1) = 1;
+                    indexes{end+1} = [];
+                elseif length(cvals)==3
+                    initparams(end+1) = cvals(1);
+                    minparams(end+1) = cvals(2);
+                    maxparams(end+1) = cvals(3);
+                    indexes{end+1} = count;
+                    count = count+1;
+                    fixed(end+1) = 0;
+                elseif length(cvals)==2 || length(cvals)>3
+                    error('You are not allowed to use the optimizer for ROI specific parameters...');
+                else
+                    error('You initialized a parameter with the wrong initial values... unable to interpret');
+                end
+            end
+        end
+    end 
 end
 
 %% Save optim/fixed/indexes
