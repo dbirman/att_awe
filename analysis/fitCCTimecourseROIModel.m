@@ -176,7 +176,7 @@ elseif strfind(mode,'fithrf')
     hrfparams.amp2 = [-0.25 -inf 0];
     hrfparams.tau2 = [1.7 -inf inf];
     hrfparams.timelag2 = [0 0 6];
-    hrfparams.exponent = 8;
+    hrfparams.exponent = 7;
     hrfparams.offset = 0;
     % estimates how much the hrf drops off per stimvol
     hrfparams.adaptation = [0.95 0 1];
