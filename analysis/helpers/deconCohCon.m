@@ -37,6 +37,11 @@ end
 roinums = cellfun(@(x) ~isempty(strfind(x,roiname)),data.ROIs,'UniformOutput',false);
 roinums = find([roinums{:}]);
 
+if length(roinums)>2
+    disp('Found more than two. Probably V3 found V3a/V3b. Taking first two.');
+    roinums = roinums(1:2);
+end
+
 if length(roinums)==2
     disp('Using two ROIs concatenated');
     tSeries = [data.tSeries{roinums(1)} data.tSeries{roinums(2)}];

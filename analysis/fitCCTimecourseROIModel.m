@@ -111,8 +111,19 @@ fixedParams.diff = 1;
 fixedParams.ROIs = data.ROIs;
 fixedParams.fitting = 0;
 
+if ~isempty(strfind(mode,'fitatt'))
+    disp('Fitting by attention condition:');
+    if ~isempty(strfind(mode,'fitatt=1'))
+        disp('Motion');
+        data.design = data.design(data.design(:,9)==1,:);
+    else
+        disp('Contrast');
+        data.design = data.design(data.design(:,9)==2,:);
+    end
+end
+
 %% If fitroi or fitatt, run by ROI
-if ~isempty(strfind(mode,'fitroi'))||~isempty(strfind(mode,'fitatt'))
+if ~isempty(strfind(mode,'fitroi'))
     fixedParams.fitting = 1;
     nfit = fit;
     if length(data.ROIs)>1
@@ -151,7 +162,6 @@ end
 %% parse mode:
 % "fithrf" - just fit the HRF using all trials (but no effects)
 % "fitroi" - use a computed HRF to fit the trials
-% "fitatt" - use the computed HRF and ROI data to fit the attention
 % functions
 % "fitall" - run fithrf, fitroi, and fitatt and return the full fit
 hrfparams = struct;
@@ -205,25 +215,6 @@ elseif strfind(mode,'fitroi')
     % Offset
     roiparams.offset = [0 -inf inf];
     fixedParams.fitroi = 1;
-elseif strfind(mode,'fitatt') 
-    warning('This code does not run!!');
-    keyboard
-    hrfparams = copyhrfparams(fit);
-    roiparams = copyroiparams(fit); 
-    roiparams.attgain = 0; roiparams.attoff = 0;
-    if strfind(mode,'gain')
-        roiparams.conatt_congain = [1 0 inf];
-        roiparams.conatt_cohgain = [1 0 inf];
-        roiparams.cohatt_congain = [1 0 inf];
-        roiparams.cohatt_cohgain = [1 0 inf];
-        roiparams.attgain = 1;
-    end
-    if strfind(mode,'add')
-        roiparams.conattoff = [0 -inf inf];
-        roiparams.cohattoff = [0 -inf inf];
-        roiparams.attoff = 1;
-    end
-    fixedParams.fitatt = 1;
 end
 
 %% Parameter initialization

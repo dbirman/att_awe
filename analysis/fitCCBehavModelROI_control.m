@@ -1,4 +1,4 @@
-function fit = fitCCBehavModelROI_control(adata,figs,subj,subjb)
+function fit = fitCCBehavModelROI_control(adata,figs,subj,subjb,conroi,cohroi)
 % CCBehavModel
 %
 % Fit the contrast (naka-rushton) and coherence (linear) models to the data
@@ -23,38 +23,46 @@ disp(sprintf('Reducing data to %i control trials from %i',size(adata,1),osize));
 
 fixedParams = struct;
 
+condata = adata(adata(:,1)==2,:);
+disp(sprintf('Reducing data to %i CONTRAST trials. Fitting sigma to the contrast trials.',size(adata,1)));
+
 %% Load subj data
 load(fullfile(datafolder,sprintf('%s_fitroi.mat',subj)));
 
 x = 0:.001:2;
-conroi = 'V1';
 %con
 fixedParams.con = [];
 roinums = cellfun(@(x) ~isempty(strfind(x,conroi)),fitroi.ROIs,'UniformOutput',false);
 roinums = find([roinums{:}]);
+roinums = roinums(1:2);
 for ri = 1:length(roinums)
-    fixedParams.con = [fixedParams.con ; conModel(x,fitroi.roiparams{roinums(ri)})-fitroi.roiparams{roinums(ri)}.offset];
+    fixedParams.con = [fixedParams.con ; conModel(x,fitroi.roiparams{roinums(ri)})];
 end
 % coh
-cohroi = 'MT';
 fixedParams.coh = [];
 roinums = cellfun(@(x) ~isempty(strfind(x,cohroi)),fitroi.ROIs,'UniformOutput',false);
 roinums = find([roinums{:}]);
+roinums = roinums(1:2);
 for ri = 1:length(roinums)
-    fixedParams.coh = [fixedParams.coh ; cohModel(x,fitroi.roiparams{roinums(ri)})-fitroi.roiparams{roinums(ri)}.offset];
+    fixedParams.coh = [fixedParams.coh ; cohModel(x,fitroi.roiparams{roinums(ri)})];
 end
 
 fixedParams.x = x;
 fixedParams.con = mean(fixedParams.con,1);
 fixedParams.coh = mean(fixedParams.coh,1);
 
+%%
+% this flag will ignore the effect of coherence entirely. This is useful
+% for allowing us to fit sigma to contrast first (where we know it works)
+% and then to evaluate that sigma for multiple coherence response
+% functions.
+fixedParams.conOnly = true;
+
 %% Setup params
 numParams = 0;
 
 initparams.conmodel=4;
 initparams.cohmodel=4;
-
-initparams.scale = 1;
 
 % beta parameters
 
@@ -72,7 +80,7 @@ end
 
 % numParams = numParams+2;
 
-initparams.sigma = [1/50 0 inf];
+initparams.sigma = [1/50 0 1];
 initparams.poissonNoise = 0;
 
 numParams = numParams+1;
@@ -96,15 +104,49 @@ else
     f = -1;
 end
 
-[~, fit] = fitModel(initparams,adata,f,numParams);
+[~, fit] = fitModel(initparams,condata,adata,f,numParams);
 
-function [bestparams,fit] = fitModel(params,adata,f,numParams)
-
+function [bestparams,fit] = fitModel(params,condata,adata,f,numParams)
+%%
+global fixedParams
 [initparams, minparams, maxparams] = initParams(params);
 
-bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams);
+spaces = [.05 0 .2
+          .025 -.05 .05
+          .01 -.025 .025
+          .005 -.01 .01
+          .001 -.005 .005
+          .00005 -.001 .001];
+
+best_s = -1;
+best = Inf;
+disppercent(-1/size(spaces,1));
+for j = 1:size(spaces,1)
+    space = spaces(j,2):spaces(j,1):spaces(j,3);
+    if j>1
+        space = space+best_s;
+    end
+    
+    for i = 1:length(space)
+        s = space(i);
+        l = fitBehavModel(s,condata,f);
+%         disp(sprintf('Sigma: %0.3f Likelihood: %4.0f',s,l));
+        if l < best
+            best = l;
+            best_s = s;
+        end
+    end
+    disppercent(j/size(spaces,1));
+end
+disppercent(inf);
+    
+bestparams = best_s;
+% bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams);
 
 fit.params = getParams(bestparams);
+fixedParams.conOnly = false;
+
+disp('Refitting model to all available trials');
 [fit.likelihood] = fitBehavModel(bestparams,adata,0);
 fit.BIC = 2*fit.likelihood + numParams * log(size(adata,1));
 
@@ -115,8 +157,7 @@ if any(isnan(params))
     return
 end
 params = getParams(params);
-
-if params.sigma<0.0000001, params.sigma=0.0000001; end
+if params.sigma<0, params.sigma = eps; end
 
 likelihood = 0;
 % For each observation in adata, calculate log(likelihood) and sum
@@ -130,7 +171,7 @@ for ai = 1:size(adata,1)
     prob = getObsProb(obs,params);
     
     probs(ai) = prob;
-    if prob >= 0
+    if prob > 0
         likelihood = likelihood + log(prob);
     else
         warning('Probability returned non-useful value');
@@ -179,7 +220,7 @@ end
 
 function prob = getObsProb(obs,params)
 %%
-% global fixedParams
+global fixedParams
 
 % basecon = fixedParams.con(find(fixedParams.x>=obs(2),1));
 % lcon = fixedParams.con(find(fixedParams.x>=obs(5),1));
@@ -189,6 +230,11 @@ function prob = getObsProb(obs,params)
 % lcoh = fixedParams.coh(find(fixedParams.x>=obs(7),1));
 % rcoh = fixedParams.coh(find(fixedParams.x>=obs(6),1));
 % cohEff = (lcoh-basecoh) - (rcoh-basecoh);
+if length(obs)~=12
+    warning('Failure');
+    keyboard
+end
+
 conEff = (conModel(obs(5),params)-conModel(obs(2),params)) - (conModel(obs(4),params)-conModel(obs(2),params));
 cohEff = (cohModel(obs(7),params)-cohModel(obs(3),params)) - (cohModel(obs(6),params)-cohModel(obs(3),params));
 
@@ -200,11 +246,20 @@ switch obs(1) % switch condition
         % contrast control
         betas = [params.beta_control_con_conw params.beta_control_con_cohw];
 end
-effect = betas * [conEff cohEff]' + params.bias*params.sigma;
+
+if fixedParams.conOnly
+    effect = betas(1)*conEff + params.bias*params.sigma;
+else
+    effect = betas * [conEff cohEff]' + params.bias*params.sigma;
+end
 
 prob = normcdf(0,effect,params.sigma);
 
 if obs(8), prob = 1-prob; end
+
+% prevent rounding problems near 1/0
+if prob==1, prob=1-eps; end
+if prob==0, prob=eps; end
 
 function [initparams, minparams, maxparams] = initParams(params)
 
