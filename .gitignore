@@ -46,6 +46,7 @@ analysis/data/*.csv
 # Build results
 
 analysis/data/*.mat
+payments/*.pdf
 
 [Dd]ebug/
 [Rr]elease/
