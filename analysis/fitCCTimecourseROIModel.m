@@ -67,6 +67,7 @@ else
 end
 
 %% Concatenate Sessions if Necessary
+
 if iscell(data)
     disp('(roimodel) Concatenating what appear to be different sessions...');
     % to run the model we really only need:
@@ -97,6 +98,21 @@ if iscell(data)
         length_sofar = length_sofar + length(data_old{si}.tSeries{1});
     end
 end
+
+%% Cross-Validation
+% if strfind(mode,'crossval')
+%     disp('(roimodel) Cross-Validation (per run) is now running.');
+%         
+%     for i = 1:size(data.runtrans,1)
+%         disp('(roimodel) Setting aside run %i as the test set',i);
+%         testdata = struct; traindata=struct;
+%         testdata.runtrans = data.runtrans(i,:);
+%         others = 1:size(data.runtrans,1);
+%         others = others(others~=i);
+%         traindata.runtrans = data.runtrans(others,:);
+%     end
+%     stop = 1;
+% end
 
 %% Setup
 
@@ -169,41 +185,44 @@ roiparams = struct;
 fixedParams.fithrf = 0;
 fixedParams.fitroi = 0;
 fixedParams.fitatt = 0;
-fixedParams.refithrf = 0;
-fixedParams.refitroi = 0;
-if strfind(mode,'refithrf')
+fixedParams.refit = 0;
+if strfind(mode,'refit')
     disp('Refitting HRF parameters');
     % add the min/max to the hrf params so that they will be fit
     hrfparams = copyhrfparams_refit(fit);
     % copy all the roi parameters
-    roiparams = fit.roiparams;
-    fixedParams.refithrf = 1;
+    roiparams = copyroiparams(fit);
+    % copy all of these into hrf params, and make roiparams empty
+    f = fields(roiparams);
+    for fi = 1:length(f)
+        hrfparams.(f{fi}) = roiparams.(f{fi});
+    end
+    roiparams = struct;
+    fixedParams.refit = 1;
 elseif strfind(mode,'fithrf')
     % HRF Parameters
     hrfparams.amp1 = 1;
-    hrfparams.tau1 = [0.45 -inf inf];
-    hrfparams.timelag1 = [.7 0 3];
-    hrfparams.amp2 = [-0.25 -inf 0];
-    hrfparams.tau2 = [1.7 -inf inf];
-    hrfparams.timelag2 = [0 0 6];
+    hrfparams.tau1 = [0.4 -inf inf];
+    hrfparams.timelag1 = [1.5 0 3];
+    hrfparams.amp2 = [-eps -inf 0];
+    hrfparams.tau2 = [0.4 -inf inf];
+    hrfparams.timelag2 = [4 0 9];
     hrfparams.exponent = 7;
-    hrfparams.offset = 0;
+    hrfparams.offset = [0 0 inf];
     % estimates how much the hrf drops off per stimvol
-    hrfparams.adaptation = [0.95 0 1];
-%     hrfparams.adaptationint = [10 -inf inf];
-    roiparams.betas = [1 0 inf];
+    hrfparams.adaptation = [1];
+    roiparams.betas = [0.5 0 inf];
     fixedParams.fithrf = 1;
-elseif strfind(mode,'refitroi')
-    % get hrf params
-    hrfparams = copyhrfparams(fit);
-    % also get the roi params, but initialize them to be refit
-    fixedParams.refitroi = 1;
-    roiparams = copyroiparams(fit);
-    fixedParams.fitroi = 1;
 elseif strfind(mode,'fitroi')
     % get hrf params
     hrfparams = copyhrfparams(fit);
-    if isfield(hrfparams,'offset'), hrfparams = rmfield(hrfparams,'offset'); end
+    % Offset
+    if isfield(hrfparams,'offset')
+        roiparams.offset = [hrfparams.offset -inf inf];
+        hrfparams = rmfield(hrfparams,'offset');
+    else
+        roiparams.offset = [0 -inf inf];
+    end
     % Contrast Function Parameters
     roiparams.conalpha = [1 -inf inf];
     roiparams.conkappa = [1 -inf inf];
@@ -212,8 +231,7 @@ elseif strfind(mode,'fitroi')
     roiparams.cohalpha = [1 -inf inf];
     roiparams.cohkappa = [1 -inf inf];
     roiparams.cohmodel = 3;
-    % Offset
-    roiparams.offset = [0 -inf inf];
+    % run type
     fixedParams.fitroi = 1;
 end
 
@@ -268,34 +286,32 @@ hrfparams.adaptation = fit.params.adaptation;
     
 function roiparams = copyroiparams(fit)
 global fixedParams
-
-if length(fit.roiparams)>1
-    warning('shouldn''t get here!'); keyboard
-    for ri = 1:length(fit.roiparams)
-        p = fit.roiparams{ri};
-        f = fields(p);
-        for fi = 1:length(f)
-            if fixedParams.refitroi
-                roiparams{ri}.(cfield) = [p.(cfield) -inf inf];
-            else
-                roiparams{ri}.(cfield) = p.(cfield);
-            end
-            % overwrite so that these don't get fit
-            roiparams{ri}.conmodel = p.conmodel;
-            roiparams{ri}.cohmodel = p.cohmodel;
-        end
-    end
-    return
-end
+% generic info
 p = fit.roiparams{1};
 f = fields(p);
 roiparams = struct;
-for fi = 1:length(f)
-    cfield = f{fi};
-    if fixedParams.refitroi
-        roiparams.(cfield) = [p.(cfield) -inf inf];
-    else
-        roiparams.(cfield) = p.(cfield);
+% copy all, or copy only one set from p
+if length(fit.roiparams)>1
+    % roiparams is a cell, so copy all rois separately (and rename them)
+    for ri = 1:length(fit.ROIs)
+        localparams = fit.roiparams{ri};
+        for fi = 1:length(f)
+            cfield = f{fi};
+%             roiparams.(sprintf('%s%s',fit.ROIs{ri},cfield)) = [localparams.(cfield) -inf inf];
+            roiparams.(sprintf('%s%s',fit.ROIs{ri},cfield)) = [localparams.(cfield)];
+        end
+        roiparams.(sprintf('%sconmodel',fit.ROIs{ri})) = localparams.conmodel;
+        roiparams.(sprintf('%scohmodel',fit.ROIs{ri})) = localparams.cohmodel;
+    end
+else
+    % only one set
+    for fi = 1:length(f)
+        cfield = f{fi};
+        if fixedParams.refitroi
+            roiparams.(cfield) = [p.(cfield) -inf inf];
+        else
+            roiparams.(cfield) = p.(cfield);
+        end
     end
     % overwrite so that these don't get fit
     roiparams.conmodel = p.conmodel;
@@ -337,9 +353,6 @@ t = 0.25:0.5:49.75;
 impulse = cc_gamma(t,params);
 fit.impulse = impulse;
 fit.t = t;
-if fixedParams.fithrf
-    canonImpulse = impulse;
-end
 
 fit.model = cell(size(fixedParams.ROIs));
 fit.tSeries = tSeries;
@@ -347,9 +360,6 @@ timepoints = length(tSeries{1});
 res = zeros(1,timepoints*length(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
     roiparams = getROIParams(params,fixedParams.ROIs{ri});
-    if fixedParams.fithrf
-        impulse = canonImpulse * roiparams.betas;
-    end
     % pick the indexes to use
     if strcmp(fixedParams.ROIs{ri}(1),'l')
         conidx = 4; % use right
@@ -369,7 +379,7 @@ for ri = 1:length(fixedParams.ROIs)
             % okay, for each stimvol, place its effect
             sv = cdesign(si,1);
             if ((cdesign(si,conidx)-cdesign(si,2))+(cdesign(si,cohidx)-cdesign(si,5)))>0
-                if fixedParams.fitroi || fixedParams.fitatt || fixedParams.refithrf
+                if fixedParams.fitroi || fixedParams.fitatt || fixedParams.refit
                     if fixedParams.fitatt
                         coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,cdesign(si,9),1);
                         coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,cdesign(si,9),1);
@@ -400,26 +410,28 @@ for ri = 1:length(fixedParams.ROIs)
 %                     roimodel(:,idxs) = roimodel(:,idxs)+ effect * params.adaptation.^(0:(length(idxs)-1));                    
 %                     afunc = [1 1/2 1/4 1/4 1/8 1/8 1/8 1/8];
 %                     afunc = afunc(1:length(idxs));
-                    afunc = params.adaptation.^(0:(length(idxs)-1));
+%                     afunc = params.adaptation.^(0:(length(idxs)-1));
+                    afunc = ones(size(idxs));
 
-                    roimodel(:,idxs) = roimodel(:,idxs)+ effect * afunc;
+                    roimodel(:,idxs) = roimodel(:,idxs) + effect * afunc;
                     roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + roiparams.offset;
 
                 else
-                    % we're just fitting the general model
+                    % we're just fitting the HRF model
                     if cdesign(si,8)>=1
                         idxs = sv:min(runtrans(run,2),sv+(cdesign(si,8)-1));
-                        effect = 1;
+                        effect = roiparams.betas;
                     else
                         idxs = sv;
-                        effect = 0.5;
+                        effect = roiparams.betas*cdesign(si,8);
                     end
 %                     afunc = 1-(1./(1+exp(-params.adaptation*((0:(length(idxs)-1))-params.adaptationint))))+1/(1+exp(params.adaptation*params.adaptationint));
 %                     afunc = [1 1/2 1/4 1/4 1/8 1/8 1/8 1/8];
 %                     afunc = afunc(1:length(idxs));
-                    afunc = params.adaptation.^(0:(length(idxs)-1));
+%                     afunc = params.adaptation.^(0:(length(idxs)-1));
+                    afunc = ones(size(idxs));
 %                     afunc = 1-params.adaptation*(0:(length(idxs)-1)).^2;
-                    roimodel(:,idxs) = roimodel(:,idxs)+ effect * afunc;
+                    roimodel(:,idxs) = roimodel(:,idxs) + effect * afunc;
                     roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + params.offset;
 %                     roimodel(:,idxs) = effect * params.adaptation.^(0:(length(idxs)-1));
                 end
@@ -437,6 +449,10 @@ fit.r2 = 1 - ssres/fixedParams.sstot;
 fit.likelihood = ssres;
 
 if false % f>0
+    figure(f)
+    plot(impulse);
+    return
+    
     if fixedParams.refithrf
         figure(f)
         plot(impulse);
@@ -448,12 +464,12 @@ if false % f>0
         return
         figure(f)
         clf(f), hold on
-        curd = constructD(fit.tSeries{1}/100+1,fixedParams.sv,0.5,25,fixedParams.concatInfo,'none','deconv',0);
+        curd = constructD(fit.tSeries{1}/100+1,fixedParams.sv,0.5,50,fixedParams.concatInfo,'none','deconv',0);
         decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
         decon = rmfield(decon,'scm');
         decon = rmfield(decon,'covar');
         plot(decon.ehdr,'o');
-        curd = constructD(fit.model{1}/100+1,fixedParams.sv,0.5,25,fixedParams.concatInfo,'none','deconv',0);
+        curd = constructD(fit.model{1}/100+1,fixedParams.sv,0.5,50,fixedParams.concatInfo,'none','deconv',0);
         decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
         decon = rmfield(decon,'scm');
         decon = rmfield(decon,'covar');
