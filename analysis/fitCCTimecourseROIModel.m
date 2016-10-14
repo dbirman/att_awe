@@ -210,7 +210,7 @@ elseif strfind(mode,'fithrf')
     hrfparams.exponent = 7;
     hrfparams.offset = [0 0 inf];
     % estimates how much the hrf drops off per stimvol
-    hrfparams.adaptation = [1];
+    hrfparams.adaptation = [1]; % NOT USING CURRENTLY
     roiparams.betas = [0.5 0 inf];
     fixedParams.fithrf = 1;
 elseif strfind(mode,'fitroi')
@@ -253,6 +253,30 @@ if fixedParams.fithrf
     fixedParams.concatInfo = concatInfo;
     fixedParams.sv = {data.design(:,1)};
 end
+
+%% build timeseries mask
+sv_view = 0.5:0.5:20;
+tmin = 3;
+tmax = 9;
+sv_view = find(logical(sv_view>=tmin).*logical(sv_view<=tmax));
+mask = zeros(size(data.tSeries{1}));
+for run = 1:size(data.runtrans,1)
+    cdesign = fil(data.design,1,'>=',data.runtrans(run,1));
+    cdesign = fil(cdesign,1,'<=',data.runtrans(run,2));
+
+    for si = 1:size(cdesign,1)
+        % okay, for each stimvol, place its effect
+        sv = cdesign(si,1);
+        csv_view = min(sv+sv_view,data.runtrans(run,2));
+        if ~all(csv_view==data.runtrans(run,2))
+            mask(csv_view) = 1;
+        end
+    end
+end
+if strfind(mode,'nomask')
+    mask = ones(size(data.tSeries{1}));
+end
+fixedParams.mask = logical(mask);    
 
 %% fit HRF
 fit = fitModel(data);
@@ -331,7 +355,7 @@ else
 end
 
 optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
-[bestparams, ~, res, ~, ~, ~, curjacob] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.runtrans,f,fixedParams);
+[bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.runtrans,f,fixedParams);
 
 [~,fit] = hrfResidual(bestparams,data.tSeries,data.design,data.runtrans,0,fixedParams);
 fit.params = getParams(bestparams,fixedParams);
@@ -339,14 +363,13 @@ fit.roiparams = cell(size(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
     fit.roiparams{ri} = getROIParams(fit.params,fixedParams.ROIs{ri});
 end
-% fit.roiparams = getROIParams(fit.params,fixedParams.ROIs{ri});
 fit.ROIs = fixedParams.ROIs;
 
 function [res, fit] = hrfResidual(params,tSeries,design,runtrans,f,fixedParams)
 
 fit = struct;
 
-    % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
+% stimvol basecon lcon rcon basecoh lcoh rcoh timing task
 params = getParams(params,fixedParams);
 
 t = 0.25:0.5:49.75;
@@ -358,6 +381,7 @@ fit.model = cell(size(fixedParams.ROIs));
 fit.tSeries = tSeries;
 timepoints = length(tSeries{1});
 res = zeros(1,timepoints*length(fixedParams.ROIs));
+localres = zeros(1,timepoints*length(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
     roiparams = getROIParams(params,fixedParams.ROIs{ri});
     % pick the indexes to use
@@ -388,14 +412,6 @@ for ri = 1:length(fixedParams.ROIs)
                         coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,0,1);
                     end
                     effect = coneff+coheff;
-                    if fixedParams.fitatt && roiparams.attoff
-                        if cdesign(si,9)==1
-                            % contrast attended
-                            effect = effect + roiparams.cohattoff;
-                        elseif cdesign(si,9)==2
-                            effect = effect + roiparams.conattoff;
-                        end
-                    end
                  
                     % adjust timing
                     if cdesign(si,8)>=1
@@ -405,12 +421,6 @@ for ri = 1:length(fixedParams.ROIs)
                         effect = effect * cdesign(si,8);
                     end
                     
-%                     afunc = 1-(1./(1+exp(-params.adaptation*((0:(length(idxs)-1))-params.adaptationint))))+1/(1+exp(params.adaptation*params.adaptationint));
-%                     afunc = 1-params.adaptation*(0:(length(idxs)-1)).^2;
-%                     roimodel(:,idxs) = roimodel(:,idxs)+ effect * params.adaptation.^(0:(length(idxs)-1));                    
-%                     afunc = [1 1/2 1/4 1/4 1/8 1/8 1/8 1/8];
-%                     afunc = afunc(1:length(idxs));
-%                     afunc = params.adaptation.^(0:(length(idxs)-1));
                     afunc = ones(size(idxs));
 
                     roimodel(:,idxs) = roimodel(:,idxs) + effect * afunc;
@@ -440,10 +450,13 @@ for ri = 1:length(fixedParams.ROIs)
     end
     cmt = conv(impulse,roimodel);
     fit.model{ri} = cmt(1:size(ctSeries,2));
-    res((ri-1)*timepoints+1:(ri-1)*timepoints+timepoints) = ctSeries-fit.model{ri};
+    res((ri-1)*timepoints+1:(ri-1)*timepoints+timepoints) = fixedParams.mask .* (ctSeries-fit.model{ri});
+    % save a local copy of the residual just to use for the R^2 calculation
+    localres((ri-1)*timepoints+1:(ri-1)*timepoints+timepoints) = (ctSeries-fit.model{ri});
 end
 
-ssres = sum(res.^2);
+% this isn't used by lsqnonlin so it's safe to use the non-masked versions
+ssres = sum(localres.^2);
 fit.r2 = 1 - ssres/fixedParams.sstot;
 
 fit.likelihood = ssres;
