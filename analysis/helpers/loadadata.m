@@ -1,4 +1,4 @@
-function adata = loadadata(subj)
+function [adata, n] = loadadata(subj)
 % format:
 %     1       2         3        4      5      6     7      8       9
 %   task - basecon - basecoh - conL - conR - cohL - cohR - resp - catch -
@@ -23,6 +23,7 @@ for fi = 1:length(files)
             e.randVars.contrast', e.randVars.coherence',e.randVars.correct']];
     end
 end
+n = size(adata,1);
 disp(sprintf('%s trials %i',subj,size(adata,1)));
 
 %% Remove NaN

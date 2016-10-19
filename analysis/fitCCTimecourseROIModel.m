@@ -99,6 +99,13 @@ if iscell(data)
     end
 end
 
+%% Drop timing
+if ~isempty(strfind(mode,'droptiming'))
+    disp('%% All Timing Responses Dropped %%');
+    idxs = data.design(:,8)==5;
+    data.design = data.design(idxs,:);
+end
+
 %% Cross-Validation
 % if strfind(mode,'crossval')
 %     disp('(roimodel) Cross-Validation (per run) is now running.');
@@ -282,6 +289,11 @@ fixedParams.mask = logical(mask);
 fit = fitModel(data);
 
 fit.tSeriesname = tSeriesname;
+fit.mode = mode;
+fit.design = data.design;
+fit.runtrans = data.runtrans;
+fit.basecon = data.basecon;
+fit.basecoh = data.basecoh;
 
 % reset fixedParams so it doesn't fuck us over later
 fixedParams.fitting = 0;
@@ -372,7 +384,7 @@ fit = struct;
 % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
 params = getParams(params,fixedParams);
 
-t = 0.25:0.5:49.75;
+t = 0.25:0.5:50.5;
 impulse = cc_gamma(t,params);
 fit.impulse = impulse;
 fit.t = t;

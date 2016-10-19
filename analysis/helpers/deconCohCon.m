@@ -33,6 +33,13 @@ if iscell(data)
     end
 end
 
+%%
+% if ~isempty(strfind(fit.mode,'droptiming'))
+%     disp('%% All Timing Responses Dropped %%');
+%     idxs = data.design(:,8)==5;
+%     data.design = data.design(idxs,:);
+% end
+
 %% Concatenate multiple ROIs when requested
 roinums = cellfun(@(x) ~isempty(strfind(x,roiname)),data.ROIs,'UniformOutput',false);
 roinums = find([roinums{:}]);
@@ -82,75 +89,7 @@ designs = {cohxcondesign,timingdesign,taskdesign};
 
 %% reduce space of cohxcon values (for task)
 
-%% deconvolve for each timecourse
 
-%% Timing
-%  - Ignore l vs. right since identical
-contrast = timingdesign(:,3); ucon = unique(contrast);
-coherence = timingdesign(:,6); ucoh = unique(coherence);
-timing = timingdesign(:,8); ut = unique(timing);
-sv = timingdesign(:,1);
-timing_sv = {};
-conidxs = [];
-cohidxs = [];
-timidxs = [];
-for coni = 1:length(ucon)
-    for cohi = 1:length(ucoh)
-        for ti = 1:length(ut)
-            timing_sv{end+1} = sv(logical((contrast==ucon(coni)).*(coherence==ucoh(cohi)).*(timing==ut(ti))));
-            conidxs(end+1) = ucon(coni);
-            cohidxs(end+1) = ucoh(cohi);
-            timidxs(end+1) = ut(ti);
-        end
-    end
-end
-concatInfo.runTransition = runtrans;
-curd = constructD(tSeries,timing_sv,0.5,30,concatInfo,'none','deconv',0);
-decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-decon = rmfield(decon,'scm');
-decon = rmfield(decon,'covar');
-curd = constructD(mtSeries/100+1,timing_sv,0.5,30,concatInfo,'none','deconv',0);
-model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-model = rmfield(model,'scm');
-model = rmfield(model,'covar');
-
-%% Save timing data
-fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
-if exist(fname,'file')==2, load(fname); end
-decondata.(roiname).time.conidxs = conidxs;
-decondata.(roiname).time.cohidxs = cohidxs;
-decondata.(roiname).time.timidxs = timidxs;
-decondata.(roiname).time.resp = decon.ehdr;
-decondata.(roiname).time.mresp = model.ehdr;
-save(fname,'decondata');
-%% Time plot
-clist = brewermap(5,'Greys');
-f = figure; hold on
-% first plot will be contrast timing, when contrast goes up to 50% or 100%,
-% we'll draw each of these with increasing contrast colors
-conopts = [0.50 0.50 1 1];
-cohopts = [0.25 1 0.25 1];
-flip = [0.5 1 2 4 8];
-colpos = [1 2 3 4 5];
-for sub = 1:4
-    subplot(2,2,sub); hold on
-    title(sprintf('Con: %i%% Coh: %i%%',conopts(sub)*100,cohopts(sub)*100));
-    idxs = find(logical(conidxs==conopts(sub)).*logical(cohidxs==cohopts(sub)));
-    for i = idxs
-        ci = colpos(find(flip==timidxs(i),1));
-        plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',10,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
-        errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
-        plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
-    end
-    xlabel('Time (s)');
-    ylabel('Response (%signal/s)');
-    axis([0 15 -2 5]);
-    drawPublishAxis
-end
-
-%% Print Figure #1
-title(sprintf('%s: %s',subj,roiname));
-savepdf(f,fullfile(datafolder,sprintf('%s_%s_timeplot.pdf',subj,roiname)));
 %% CohxCon
 contrast = cohxcondesign(:,3); ucon = unique(contrast);
 coherence = cohxcondesign(:,6); ucoh = unique(coherence);
@@ -168,11 +107,11 @@ for coni = 1:length(ucon)
     end
 end
 concatInfo.runTransition = runtrans;
-curd = constructD(tSeries,cohxcon_sv,0.5,30,concatInfo,'none','deconv',0);
+curd = constructD(tSeries,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
 decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
 decon = rmfield(decon,'scm');
 decon = rmfield(decon,'covar');
-curd = constructD(mtSeries/100+1,cohxcon_sv,0.5,30,concatInfo,'none','deconv',0);
+curd = constructD(mtSeries/100+1,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
 model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
 model = rmfield(model,'scm');
 model = rmfield(model,'covar');
@@ -225,3 +164,75 @@ drawPublishAxis
 
 fname = fullfile(datafolder,sprintf('%s_%s_cohconplot.pdf',subj,roiname));
 savepdf(f,fname);
+
+%% Return if no timing required
+% if ~isempty(strfind(mode,'droptiming'))
+%     return
+% end
+%% Timing
+%  - Ignore l vs. right since identical
+contrast = timingdesign(:,3); ucon = unique(contrast);
+coherence = timingdesign(:,6); ucoh = unique(coherence);
+timing = timingdesign(:,8); ut = unique(timing);
+sv = timingdesign(:,1);
+timing_sv = {};
+conidxs = [];
+cohidxs = [];
+timidxs = [];
+for coni = 1:length(ucon)
+    for cohi = 1:length(ucoh)
+        for ti = 1:length(ut)
+            timing_sv{end+1} = sv(logical((contrast==ucon(coni)).*(coherence==ucoh(cohi)).*(timing==ut(ti))));
+            conidxs(end+1) = ucon(coni);
+            cohidxs(end+1) = ucoh(cohi);
+            timidxs(end+1) = ut(ti);
+        end
+    end
+end
+concatInfo.runTransition = runtrans;
+curd = constructD(tSeries,timing_sv,0.5,40,concatInfo,'none','deconv',0);
+decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+decon = rmfield(decon,'scm');
+decon = rmfield(decon,'covar');
+curd = constructD(mtSeries/100+1,timing_sv,0.5,40,concatInfo,'none','deconv',0);
+model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+model = rmfield(model,'scm');
+model = rmfield(model,'covar');
+
+%% Save timing data
+fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
+if exist(fname,'file')==2, load(fname); end
+decondata.(roiname).time.conidxs = conidxs;
+decondata.(roiname).time.cohidxs = cohidxs;
+decondata.(roiname).time.timidxs = timidxs;
+decondata.(roiname).time.resp = decon.ehdr;
+decondata.(roiname).time.mresp = model.ehdr;
+save(fname,'decondata');
+%% Time plot
+clist = brewermap(5,'Greys');
+f = figure; hold on
+% first plot will be contrast timing, when contrast goes up to 50% or 100%,
+% we'll draw each of these with increasing contrast colors
+conopts = [0.50 0.50 1 1];
+cohopts = [0.25 1 0.25 1];
+flip = [0.5 1 2 4 8];
+colpos = [1 2 3 4 5];
+for sub = 1:4
+    subplot(2,2,sub); hold on
+    title(sprintf('Con: %i%% Coh: %i%%',conopts(sub)*100,cohopts(sub)*100));
+    idxs = find(logical(conidxs==conopts(sub)).*logical(cohidxs==cohopts(sub)));
+    for i = idxs
+        ci = colpos(find(flip==timidxs(i),1));
+        plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',10,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
+        errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
+        plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
+    end
+    xlabel('Time (s)');
+    ylabel('Response (%signal/s)');
+    axis([0 15 -2 5]);
+    drawPublishAxis
+end
+
+%% Print Figure #1
+title(sprintf('%s: %s',subj,roiname));
+savepdf(f,fullfile(datafolder,sprintf('%s_%s_timeplot.pdf',subj,roiname)));

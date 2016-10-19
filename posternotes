@@ -1,0 +1,17 @@
+notes:
+
+remove top point for contrast curve
+
+look up papers that motion coherence discrimination, what's the expectation
+
+we can make coherence/contrast discrimination in the same way, the magnitude is different, --- one model fits to both, both curves need to saturate because non-linear behavioral responses 
+
+cortical responses, not neural measures
+
+drop the duration data to make the contrast/coherence data look good
+
+or find example subjects who look good
+
+fit 2-gamma functions to con-coh, then plot the magnitude estimates and fit the full model through those points (abstraction)
+
+Framing: we're using contrast (it works! we know), we're questioning about coherence?
