@@ -75,6 +75,7 @@ initparams.beta_control_coh_conw = [0 -inf inf];
 numParams = numParams+2;
     
 if strfind(model,'poisson')
+    disp('(behavmodel) Fitting poisson noise');
     initparams.poissonNoise = 1;
     initparams.sigma = 1;
 else
@@ -83,6 +84,7 @@ else
 end
 
 if strfind(model,'nobias')
+    disp('(behavmodel) No bias');
     initparams.bias = 0;
 else
     initparams.bias = [0 -inf inf];
@@ -90,6 +92,7 @@ else
 end
 
 if strfind(model,'stayswitch')
+    disp('(behavmodel) Fitting four stay/switch parameters');
     initparams.right_correct = [0 -inf inf];
     initparams.right_incorr = [0 -inf inf];
     initparams.left_correct = [0 -inf inf];
@@ -252,8 +255,12 @@ else
 end
 
 if params.poissonNoise
-    warning('deprecated'); keyboard
-    prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)));
+    if obs(8)==1
+        prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)),'upper');
+    elseif obs(8)==0
+        prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)));
+    else warning('failure'); keyboard
+    end
 else
     if obs(8)==1
         prob = normcdf(0,effect,params.sigma,'upper');

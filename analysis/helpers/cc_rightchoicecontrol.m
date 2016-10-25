@@ -1,4 +1,4 @@
-function f = cc_rightchoicecontrol( adata, fit)
+function f = cc_rightchoicecontrol( adata, fit, group)
 % Identical to cc_rightchoice, but only uses control trials
 
 adata = adata(adata(:,9)==-1,:);
@@ -6,12 +6,17 @@ adata = adata(adata(:,9)==-1,:);
 %%
 f = figure;
 
-cone = max(adata(:,5)); cohe = max(adata(:,7)); cont = 0.05; coht = 0.1;
+% choose whether to average over larger or smaller ranges
+if group
+    cone = max(adata(:,5)); cohe = max(adata(:,7)); cont = 0.1; coht = 0.2;
+else
+    cone = max(adata(:,5)); cohe = max(adata(:,7)); cont = 0.05; coht = 0.1;
+end
 conbins = -cone:cont:cone; conrange = -cone+cont/2:cont:cone-cont/2;
 cohbins = -cohe:coht:cohe; cohrange = -cohe+coht/2:coht:cohe-coht/2;
 clist = brewermap(4,'Oranges');
 
-attend = {'Coherence','Contrast'};
+attend = {'Attending coherence','Attending contrast'};
 attend_ = [1 2];
 
 clist = brewermap(9,'PuOr');
@@ -43,9 +48,9 @@ for ai = 1:length(attend)
     [conmu,constd] = buildRcurve(data(:,8),data(:,5)-data(:,4),conbins);
     [cohmu,cohstd] = buildRcurve(data(:,8),data(:,7)-data(:,6),cohbins);
     plot(conrange,conmu,'o','MarkerFaceColor',clist(1,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(conrange,conmu,constd,'Color',clist(1,:));
+    errbar(conrange,conmu,constd,'Color',clist(2,:));
     plot(cohrange,cohmu,'o','MarkerFaceColor',clist(9,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(cohrange,cohmu,cohstd,'Color',clist(9,:));
+    errbar(cohrange,cohmu,cohstd,'Color',clist(8,:));
     %         try
     %         [~,fit] = cc_fitCumGauss(data);
     %         fits{end+1} = fit;
@@ -70,7 +75,7 @@ function [conr, resp] = fitCurveCon(fit,conped,conrange,attend)
 % conr = conrange(conrange>=0); % only model additive changes, flip for the negative
 conr = conrange;
 conr = conr(conr>=0);
-conr = conr(conped+conr<1);
+conr = conr(conped+conr<=1);
 baseresp = conModel(conped,fit.params);
 highresp = conModel(conped+conr,fit.params);
 diffresp = highresp-baseresp;
@@ -115,8 +120,3 @@ if fit.params.poissonNoise
 else
     resp = normcdf(diffresp,0,fit.params.sigma);
 end
-% if mod(length(cohrange),2)==0
-%     resp = [1-fliplr(resp) resp];
-% else
-%     resp = [1-fliplr(resp) 0.5 resp];
-% end

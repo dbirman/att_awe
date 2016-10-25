@@ -7,14 +7,20 @@ files = dir(fullfile(datafolder,subj));
 %% Load data
 adata = loadadata(subj);
 
+%% TEMP CODE
+%% load original models
+load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
+fits = data.fits;
+BICs = data.BICs;
+
 %% Fit Models
 if strfind(modes,'refit')
     %% Fit Contrast/Coherence response models (just to control condition)
-    strs = {'con-exp,coh-exp','con-naka,coh-linear','con-exp,coh-exp,stayswitch'}; %
+    strs = {'con-exp,coh-exp','con-exp,coh-exp,poisson','con-exp,coh-exp,stayswitch'}; %
     fits = cell(1,length(strs));
     BICs = zeros(size(fits));
     minl = inf;
-    for si = 1:length(strs)
+    for si = 2
         fits{si} = fitCCBehavControlModel(adata,0,strs{si});
         BICs(si) = fits{si}.BIC;
         if fits{si}.BIC < (minl-5)
@@ -121,15 +127,7 @@ if strfind(modes,'right')
     % print(fname,'-dpdf');
 
     %%
-    fname = fullfile(datafolder,sprintf('%s_rightchoice.pdf',subj));
-
-    set(h1,'Units','Inches');
-    pos = get(h1,'Position');
-    set(h1,'InvertHardCopy','off');
-    set(gcf,'Color',[1 1 1]);
-    set(gca,'Color',[1 1 1]);
-    set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-    print(fname,'-dpdf');
+    savepdf(h1,fullfile(datafolder,sprintf('%s_rightchoice.pdf',subj)));
 end
 %%
 disp(sprintf('Finished running for %s',subj));
