@@ -23,7 +23,8 @@ for fi = 1:length(files)
             e.randVars.contrast', e.randVars.coherence',e.randVars.correct']];
     end
 end
-n = size(adata,1);
+n = sum(adata(:,9)==-1);
+disp(n);
 disp(sprintf('%s trials %i',subj,size(adata,1)));
 
 %% Remove NaN
