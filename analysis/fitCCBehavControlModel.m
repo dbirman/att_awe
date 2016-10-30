@@ -11,11 +11,18 @@ global fixedParams
 adata = adata(~any(isnan(adata),2),:);
 osize = size(adata,1);
 
-fixedParams = struct;
-
 adata = adata(adata(:,9)==-1,:);
 disp(sprintf('Reducing data to %i control trials from %i',size(adata,1),osize));
 
+%% Special condition: just getting BIC for a model
+if isstruct(model)
+    likelihood = fitBehavModel(model.params,adata,-1);
+    fit.likelihood = likelihood;
+    fit.BIC = 2*fit.likelihood + model.numParams * log(size(adata,1));
+    return
+end
+
+fixedParams = struct;
 %% Contrast Modeling Parameters
 numParams = 0;
 if strfind(model,'null')
@@ -121,7 +128,8 @@ function [bestparams,fit] = fitModel(params,adata,f,numParams)
 
 [initparams, minparams, maxparams] = initParams(params);
 
-options = optimoptions('fmincon','TolFun',0.05); % set a limit or it goes on foreeeeeeeeeeeever
+% 
+options = optimoptions('fmincon','TolFun',0.1); % set a limit or it goes on foreeeeeeeeeeeever
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
 fit.params = getParams(bestparams);
@@ -130,11 +138,13 @@ fit.BIC = 2*fit.likelihood + numParams * log(size(adata,1));
 
 function likelihood = fitBehavModel(params,adata,f)
 %%
-if any(isnan(params))
+if ~isstruct(params) && any(isnan(params))
     likelihood = Inf;
     return
 end
-params = getParams(params);
+if ~isstruct(params)
+    params = getParams(params);
+end
 
 likelihood = 0;
 % For each observation in adata, calculate log(likelihood) and sum
@@ -146,13 +156,30 @@ likelihood = 0;
 
 probs = zeros(size(adata,1),1);
 
+% compute betas
+betas = zeros(6,2);
+betas(1,:) = [params.beta_control_coh_conw params.beta_control_coh_cohw];
+betas(2,:) = [params.beta_control_con_conw params.beta_control_con_cohw];
+% betas(3,:) = [params.beta_att_coh_conw params.beta_att_coh_cohw];
+% betas(4,:) = [params.beta_unatt_coh_conw params.beta_unatt_coh_cohw];
+% betas(5,:) = [params.beta_att_con_conw params.beta_att_con_cohw];
+% betas(6,:) = [params.beta_unatt_con_conw params.beta_unatt_con_cohw];
+
+% compute effects
+conEffL = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
+conEffR = (conModel(adata(:,4),params)-conModel(adata(:,2),params));
+conEff = conEffL - conEffR;
+cohEffL = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
+cohEffR = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
+cohEff = cohEffL - cohEffR;
+
 for ai = 1:size(adata,1)
     obs = adata(ai,:);
     
     if ai>1
-        prob = getObsProb(obs,params,adata(ai-1,:));
+        prob = getObsProb(obs,params,adata(ai-1,:),betas,conEff(ai),cohEff(ai),[conEffL(ai) conEffR(ai)],[cohEffL(ai) cohEffR(ai)]);
     else
-        prob = getObsProb(obs,params,[]);
+        prob = getObsProb(obs,params,[],betas,conEff(ai),cohEff(ai),[conEffL(ai) conEffR(ai)],[cohEffL(ai) cohEffR(ai)]);
     end
     
     if prob==0
@@ -196,7 +223,7 @@ if f>0
     title(sprintf('L: %2.3f.',likelihood));
 end
 
-function prob = getObsProb(obs,params,pobs)
+function prob = getObsProb(obs,params,pobs,betas,conEff,cohEff,cons,cohs)
 %%
 % check differences, adjust if necessary (to reflect actual visual amount shown)
 if (obs(5)-obs(2))>(1-obs(2))
@@ -211,35 +238,36 @@ end
 if (obs(6)-obs(3))>(1-obs(3))
     keyboard;
 end
-conEff = (conModel(obs(5),params)-conModel(obs(2),params)) - (conModel(obs(4),params)-conModel(obs(2),params));
-cohEff = (cohModel(obs(7),params)-cohModel(obs(3),params)) - (cohModel(obs(6),params)-cohModel(obs(3),params));
+% MOVING OUTSIDE LOOP
+% conEff = (conModel(obs(5),params)-conModel(obs(2),params)) - (conModel(obs(4),params)-conModel(obs(2),params));
+% cohEff = (cohModel(obs(7),params)-cohModel(obs(3),params)) - (cohModel(obs(6),params)-cohModel(obs(3),params));
 
 switch obs(1) % switch condition
     case 1
         % coherence control
-        betas = [params.beta_control_coh_conw params.beta_control_coh_cohw];
+        beta = betas(1,:);
     case 2
         % contrast control
-        betas = [params.beta_control_con_conw params.beta_control_con_cohw];
+        beta = betas(2,:);
     case -1
         if obs(9)==0
             % main coherence
-            betas = [params.beta_att_coh_conw params.beta_att_coh_cohw];
+            beta = betas(3,:);
         else
             % catch
-            betas = [params.beta_unatt_coh_conw params.beta_unatt_coh_cohw];
+            beta = betas(4,:);
         end
     case -2
         if obs(9)==0
             % main
-            betas = [params.beta_att_con_conw params.beta_att_con_cohw];
+            beta = betas(5,:);
         else
-            betas = [params.beta_unatt_con_conw params.beta_unatt_con_cohw];
+            beta = betas(6,:);
         end
 end
 
+extra = 0;
 if isfield(params,'right_correct') && ~isempty(pobs)
-    extra = 0;
     if pobs(12)==1 && pobs(8)==1 % left correct
         extra = params.left_correct;
     elseif pobs(12)==1 && pobs(8)==2 % right correct
@@ -249,16 +277,15 @@ if isfield(params,'right_correct') && ~isempty(pobs)
     elseif pobs(12)==0 && pobs(8)==2
         extra = params.right_incorr;
     end
-    effect = betas * [conEff cohEff]' + params.bias + extra;
-else
-    effect = betas * [conEff cohEff]' + params.bias;
 end
+effect = beta * [conEff cohEff]' + params.bias + extra;
 
 if params.poissonNoise
+    noise = sqrt(abs(sum([mean(cons) mean(cohs)])));
     if obs(8)==1
-        prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)),'upper');
+        prob = normcdf(0,effect,noise,'upper');
     elseif obs(8)==0
-        prob = normcdf(0,effect,sqrt(abs(effect*params.sigma)));
+        prob = normcdf(0,effect,noise);
     else warning('failure'); keyboard
     end
 else
