@@ -17,11 +17,11 @@ BICs = data.BICs;
 if strfind(modes,'refit')
     %% Fit Contrast/Coherence response models (just to control condition)
     strs = {'con-exp,coh-exp','con-exp,coh-exp,poisson','con-exp,coh-exp,stayswitch'}; %
-    fits = cell(1,length(strs));
-    BICs = zeros(size(fits));
+    %fits = cell(1,length(strs));
+%     BICs = zeros(size(fits));
     minl = inf;
     for si = 2
-        fits{si} = fitCCBehavControlModel(adata,0,strs{si});
+        fits{si} = fitCCBehavControlModel(adata,1,strs{si});
         BICs(si) = fits{si}.BIC;
         if fits{si}.BIC < (minl-5)
             minl = fits{si}.BIC;
@@ -115,7 +115,7 @@ if strfind(modes,'disp')
 end
 %%
 if strfind(modes,'right')
-    h1 = cc_rightchoicecontrol(adata, fit);
+    h1 = cc_rightchoicecontrol(adata, fit, 0);
     % set(h3,'Units','Inches');
     % pos = get(h3,'Position');
     % set(h3,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
