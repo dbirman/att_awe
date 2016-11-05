@@ -62,3 +62,11 @@ set(gca,'YTick',[0 1],'YTickLabel',{'',''});
 drawPublishAxis
 
 savepdf(f,fullfile('~/proj/att_awe/posters/examples/timeseries.pdf'));
+
+%%
+h = figure;
+x = -3:.01:3;
+y = normpdf(x);
+plot(x,y);
+drawPublishAxis
+savepdf(h,fullfile('~/proj/att_awe/posters/examples/normal.pdf'));

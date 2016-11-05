@@ -1,7 +1,17 @@
-notes:
+***CORTICAL***
+Okay, so now we're going to get measurements related to this: passifve fixation and data from the actual task. We did all these together because we wanted to test the full range of stimulus parameters.
 
-look up papers that motion coherence discrimination, what's the expectation
+***LINKING MODEL***
+Building on previous studies that have linked contrast discrimination to early visual cortex we'll fit a neural noise parameter to scale the behavior fits to the neural fits. This hasn't been applied to motion coherence so we're going to apply these models. 
+Don't say ground truth.
 
-we can make coherence/contrast discrimination in the same way, the magnitude is different, --- one model fits to both, both curves need to saturate because non-linear behavioral responses 
+Need a complete model, two parallel streams that lead to the sigma parameter, fit that parameter to scale between the two. 
 
-Framing: we're using contrast (it works! we know), we're questioning about coherence?
+You need two numbers at the end: 
+
+
+
+HOLY SHIT:
+
+
+

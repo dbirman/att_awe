@@ -57,6 +57,10 @@ function fit = fitCCTimecourseROIModel( data , mode, fit)
 %   exp(-time*lambda) * R
 %
 
+warning('new idea')
+warning('new idea')
+warning('Convolve FIRST to the timeseries, THEN multiply by onset + stimulus effect');
+
 %% Choose tSeries
 if strfind(mode,'useprf')
     disp('(roimodel) Using pRF based averages');

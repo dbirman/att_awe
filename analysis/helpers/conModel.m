@@ -46,7 +46,9 @@ else
     keyboard
 end
 
-out = out+params.conalpha; % add the alpha parameter so that the function starts at zero
+if isfield(params,'conalpha')
+    out = out+params.conalpha; % add the alpha parameter so that the function starts at zero
+end
 
 return
 if ~isfield(fixedParams,'fitting') || fixedParams.fitting==0

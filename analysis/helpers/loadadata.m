@@ -5,6 +5,11 @@ function [adata, n] = loadadata(subj)
 %      10      11        12
 %   pedcon - pedcoh - correct
 
+%% try loading autosave
+if isfile(fullfile(datafolder,sprintf('%s_adata.mat',subj)))
+    load(fullfile(datafolder,sprintf('%s_adata.mat',subj)));
+    return
+end
 files = dir(fullfile(datafolder,subj,'*.mat'));
 
 %% 
@@ -29,3 +34,6 @@ disp(sprintf('%s trials %i',subj,size(adata,1)));
 
 %% Remove NaN
 adata = adata(~any(isnan(adata),2),:);
+
+%%
+save(fullfile(datafolder,sprintf('%s_adata.mat',subj)),'adata','n');

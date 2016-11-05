@@ -20,6 +20,23 @@ if isstruct(model)
     fit.likelihood = likelihood;
     fit.BIC = 2*fit.likelihood + model.numParams * log(size(adata,1));
     return
+elseif strfind(model,'sigma')
+    initparams.conmodel = 4;
+    initparams.cohmodel = 4;
+    initparams.beta_control_con_conw = 1;
+    initparams.beta_control_con_cohw = 0;
+    initparams.beta_control_coh_cohw = 1;
+    initparams.beta_control_coh_conw = 0;
+    initparams.bias = 0;
+    if strfind(model,'poisson')
+        initparams.poissonNoise = 1;
+        initparams.sigma = [0.002 eps inf];
+    else
+        initparams.poissonNoise = 0;
+        initparams.sigma = [0.02 eps inf];
+    end
+    [~, fit] = fitModel(initparams,adata,-1,1);
+    return
 end
 
 fixedParams = struct;
@@ -129,7 +146,11 @@ function [bestparams,fit] = fitModel(params,adata,f,numParams)
 [initparams, minparams, maxparams] = initParams(params);
 
 % 
-options = optimoptions('fmincon','TolFun',0.1); % set a limit or it goes on foreeeeeeeeeeeever
+if length(params.sigma)>1
+    options = optimoptions('fmincon','TolFun',0.01); % set a limit or it goes on foreeeeeeeeeeeever
+else
+    options = optimoptions('fmincon'); % set a limit or it goes on foreeeeeeeeeeeever
+end
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
 fit.params = getParams(bestparams);
@@ -283,9 +304,9 @@ effect = beta * [conEff cohEff]' + params.bias + extra;
 if params.poissonNoise
     noise = sqrt(abs(sum([mean(cons) mean(cohs)])));
     if obs(8)==1
-        prob = normcdf(0,effect,noise,'upper');
+        prob = normcdf(0,effect,noise*params.sigma,'upper');
     elseif obs(8)==0
-        prob = normcdf(0,effect,noise);
+        prob = normcdf(0,effect,noise*params.sigma);
     else warning('failure'); keyboard
     end
 else

@@ -45,7 +45,10 @@ else
     keyboard
 end
 
-out = out+params.cohalpha; % add the alpha parameter so that the function starts at zero
+if isfield(params,'cohalpha')
+    out = out+params.cohalpha; % add the alpha parameter so that the function starts at zero
+end
+
 return
 if ~isfield(fixedParams,'fitting') || fixedParams.fitting==0
     out = out + params.offset; % adds the offset, it'll do this equally for contrast and coherence which isn't strictly true, but for

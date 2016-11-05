@@ -1,0 +1,58 @@
+confusions:
+- hands need to be more
+- fix v1 contrast at -0.5
+- talk more about deconvolution
+- introduce grid more carefully
+- the minus and plus don't look like mathj
+
+***Ten Second Version***
+
+What we did here was test the idea that discriminating changes in the intensity of motion and visual contrast your brain might be using the same strategy, but relying on signals from different cortical regions.
+
+***Three Minute Version***
+
+
+***Twelve Minute Version***
+
+-Task-
+
+First we're going to measure subject's ability to discriminate contrast and motion coherence, to do that we had them perform a 2-alt forced choice discrimination task. We're using contrast because previous work has made a connection between early visual cortex and contrast discrimination, we're using motion because we're interested in random dot displays and how they might be represented.
+
+So we asked participants to discriminate one feature at a time. To do this they were they shown two patches of dots at low contrast and incoherent motion, which they adapted to. At the start of each trial both patches increased in contrast and motion, and after a brief delay the participants made a response indicating which patch increased the most. They were given immediate feedback.
+
+In the right panel you can see the behavior of a single subject. To orient you the X axis indicates the difference in stimulus strength between the right and left dot patches, so you should expect a high percentage of right choices on the right side of the plot. As you can see subjects were able to focus on each feature without much interference from the feature that they were asked to ignore. Also note that the slope on the motion coherence plot is less steep, indicating that subjects needed stronger stimuli to discriminate motion compared to contrast.
+
+Next I want to show you the cortical responses we collected, and we'll come back to how we interpret the behavioral data.
+
+-Cortical-
+
+So we made two sets of cortical measurements, we measured responses while subjects performed the discrimination task, and we also measured a much larger set of data including shorter and longer stimulus lengths, and a larger range of contrast and motion coherence strengths. I'll focus on that latter larger set of passive viewed stimuli because they give us a larger range of data to work with for our models.
+
+To give you a sense of the magnitude of cortical responses we observed we pulled out two slices of the full set of data, which are shown at the top right. These are the conditions where only one feature changed. What you should be able to see here is the asymmetry in sensitivity between MT and V1: V1 is highly sensitive to changes in contrast while MT is not. In this slice you'll also notice that MT and V1 look equally sensitive to motion coherence. But if you look at the full grid of V1 responses (mid-left), you'll see that in the conditions where contrast changed there's no effect of motion coherence. MT meanwhile is always sensitive to motion coherence even when contrast changed.
+
+-Linking Model-
+
+So, what we'd really like to do here is connect behavior to cortical responses. And to understand how the behavior and cortical responses connect to each other we put together a model that links the two by estimating the "stimulus response functions", these are a model of how neurons in visual cortex might respond to changes in features strength. Based on previous work we know that contrast response functions (e.g. in V1) in the range we're interested in look like saturating non-linear functions, so we use this as a basis. So first we'll go through how we get from one of these functions to a model of the behavior:
+
+(Behavior)
+Given some particular stimulus response function shape and a value for noise you can sample the "response" on any particular trial. We model this as the change in the response function from the adapted stimulus strength to that particular trial's stimulus strength, plus noise sampled from a gaussian. So for a given trial then the probability of responding "right" will end up being the difference between the sampled left and right responses, plus any biases the subject has: e.g. a bias to respond right, or a bias to stay rather than switch responses. So this gets us back into the same space we showed you earlier, where we can convert from any particular difference in stimulus strength to a percentage of right choices.
+
+So that's half of the linking model, so to speak, and now we need to be able to go in the other direction to get from the stimulus response functions to our cortical response data.
+
+(Cortical)
+To do this the first step looks the same, but notice that there's now no sampling from a distribution because we don't need to go into a space of probabilities of choices. Instead we're going to build up a standard GLM by first making a timeseries where each trial's magnitude is the sum of some constant trial onset effect and the response due to the stimulus strength shown on that trial. To get into fMRI space we then simply convolve with an estimate of the hemodynamic response function. 
+
+(Responses)
+In practice we reverse these generative models to estimate the underlying stimulus response functions from either the behavior or the fMRI data--these are the plots shown to the right. Notice that in the behavioral plot the magnitude of contrast response functions is larger--as I mentioned before this is because subjects discriminate contrast better than motion coherence, so when constraining on the behavior this has to be the outcome. Looking at the fMRI constrained functions you should notice that these look relatively similar to the behavior constrained functions, but we'll make a more formal comparison of these later. Before we go on note that the responses in both sets of data come out slightly non-linear.
+
+(JND)
+The reason for this is that in the behavioral data the "just noticeable differences" we observed are slightly increasing with increasing base stimulus strength. Let me unpack that a bit before we go on: the "just noticeable difference" is basically how much of an increase in response you need before a participant will notice the difference consistently. We define consistently here as a response increase equal to noise, which is also equivalent to a d' of 1. If the stimulus response functions were perfectly linear then just noticeable differences should be consistent regardless of what stimulus strength you start one. But instead, we observed increasing values--this suggests that either the response functions saturate at high values OR the noise increases with stimulus strength. Take a look at the bottom panel: you'll see here the optimal contrast and motion coherence response functions under these different regimes: linear or non-linear responses, combined with additive (constant) or poisson (increasing) noise. As you can see the magnitude of the poisson models is much larger, this is because the noise scales as the square root of the responses.
+
+-Sigma-
+So the last thing we want to do now is come back to our original question: can we explain both contrast and motion coherence with this same model, but different brain regions? To get this final step we have to scale the neural response functions into the space of the behavioral response functions, so that we can use them to reconstruct the behavior. We do this by fitting the amount of neural noise that would have to surround these functions to match them to the behavioral functions. Because previous work has shown that contrast discrimination might depend on early visual cortex responses we constrained our noise estimate on only the behavioral response function for contrast and the response function for V1. As you can see this approach approximates the V1 response reasonably well, although the ability to discriminate among our subjects appears to be better than the V1 estimated response functino woudl allow. Looking at coherence discrimination you can see that the only region that comes close to supporting motion coherence discrimination is MT. Also on this plot you can see that the different models fit more or less well to the fMRI response functions, we've summarized the evidence for or against models in the plot on the right, comparing to the BIC of the non-linear additive model all of the models are significantly worse. We also have here the different estimates of the standard deviation of the neural noise, which you can compare to the standard deviation of the actual fMRI data, approximately 4%. Across our four models this means that neural noise might range between one percent to one tenth of a percent of the full variability in the data.
+
+-Conclusion-
+
+So to summarize quickly: We found that the same signal detection model is sufficient to explain contrast and motion coherence discrimination based on signals in V1 and MT respectively.
+
+Thank you!

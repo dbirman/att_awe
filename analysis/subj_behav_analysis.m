@@ -16,11 +16,11 @@ BICs = data.BICs;
 %% Fit Models
 if strfind(modes,'refit')
     %% Fit Contrast/Coherence response models (just to control condition)
-    strs = {'con-exp,coh-exp','con-exp,coh-exp,poisson','con-exp,coh-exp,stayswitch'}; %
+    strs = {'con-exp,coh-exp','con-exp,coh-exp,poisson','con-linear,coh-linear','con-linear,coh-linear,poisson'}; %
     %fits = cell(1,length(strs));
 %     BICs = zeros(size(fits));
     minl = inf;
-    for si = 2
+    for si = 3:4
         fits{si} = fitCCBehavControlModel(adata,1,strs{si});
         BICs(si) = fits{si}.BIC;
         if fits{si}.BIC < (minl-5)
@@ -43,7 +43,6 @@ else
 end
 save(fullfile(datafolder,sprintf('%s_data.mat',subj)),'data');
 % 
-% return
 
 %%
 if strfind(modes,'disp')
