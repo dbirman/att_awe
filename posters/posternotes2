@@ -1,0 +1,8 @@
+
+
+BAsed on prev literature that has shown that contrast discrimination performance can be based on V1 responses -- we cosntraint our neural noise
+
+contrast / motion compared to V1/MT in the behav/fmri response model comparison
+these are all bad fits to the data: the model fits a response function that looks similar to MT but steeper, nonetheless ?? could be an area we don't know about, or it could be a combination of areas, nonetheless clsoest match is to MT which we know from monkey phys is linked to motion
+
+drop the noise
