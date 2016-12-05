@@ -62,6 +62,7 @@ if length(roinums)==2
     runtrans2 = data.runtrans+length(data.tSeries{1});
     runtrans = [data.runtrans ; runtrans2];
 else
+    roinum = roinums(1);
     tSeries = data.tSeries{roinum};
     mtSeries = fit.model{roinum};
     design = data.design;
@@ -169,6 +170,7 @@ savepdf(f,fname);
 % if ~isempty(strfind(mode,'droptiming'))
 %     return
 % end
+% return
 %% Timing
 %  - Ignore l vs. right since identical
 contrast = timingdesign(:,3); ucon = unique(contrast);

@@ -10,22 +10,22 @@ if ~exist('fitflag','var')
 end
 if isfield(params,'cohmodel')
     if params.cohmodel==1
-        if isfield(params,'attgain') && params.attgain
-            if att==1
-                params.cohslope = params.cohslope * params.cohatt_cohgain;
-            elseif att==2
-                params.cohslope = params.cohslope * params.conatt_cohgain;
-            end
-        end
+%         if isfield(params,'attgain') && params.attgain
+%             if att==1
+%                 params.cohslope = params.cohslope * params.cohatt_cohgain;
+%             elseif att==2
+%                 params.cohslope = params.cohslope * params.conatt_cohgain;
+%             end
+%         end
         out = params.cohslope .* coh;
     elseif params.cohmodel==2
-        if isfield(params,'attgain') && params.attgain==1
-            if att==1
-                params.cohRmax = params.cohRmax * params.cohatt_cohgain;
-            elseif att==2
-                params.cohRmax = params.cohRmax * params.conatt_cohgain;
-            end
-        end
+%         if isfield(params,'attgain') && params.attgain==1
+%             if att==1
+%                 params.cohRmax = params.cohRmax * params.cohatt_cohgain;
+%             elseif att==2
+%                 params.cohRmax = params.cohRmax * params.conatt_cohgain;
+%             end
+%         end
         params.cohn = round(params.cohn);
         out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
     elseif params.cohmodel ==3
@@ -34,9 +34,14 @@ if isfield(params,'cohmodel')
         end
         out = -params.cohalpha * exp(-params.cohkappa*coh);
     elseif params.cohmodel==4
+        if isfield(params,'cohgain')
+            lcoh = fixedParams.coh*params.cohgain;
+        else
+            lcoh = fixedParams.coh;
+        end
         out = zeros(size(coh));
         for ci = 1:length(coh)
-            out(ci) = fixedParams.coh(find(fixedParams.x>=coh(ci),1));
+            out(ci) = lcoh(find(fixedParams.x>=coh(ci),1));
         end
         return
     end

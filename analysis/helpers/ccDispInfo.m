@@ -4,6 +4,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%
 function h = ccDispInfo(stimulus,subj)
 
+warning('might need re-writing?');
 %% No-Catch Performance
 nocatch = zeros(2,4);
 nocatchs = zeros(2,4);

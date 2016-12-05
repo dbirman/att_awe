@@ -1,4 +1,4 @@
-function fit = fitCCTimecourseROIModel( data , mode, fit)
+function fit = fitCCTimecourseROIModel_att( data , mode, fit, subj)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -56,6 +56,11 @@ function fit = fitCCTimecourseROIModel( data , mode, fit)
 % 
 %   exp(-time*lambda) * R
 %
+if isempty(data)
+    warning('No data available!!');
+    fit = struct;
+    return
+end
 
 %% Choose tSeries
 if strfind(mode,'useprf')
@@ -68,7 +73,7 @@ end
 
 %% Concatenate Sessions if Necessary
 
-if iscell(data)
+if iscell(data) && length(data)>1
     disp('(roimodel) Concatenating what appear to be different sessions...');
     % to run the model we really only need:
     % data.tSeries
@@ -79,24 +84,28 @@ if iscell(data)
     % lengths of each run correctly or we'll screw ourselves over.
     data_old = data;
     data = struct;
-    data.ROIs = data_old{1}.ROIs;
+    data.ROIs = data_old{2}.ROIs;
     % (we can do this the slow way, perf doesn't really matter
-    data.tSeries = cell(1,length(data_old{1}.ROIs));
+    data.tSeries = cell(1,length(data_old{2}.ROIs));
     length_sofar = 0;
     for ri = 1:length(data.tSeries), data.tSeries{ri} = []; end
     data.design = [];
     data.runtrans = [];
     for si = 1:length(data_old)
-        for ri = 1:length(data_old{si}.tSeries)
-            data.tSeries{ri} = [data.tSeries{ri} data_old{si}.(tSeriesname){ri}];
+        if ~isempty(data_old{si}.tSeries)
+            for ri = 1:length(data_old{si}.tSeries)
+                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.(tSeriesname){ri}];
+            end
+            % tweak the SV by adding 
+            cdes = data_old{si}.design;
+            cdes(:,1) = cdes(:,1) + length_sofar;
+            data.design = [data.design ; cdes];
+            data.runtrans = [data.runtrans ; data_old{si}.runtrans+length_sofar];
+            length_sofar = length_sofar + length(data_old{si}.tSeries{1});
         end
-        % tweak the SV by adding 
-        cdes = data_old{si}.design;
-        cdes(:,1) = cdes(:,1) + length_sofar;
-        data.design = [data.design ; cdes];
-        data.runtrans = [data.runtrans ; data_old{si}.runtrans+length_sofar];
-        length_sofar = length_sofar + length(data_old{si}.tSeries{1});
     end
+elseif iscell(data)
+    data = data{1};
 end
 
 %% Drop timing
@@ -129,6 +138,8 @@ end
 
 global fixedParams
 fixedParams = struct;
+fixedParams.x = 0:.01:1;
+fixedParams.subj = subj;
 fixedParams.disp = 1;
 fixedParams.diff = 1;
 fixedParams.ROIs = data.ROIs;
@@ -163,7 +174,7 @@ if ~isempty(strfind(mode,'fitroi'))
             rfit.roiparams = rfit.roiparams(ri);
 %             rfit.model = rfit.model(ri);
 %             rfit.tSeries = rfit.tSeries(ri);
-            rfit = fitCCTimecourseROIModel(rdata,mode,rfit);
+            rfit = fitCCTimecourseROIModel_att(rdata,mode,rfit,subj);
             nfit.r2(ri) = rfit.r2;
             nfit.model{ri} = rfit.model{1};
             nfit.roiparams{ri} = rfit.roiparams{1};
@@ -209,11 +220,15 @@ if strfind(mode,'refit')
 elseif strfind(mode,'fithrf')
     % HRF Parameters
     hrfparams.amp1 = 1;
-    hrfparams.tau1 = [0.4 -inf inf];
-    hrfparams.timelag1 = [1.5 0 3];
-    hrfparams.amp2 = [-eps -inf 0];
-    hrfparams.tau2 = [0.4 -inf inf];
-    hrfparams.timelag2 = [4 0 9];
+    % we aren't actually going to fit anything here
+    % we're just going to fix values to the averages across subjects (to
+    % simplify the fitting procedure). Note that the averages were taken
+    % from the other dataset... no double dipping :)
+    hrfparams.tau1 = 0.621893628335788;
+    hrfparams.timelag1 = 1.07316928482021;
+    hrfparams.amp2 = -0.245674536512472;
+    hrfparams.tau2 = 2.17645942520729;
+    hrfparams.timelag2 = 0;
     hrfparams.exponent = 7;
     hrfparams.offset = [0 0 inf];
     % estimates how much the hrf drops off per stimvol
@@ -227,15 +242,13 @@ elseif strfind(mode,'fitroi')
     if isfield(hrfparams,'offset')
         hrfparams = rmfield(hrfparams,'offset');
     end
-    roiparams.offset = [0 -inf inf];
+    roiparams.offset_shift = [0 -inf inf];
     % Contrast Function Parameters
-    roiparams.conalpha = [1 -inf inf];
-    roiparams.conkappa = [1 -inf inf];
-    roiparams.conmodel = 3;
+    roiparams.congain = [1 -inf inf];
+    roiparams.conmodel = 4;
     % Coherence Function Parameters
-    roiparams.cohalpha = [1 -inf inf];
-    roiparams.cohkappa = [1 -inf inf];
-    roiparams.cohmodel = 3;
+    roiparams.cohgain = [1 -inf inf];
+    roiparams.cohmodel = 4;
     % run type
     fixedParams.fitroi = 1;
 end
@@ -360,18 +373,21 @@ function fit = fitModel(data)
 global fixedParams
 [initparams,minparams,maxparams] = initParams;
 
-if fixedParams.disp
-    f = figure;
-else
-    f = -inf;
-end
+% if fixedParams.disp
+%     f = figure;
+% else
+%     f = -inf;
+% end
+f = -inf;
 
 optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
-[bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.runtrans,f,fixedParams);
+[bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.runtrans,f);
 
-[res,fit] = hrfResidual(bestparams,data.tSeries,data.design,data.runtrans,0,fixedParams);
+[res,fit] = hrfResidual(bestparams,data.tSeries,data.design,data.runtrans,0);
 fit.SSE = sum(res.^2);
-fit.BIC = n*log(RSS/n) + params(gi)*log(n)
+RSS = fit.SSE;
+n = length(data.tSeries{1});
+fit.BIC = n*log(RSS/n) + length(bestparams)*log(n);
 fit.params = getParams(bestparams,fixedParams);
 fit.roiparams = cell(size(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
@@ -379,8 +395,9 @@ for ri = 1:length(fixedParams.ROIs)
 end
 fit.ROIs = fixedParams.ROIs;
 
-function [res, fit] = hrfResidual(params,tSeries,design,runtrans,f,fixedParams)
+function [res, fit] = hrfResidual(params,tSeries,design,runtrans,f)
 
+global fixedParams
 fit = struct;
 
 % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
@@ -396,8 +413,15 @@ fit.tSeries = tSeries;
 timepoints = length(tSeries{1});
 res = zeros(1,timepoints*length(fixedParams.ROIs));
 localres = zeros(1,timepoints*length(fixedParams.ROIs));
+
+load(fullfile(datafolder,'avg_fmriresponse.mat'));
+
 for ri = 1:length(fixedParams.ROIs)
     roiparams = getROIParams(params,fixedParams.ROIs{ri});
+    % load previous con/coh models
+    fixedParams.con = squeeze(mean(fmri.con(:,round(ri/2),:),1));
+    fixedParams.coh = squeeze(mean(fmri.coh(:,round(ri/2),:),1));
+    prevOffset = 0.3; % average across subjects and rois
     % pick the indexes to use
     if strcmp(fixedParams.ROIs{ri}(1),'l')
         conidx = 4; % use right
@@ -419,6 +443,7 @@ for ri = 1:length(fixedParams.ROIs)
             if ((cdesign(si,conidx)-cdesign(si,2))+(cdesign(si,cohidx)-cdesign(si,5)))>0
                 if fixedParams.fitroi || fixedParams.fitatt || fixedParams.refit
                     if fixedParams.fitatt
+                        warning('Fitatt failure'); keyboard
                         coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,cdesign(si,9),1);
                         coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,cdesign(si,9),1);
                     else
@@ -436,9 +461,9 @@ for ri = 1:length(fixedParams.ROIs)
                     end
                     
                     afunc = ones(size(idxs));
-% %                     roimodel(:,idxs) = roimodel(:,idxs) + effect + roiparams.offset;
+%                     roimodel(:,idxs) = roimodel(:,idxs) + effect + roiparams.offset;
                     roimodel(:,idxs) = roimodel(:,idxs) + effect * afunc;
-                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + roiparams.offset;
+                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + prevOffset + roiparams.offset_shift;
 
                 else
                     % we're just fitting the HRF model
@@ -448,6 +473,9 @@ for ri = 1:length(fixedParams.ROIs)
                     else
                         idxs = sv;
                         effect = roiparams.betas*cdesign(si,8);
+                    end
+                    if any(idxs)>length(roimodel)
+                        keyboard
                     end
                     roimodel(:,idxs) = roimodel(:,idxs) + effect; % don't use offset, correlated to betas
                     roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + params.offset;
