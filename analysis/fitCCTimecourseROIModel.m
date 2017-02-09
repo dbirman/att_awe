@@ -281,6 +281,8 @@ end
 if strfind(mode,'nomask')
     mask = ones(size(data.tSeries{1}));
 end
+disp('Ignoring mask');
+mask = ones(size(data.tSeries{1}));
 fixedParams.mask = logical(mask);    
 
 %% fit HRF
@@ -366,12 +368,12 @@ else
     f = -inf;
 end
 
-optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
+optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
 [bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.runtrans,f,fixedParams);
 
 [res,fit] = hrfResidual(bestparams,data.tSeries,data.design,data.runtrans,0,fixedParams);
 fit.SSE = sum(res.^2);
-fit.BIC = n*log(RSS/n) + params(gi)*log(n)
+% fit.BIC = n*log(RSS/n) + params(gi)*log(n);
 fit.params = getParams(bestparams,fixedParams);
 fit.roiparams = cell(size(fixedParams.ROIs));
 for ri = 1:length(fixedParams.ROIs)
@@ -435,9 +437,9 @@ for ri = 1:length(fixedParams.ROIs)
                         effect = effect * cdesign(si,8);
                     end
                     
-                    afunc = ones(size(idxs));
-% %                     roimodel(:,idxs) = roimodel(:,idxs) + effect + roiparams.offset;
-                    roimodel(:,idxs) = roimodel(:,idxs) + effect * afunc;
+%                     afunc = ones(size(idxs));
+%                     roimodel(:,idxs) = roimodel(:,idxs) + effect + roiparams.offset;
+                    roimodel(:,idxs) = roimodel(:,idxs) + effect;
                     roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + roiparams.offset;
 
                 else
