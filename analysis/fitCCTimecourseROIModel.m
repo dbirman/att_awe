@@ -439,8 +439,9 @@ for ri = 1:length(fixedParams.ROIs)
                     
 %                     afunc = ones(size(idxs));
 %                     roimodel(:,idxs) = roimodel(:,idxs) + effect + roiparams.offset;
-                    roimodel(:,idxs) = roimodel(:,idxs) + effect;
-                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + roiparams.offset;
+                    roimodel(:,idxs) = roimodel(:,idxs) + effect + roiparams.offset;
+%                     roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + roiparams.offset;
+                    roimodel(:,idxs) = roimodel(:,idxs) * cdesign(si,8)^(-0.7);
 
                 else
                     % we're just fitting the HRF model
@@ -451,8 +452,9 @@ for ri = 1:length(fixedParams.ROIs)
                         idxs = sv;
                         effect = roiparams.betas*cdesign(si,8);
                     end
-                    roimodel(:,idxs) = roimodel(:,idxs) + effect; % don't use offset, correlated to betas
-                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + params.offset;
+                    roimodel(:,idxs) = roimodel(:,idxs) + effect + params.offset; % don't use offset, correlated to betas
+%                     roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + params.offset;
+                    roimodel(:,idxs) = roimodel(:,idxs) * cdesign(si,8)^(-0.7);
                 end
             end
         end
