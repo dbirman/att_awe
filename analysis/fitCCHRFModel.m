@@ -35,8 +35,21 @@ end
 hrfparams = struct;
 roiparams = struct;
 fixedParams.fitroi = 0;
+fixedParams.spkdec = 0;
 
-hrfparams.exponent = [-0.7]; % adaptation exponent (for time)
+if strfind(mode,'spkdec')
+    % Spike rate decay
+    hrfparams.spkexp = -0.7;%[-0.5 -inf 0];
+    hrfparams.hrfexp = 0;
+    fixedParams.spkdec = 1;
+elseif strfind(mode,'spkhrfdec')
+    hrfparams.spkexp = -0.7;
+    hrfparams.hrfexp = -0.7;
+else
+    % HRF response decay
+    hrfparams.spkexp = 0;
+    hrfparams.hrfexp = -0.7; % adaptation exponent (for time)
+end
 
 fixedParams.numparams = 0;
 if strfind(mode,'fitroi')
@@ -82,6 +95,7 @@ if data.basecon>0
     data.time.con = data.time.con-data.basecon;
     data.basecon = 0;
 end
+
 %% fit HRF
 fit = fitModel(data);
 
@@ -92,7 +106,7 @@ if isfield(data,'basecon')
 end
 
 function fit = fitModel(data)
-
+%%
 % Fit to the mean timeseries from the top R^2 values
 global fixedParams
 [initparams,minparams,maxparams] = initParams;
@@ -101,7 +115,7 @@ data.utimes = [0.5 1 2 4 5 8];
 data.reps = [1 1 2 4 5 8];
 
 for ui = 1:length(data.utimes)
-    events = repmat(data.utimes(ui)^fixedParams.exponent,1,data.reps(ui));
+    events = repmat(data.utimes(ui)^fixedParams.hrfexp,1,data.reps(ui));
     if ui==1, events = events*0.5; end
     canon = conv(events,data.hrf);
     data.canonical(ui,:) = canon(1:length(data.hrf));
@@ -166,11 +180,15 @@ for i = 1:length(data.cc.resp_)
     conEff = conModel(ccon,roiparams,0,1)-baseConResp;
     cohEff = cohModel(ccoh,roiparams,0,1)-baseCohResp;
     
-    effect = conEff+cohEff+roiparams.offset;
-    
-    cc_model(1,i,:) = data.canonical(data.cc.time(i)==data.utimes,:)*effect;
-    
-    res(i) = effect-data.cc.resp_(i);
+    if conEff==0 && cohEff==0 % no change! res=0
+        res(i) = 0;
+    else
+        effect = conEff+cohEff+roiparams.offset;
+
+        cc_model(1,i,:) = data.canonical(data.cc.time(i)==data.utimes,:)*effect;
+
+        res(i) = effect-data.cc.resp_(i);
+    end
 end
 
 time_model = zeros(size(data.time.resp));
@@ -182,11 +200,15 @@ for i = 1:length(data.time.resp_)
     conEff = conModel(ccon,roiparams,0,1)-baseConResp;
     cohEff = cohModel(ccoh,roiparams,0,1)-baseCohResp;
     
-    effect = conEff+cohEff+roiparams.offset;
-    
-    time_model(1,i,:) = data.canonical(data.time.time(i)==data.utimes,:)*effect;
-    
-    res(length(data.cc.resp_)+i) = effect-data.time.resp_(i);
+    if conEff==0 && cohEff==0 % no change! res=0
+        res(length(data.cc.resp_)+i) = 0;
+    else
+        effect = conEff+cohEff+roiparams.offset;
+
+        time_model(1,i,:) = data.canonical(data.time.time(i)==data.utimes,:)*effect;
+
+        res(length(data.cc.resp_)+i) = effect-data.time.resp_(i);
+    end
 end
 
 if fixedParams.regularize
