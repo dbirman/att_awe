@@ -15,8 +15,8 @@ if ~isdir(behavDir)
     mkdir(behavDir);
 end
 
-mfiles = dir(sprintf('%s/%s/16*.mat',volDir,sid));
-efiles = dir(sprintf('%s/%s/16*.edf',volDir,sid));
+mfiles = dir(sprintf('%s/%s/17*.mat',volDir,sid));
+efiles = dir(sprintf('%s/%s/17*.edf',volDir,sid));
 
 for mi = 1:length(mfiles)
     mfile = mfiles(mi);
