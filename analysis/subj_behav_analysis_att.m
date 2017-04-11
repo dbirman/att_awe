@@ -9,9 +9,11 @@ adata = loadadata(subj);
 
 %% TEMP CODE
 %% load original models
-load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
-fits = data.fits;
-BICs = data.BICs;
+if isfile(fullfile(datafolder,sprintf('%s_data_att.mat',subj)))
+    load(fullfile(datafolder,sprintf('%s_data_att.mat',subj)));
+    fits = data.fits;
+    BICs = data.BICs;
+end
 
 %% Fit Models
 if strfind(modes,'refit')
@@ -30,8 +32,8 @@ if strfind(modes,'refit')
     end
 end
 %% Save data
-if exist(fullfile(datafolder,sprintf('%s_data.mat',subj)))==2
-    load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
+if exist(fullfile(datafolder,sprintf('%s_data_att.mat',subj)))==2
+    load(fullfile(datafolder,sprintf('%s_data_att.mat',subj)));
 end
 if strfind(modes,'refit')
     data.fit = fit;
@@ -41,9 +43,9 @@ if strfind(modes,'refit')
 else
     fit = data.fit;
 end
-save(fullfile(datafolder,sprintf('%s_data.mat',subj)),'data');
+save(fullfile(datafolder,sprintf('%s_data_att.mat',subj)),'data');
 % 
-
+return
 %%
 if strfind(modes,'disp')
     %% dispInfo

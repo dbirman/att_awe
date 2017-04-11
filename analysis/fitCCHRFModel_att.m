@@ -1,60 +1,11 @@
-function fit = fitCCTimecourseROIModel_att( data , mode, fit, subj)
+function fit = fitCCHRFModel_att( data , subj, mode)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
-%   Dan Birman - Gardner Lab, Stanford University
-%       May 10th, 2016
-%
-%   fit = fitCCTimecourseROIModel(data)
-%
-%   OUTPUT:
-%   fit.r2
-%   fit.params.PARAM = [-95%CI estimate +95%CI]
-%   fit.full = Model output for con = 0:1 and coh 0:1
-%
-%   INPUT:
-%   data.tSeries = tSeries from savedata_localizer
-%   data.concatInfo = concatInfo from viewGet(v,'concatInfo')
-%   data.design = long form design matrix [vol# basecon con basecoh coh time]
-%
-%   ALGORITHM:
-%   We will fit a least squares model that optimizes the HRF across ROIs
-%   but allows the contrast and coherence response functions to vary by
-%   ROI. This seems to be the best compromise. Other ideas you tried that
-%   didn't work:
-%
-%    - Fitting individual voxels
-%    - Fitting the HRF across voxels and then fitting individual voxels
-%    - Fitting to a tSeries averaged using an arbitrary R^2 cutoff
-%   
-%   Based on Rees & Koch 2000 and a bunch of other stuff...
-%
-%   Assumptions:
-%   (1) Contrast influences firing rates in a non-linear manner, according
-%   to the function:
-%
-%   Rcon(c) = Rmax * c^n / (c^n + c50^n)
-%
-%   (2) Coherence influences firing rates in a linear manner, according to
-%   the function:
-%
-%   Rcoh(c) = beta * c
-%
-%   (3) The amplitude of the human fMRI BOLD response is a linear function 
-%   of the rate of spiking of neurons within each voxel. Therefore the
-%   impulse response function due to a particular contrast and coherence:
-%
-%   HRF(con,coh) = conv(Rcon(c) + Rcoh(c) + offset,Canonical)
-%
-%   Where Canonical is a cc_gamma function with three parameters: exponent,
-%   tau, and timelag.
-%
-%   (4) The impulse response function corresponds to a 500 ms stimulus in
-%   our experiments, longer stimuli cause an exponential dropoff in firing,
-%   such that firing rate is modeled by:
-%
-%   R = Rcon(c) + Rcoh(c)
-% 
-%   exp(-time*lambda) * R
+% Okay the new attention model works as follows: it loads the contrast /
+% coherence response functions for this subject. Then it tries to test
+% whether under the attention conditions the data is better fit by
+% increasing the offset parameter (constant across trials) or a gain
+% parameter (response gain effect), or both, or none of the above. 
 %
 if isempty(data)
     warning('No data available!!');
@@ -62,136 +13,41 @@ if isempty(data)
     return
 end
 
-%% Choose tSeries
-if strfind(mode,'useprf')
-    disp('(roimodel) Using pRF based averages');
-    tSeriesname = 'tSeries';
-else
-    disp('(roimodel) Using top 25 voxel averages (per ROI)');
-    tSeriesname = 'rtSeries25';
-end
-
-%% Concatenate Sessions if Necessary
-
-if iscell(data) && length(data)>1
-    disp('(roimodel) Concatenating what appear to be different sessions...');
-    % to run the model we really only need:
-    % data.tSeries
-    % data.design
-    % data.runtrans
-    % but we need these to be concatenated across the different sessions.
-    % We have to be a little careful here that we make sure we add the
-    % lengths of each run correctly or we'll screw ourselves over.
-    data_old = data;
-    data = struct;
-    data.ROIs = data_old{2}.ROIs;
-    % (we can do this the slow way, perf doesn't really matter
-    data.tSeries = cell(1,length(data_old{2}.ROIs));
-    length_sofar = 0;
-    for ri = 1:length(data.tSeries), data.tSeries{ri} = []; end
-    data.design = [];
-    data.runtrans = [];
-    for si = 1:length(data_old)
-        if ~isempty(data_old{si}.tSeries)
-            for ri = 1:length(data_old{si}.tSeries)
-                data.tSeries{ri} = [data.tSeries{ri} data_old{si}.(tSeriesname){ri}];
-            end
-            % tweak the SV by adding 
-            cdes = data_old{si}.design;
-            cdes(:,1) = cdes(:,1) + length_sofar;
-            data.design = [data.design ; cdes];
-            data.runtrans = [data.runtrans ; data_old{si}.runtrans+length_sofar];
-            length_sofar = length_sofar + length(data_old{si}.tSeries{1});
-        end
-    end
-elseif iscell(data)
-    data = data{1};
-end
-
-%% Drop timing
-if ~isempty(strfind(mode,'droptiming'))
-    disp('%% All Timing Responses Dropped %%');
-    idxs = data.design(:,8)==5;
-    data.design = data.design(idxs,:);
-end
-
-%% Cross-Validation
-% if strfind(mode,'crossval')
-%     disp('(roimodel) Cross-Validation (per run) is now running.');
-%         
-%     for i = 1:size(data.runtrans,1)
-%         disp('(roimodel) Setting aside run %i as the test set',i);
-%         testdata = struct; traindata=struct;
-%         testdata.runtrans = data.runtrans(i,:);
-%         others = 1:size(data.runtrans,1);
-%         others = others(others~=i);
-%         traindata.runtrans = data.runtrans(others,:);
-%     end
-%     stop = 1;
-% end
-
 %% Setup
-
-if ~iscell(data.tSeries)
-    data.tSeries{1} = data.tSeries;
-end
 
 global fixedParams
 fixedParams = struct;
-fixedParams.x = 0:.01:1;
-fixedParams.subj = subj;
-fixedParams.disp = 1;
-fixedParams.diff = 1;
 fixedParams.ROIs = data.ROIs;
-fixedParams.fitting = 0;
 
-if ~isempty(strfind(mode,'fitatt'))
-    disp('Fitting by attention condition:');
-    if ~isempty(strfind(mode,'fitatt=1'))
-        disp('Motion');
-        data.design = data.design(data.design(:,9)==1,:);
-    else
-        disp('Contrast');
-        data.design = data.design(data.design(:,9)==2,:);
-    end
+%% Load subject's existing model information
+if ~isfield(data,'cc_fit')
+    data.cc_fit = load(fullfile(datafolder,sprintf('s%04.0f_hrf.mat',subj)));
 end
 
-%% If fitroi or fitatt, run by ROI
-if ~isempty(strfind(mode,'fitroi'))
-    fixedParams.fitting = 1;
-    nfit = fit;
-    if length(data.ROIs)>1
-        nfit.r2 = zeros(size(data.ROIs));
-        nfit.likelihoods = zeros(size(data.ROIs));
-        nfit.chi2s = zeros(size(data.ROIs));
-        for ri = 1:length(data.ROIs)
-            disp(sprintf('(roimodel) Fitting %s',data.ROIs{ri}));
-            rdata = data;
-            rdata.ROIs = rdata.ROIs(ri);
-            rdata.tSeries = rdata.tSeries(ri);
-            rfit = fit;
-%             rfit.ROIs = rfit.ROIs(ri);
-            rfit.roiparams = rfit.roiparams(ri);
-%             rfit.model = rfit.model(ri);
-%             rfit.tSeries = rfit.tSeries(ri);
-            rfit = fitCCTimecourseROIModel_att(rdata,mode,rfit,subj);
-            nfit.r2(ri) = rfit.r2;
-            nfit.model{ri} = rfit.model{1};
-            nfit.roiparams{ri} = rfit.roiparams{1};
-            nfit.likelihoods(ri) = rfit.likelihood;
-%             nfit.chi2s(ri) = rfit.chi2;
-            afields = fields(rfit);
-            for ai = 1:length(afields)
-                if strfind(afields{ai},data.ROIs{ri})
-                    % copy field
-                    nfit.(afields{ai}) = rfit.(afields{ai});
-                end
-            end
-        end
-        fit = nfit;
-        return
+%% If multiple ROIs, fit each individually
+if length(data.ROIs)>1
+    for ri = 1:length(data.ROIs)
+        disp(sprintf('(fitCCHRFModel) Running ROI: %s',data.ROIs{ri}));
+        
+        ndata = data;
+        ndata.ROIs = ndata.ROIs(ri);
+        ndata.cc_fit = ndata.cc_fit.cur.roifit{ri};
+        ndata.betaCon = squeeze(ndata.betaCon(:,ri,:));
+        ndata.betaCoh = squeeze(ndata.betaCoh(:,ri,:));
+        
+        fit.roifit{ri} = fitCCHRFModel_att(ndata,subj,mode);
+        fit.r2(ri) = fit.roifit{ri}.r2;
+        fit.BIC(ri) = fit.roifit{ri}.BIC;
     end
+   
+    return
 end
+
+%%
+
+fixedParams.x = 0:.01:1;
+fixedParams.con = conModel(fixedParams.x,data.cc_fit.params);
+fixedParams.coh = cohModel(fixedParams.x,data.cc_fit.params);
 
 %% parse mode:
 % "fithrf" - just fit the HRF using all trials (but no effects)
@@ -200,57 +56,36 @@ end
 % "fitall" - run fithrf, fitroi, and fitatt and return the full fit
 hrfparams = struct;
 roiparams = struct;
-fixedParams.fithrf = 0;
-fixedParams.fitroi = 0;
-fixedParams.fitatt = 0;
-fixedParams.refit = 0;
-if strfind(mode,'refit')
-    disp('Refitting HRF parameters');
-    % add the min/max to the hrf params so that they will be fit
-    hrfparams = copyhrfparams_refit(fit);
-    % copy all the roi parameters
-    roiparams = copyroiparams(fit);
-    % copy all of these into hrf params, and make roiparams empty
-    f = fields(roiparams);
-    for fi = 1:length(f)
-        hrfparams.(f{fi}) = roiparams.(f{fi});
-    end
-    roiparams = struct;
-    fixedParams.refit = 1;
-elseif strfind(mode,'fithrf')
-    % HRF Parameters
-    hrfparams.amp1 = 1;
-    % we aren't actually going to fit anything here
-    % we're just going to fix values to the averages across subjects (to
-    % simplify the fitting procedure). Note that the averages were taken
-    % from the other dataset... no double dipping :)
-    hrfparams.tau1 = 0.621893628335788;
-    hrfparams.timelag1 = 1.07316928482021;
-    hrfparams.amp2 = -0.245674536512472;
-    hrfparams.tau2 = 2.17645942520729;
-    hrfparams.timelag2 = 0;
-    hrfparams.exponent = 7;
-    hrfparams.offset = [0 0 inf];
-    % estimates how much the hrf drops off per stimvol
-    hrfparams.adaptation = [1]; % NOT USING CURRENTLY
-    roiparams.betas = [0.5 0 inf];
-    fixedParams.fithrf = 1;
-elseif strfind(mode,'fitroi')
-    % get hrf params
-    hrfparams = copyhrfparams(fit);
-    % Offset
-    if isfield(hrfparams,'offset')
-        hrfparams = rmfield(hrfparams,'offset');
-    end
+
+hrfparams.baseoffset = data.cc_fit.params.offset;
+
+fixedParams.offset = 0;
+
+if ~isempty(strfind(mode,'doublebaseline'))
+    roiparams.offset_con = [0 -inf inf];
+    roiparams.offset_coh = [0 -inf inf];
+    fixedParams.offset = 2;
+elseif ~isempty(strfind(mode,'nobaseline'))
+    roiparams.offset_shift = 0;
+else
     roiparams.offset_shift = [0 -inf inf];
-    % Contrast Function Parameters
-    roiparams.congain = [1 -inf inf];
+    fixedParams.offset = 1;
+end
+
+if ~isempty(strfind(mode,'nogain'))
+    roiparams.con_congain = 1;
+    roiparams.con_cohgain = 1;
+    roiparams.coh_congain = 1;
+    roiparams.coh_cohgain = 1;
     roiparams.conmodel = 4;
-    % Coherence Function Parameters
-    roiparams.cohgain = [1 -inf inf];
     roiparams.cohmodel = 4;
-    % run type
-    fixedParams.fitroi = 1;
+else
+    roiparams.con_congain = [1 -inf inf];
+    roiparams.con_cohgain = [1 -inf inf];
+    roiparams.coh_congain = [1 -inf inf];
+    roiparams.coh_cohgain = [1 -inf inf];
+    roiparams.conmodel = 4;
+    roiparams.cohmodel = 4;
 end
 
 %% Parameter initialization
@@ -259,284 +94,126 @@ global params
 params.hrfparams = hrfparams;
 params.roiparams = roiparams;
 
-fixedParams.sstot = 0;
-for ti = 1:length(data.tSeries)
-    data.tSeries{ti} = (data.tSeries{ti}-1)*100; % move into zero mean and 1% space, easier for interpretation later
-    fixedParams.sstot = fixedParams.sstot + sum((data.tSeries{ti}-repmat(mean(data.tSeries{ti},2),1,size(data.tSeries{ti},2))).^2,2);
-end
+fixedParams.sstot = sum([data.betaCon(data.deltaidx==0)' data.betaCoh(data.deltaidx==0)'].^2);  
 
-%% setup plots
-if fixedParams.fithrf
-    concatInfo.runTransition = data.runtrans;
-    fixedParams.concatInfo = concatInfo;
-    fixedParams.sv = {data.design(:,1)};
-end
-
-%% build timeseries mask
-sv_view = 0.5:0.5:20;
-tmin = 3;
-tmax = 9;
-sv_view = find(logical(sv_view>=tmin).*logical(sv_view<=tmax));
-mask = zeros(size(data.tSeries{1}));
-for run = 1:size(data.runtrans,1)
-    cdesign = fil(data.design,1,'>=',data.runtrans(run,1));
-    cdesign = fil(cdesign,1,'<=',data.runtrans(run,2));
-
-    for si = 1:size(cdesign,1)
-        % okay, for each stimvol, place its effect
-        sv = cdesign(si,1);
-        csv_view = min(sv+sv_view,data.runtrans(run,2));
-        if ~all(csv_view==data.runtrans(run,2))
-            mask(csv_view) = 1;
-        end
-    end
-end
-if strfind(mode,'nomask')
-    mask = ones(size(data.tSeries{1}));
-end
-fixedParams.mask = logical(mask);    
-
-%% fit HRF
+%% fit
 fit = fitModel(data);
 
-fit.tSeriesname = tSeriesname;
 fit.mode = mode;
-fit.design = data.design;
-fit.runtrans = data.runtrans;
-if isfield(data,'basecon')
-    fit.basecon = data.basecon;
-    fit.basecoh = data.basecoh;
-end
-
-% reset fixedParams so it doesn't fuck us over later
-fixedParams.fitting = 0;
-
-function hrfparams = copyhrfparams(fit)
-hrfparams.amp1 = fit.params.amp1;
-if ~(hrfparams.amp1==1), warning('Amplitude is wrong?');keyboard; end
-hrfparams.tau1 = fit.params.tau1;
-hrfparams.timelag1 = fit.params.timelag1;
-hrfparams.amp2 = fit.params.amp2;
-hrfparams.tau2 = fit.params.tau2;
-hrfparams.timelag2 = fit.params.timelag2;
-hrfparams.exponent = fit.params.exponent;
-hrfparams.adaptation = fit.params.adaptation;
-
-function hrfparams = copyhrfparams_refit(fit)
-hrfparams.amp1 = fit.params.amp1; % should be one
-if ~(hrfparams.amp1==1), warning('Amplitude is wrong?');keyboard; end
-hrfparams.tau1 = [fit.params.tau1 -inf inf];
-hrfparams.timelag1 = [fit.params.timelag1 0 3];
-hrfparams.amp2 = [fit.params.amp2 -inf 0];
-hrfparams.tau2 = [fit.params.tau2 -inf inf];
-hrfparams.timelag2 = [fit.params.timelag2 0 6];
-hrfparams.exponent = fit.params.exponent;
-hrfparams.adaptation = fit.params.adaptation;
-    
-function roiparams = copyroiparams(fit)
-global fixedParams
-% generic info
-p = fit.roiparams{1};
-f = fields(p);
-roiparams = struct;
-% copy all, or copy only one set from p
-if length(fit.roiparams)>1
-    % roiparams is a cell, so copy all rois separately (and rename them)
-    for ri = 1:length(fit.ROIs)
-        localparams = fit.roiparams{ri};
-        for fi = 1:length(f)
-            cfield = f{fi};
-%             roiparams.(sprintf('%s%s',fit.ROIs{ri},cfield)) = [localparams.(cfield) -inf inf];
-            roiparams.(sprintf('%s%s',fit.ROIs{ri},cfield)) = [localparams.(cfield)];
-        end
-        roiparams.(sprintf('%sconmodel',fit.ROIs{ri})) = localparams.conmodel;
-        roiparams.(sprintf('%scohmodel',fit.ROIs{ri})) = localparams.cohmodel;
-    end
-else
-    % only one set
-    for fi = 1:length(f)
-        cfield = f{fi};
-        if fixedParams.refitroi
-            roiparams.(cfield) = [p.(cfield) -inf inf];
-        else
-            roiparams.(cfield) = p.(cfield);
-        end
-    end
-    % overwrite so that these don't get fit
-    roiparams.conmodel = p.conmodel;
-    roiparams.cohmodel = p.cohmodel;
-end
 
 function fit = fitModel(data)
-
+%%
 % Fit to the mean timeseries from the top R^2 values
 global fixedParams
 [initparams,minparams,maxparams] = initParams;
 
-% if fixedParams.disp
-%     f = figure;
-% else
-%     f = -inf;
-% end
 f = -inf;
 
-optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
-[bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data.tSeries,data.design,data.runtrans,f);
+if length(initparams)>0
+    optimParams = optimset('Algorithm','levenberg-marquardt','MaxIter',inf,'Display','off');
+    [bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data);
+else
+    bestparams=initparams;
+end
 
-[res,fit] = hrfResidual(bestparams,data.tSeries,data.design,data.runtrans,0);
+[res,fit] = hrfResidual(bestparams,data);
 fit.SSE = sum(res.^2);
 RSS = fit.SSE;
-n = length(data.tSeries{1});
+n = sum(data.deltaidx==0);
 fit.BIC = n*log(RSS/n) + length(bestparams)*log(n);
 fit.params = getParams(bestparams,fixedParams);
-fit.roiparams = cell(size(fixedParams.ROIs));
-for ri = 1:length(fixedParams.ROIs)
-    fit.roiparams{ri} = getROIParams(fit.params,fixedParams.ROIs{ri});
-end
+fit.roiparams = getROIParams(fit.params,data.ROIs{1});
 fit.ROIs = fixedParams.ROIs;
 
-function [res, fit] = hrfResidual(params,tSeries,design,runtrans,f)
+% draw response functions
+fit.conresp = fixedParams.con + fixedParams.baseoffset;
+if fixedParams.offset==2
+    fit.conresp_con = fixedParams.con*fit.roiparams.con_congain + fixedParams.baseoffset + fit.roiparams.offset_con;
+    fit.conresp_coh = fixedParams.con*fit.roiparams.con_cohgain + fixedParams.baseoffset + fit.roiparams.offset_con;
+else
+    fit.conresp_con = fixedParams.con*fit.roiparams.con_congain + fixedParams.baseoffset + fit.roiparams.offset_shift;
+    fit.conresp_coh = fixedParams.con*fit.roiparams.con_cohgain + fixedParams.baseoffset + fit.roiparams.offset_shift;
+end
+fit.condata_con = data.betaCon(logical((data.taskidx==2).*(data.deltaidx==0)));
+fit.condata_coh = data.betaCon(logical((data.taskidx==1).*(data.deltaidx==0)));
 
+fit.cohresp = fixedParams.coh + fixedParams.baseoffset;
+if fixedParams.offset==2
+    fit.cohresp_con = fixedParams.coh*fit.roiparams.coh_congain + fixedParams.baseoffset + fit.roiparams.offset_coh;
+    fit.cohresp_coh = fixedParams.coh*fit.roiparams.coh_cohgain + fixedParams.baseoffset + fit.roiparams.offset_coh;
+else
+    fit.cohresp_con = fixedParams.coh*fit.roiparams.coh_congain + fixedParams.baseoffset + fit.roiparams.offset_shift;
+    fit.cohresp_coh = fixedParams.coh*fit.roiparams.coh_cohgain + fixedParams.baseoffset + fit.roiparams.offset_shift;
+end
+fit.cohdata_con = data.betaCoh(logical((data.taskidx==2).*(data.deltaidx==0)));
+fit.cohdata_coh = data.betaCoh(logical((data.taskidx==1).*(data.deltaidx==0)));
+
+
+%%%%%%%%%%%%
+%%% HRF RESIDUAL
+%%%%%%%%%%%%%%
+function [res, fit] = hrfResidual(params,data)
+%%
 global fixedParams
 fit = struct;
-
-% stimvol basecon lcon rcon basecoh lcoh rcoh timing task
 params = getParams(params,fixedParams);
 
-t = 0.25:0.5:50.5;
-impulse = cc_gamma(t,params);
-fit.impulse = impulse;
-fit.t = t;
+%% Compute
+roiparams = getROIParams(params,data.ROIs{1});
 
-fit.model = cell(size(fixedParams.ROIs));
-fit.tSeries = tSeries;
-timepoints = length(tSeries{1});
-res = zeros(1,timepoints*length(fixedParams.ROIs));
-localres = zeros(1,timepoints*length(fixedParams.ROIs));
+% compute gains
+con_conresp = fixedParams.con * roiparams.con_congain;
+con_cohresp = fixedParams.con * roiparams.con_cohgain;
+% coh
+coh_conresp = fixedParams.coh * roiparams.coh_congain;
+coh_cohresp = fixedParams.coh * roiparams.coh_cohgain;
 
-load(fullfile(datafolder,'avg_fmriresponse.mat'));
-
-for ri = 1:length(fixedParams.ROIs)
-    roiparams = getROIParams(params,fixedParams.ROIs{ri});
-    % load previous con/coh models
-    fixedParams.con = squeeze(mean(fmri.con(:,round(ri/2),:),1));
-    fixedParams.coh = squeeze(mean(fmri.coh(:,round(ri/2),:),1));
-    prevOffset = 0.3; % average across subjects and rois
-    % pick the indexes to use
-    if strcmp(fixedParams.ROIs{ri}(1),'l')
-        conidx = 4; % use right
-        cohidx = 7;
+% compute residual
+res = zeros(1,2*length(data.conidx));
+for i = 1:length(data.conidx)
+    
+    % contrast!
+    pos = find(fixedParams.x>=data.conidx(i),1);
+    if data.taskidx(i)==1
+        resp = con_cohresp(pos);
     else
-        conidx = 3;
-        cohidx = 6;
+        resp = con_conresp(pos);
     end
-    ctSeries = tSeries{ri};
-    roimodel = zeros(size(ctSeries));
-    % get just this ROIs parameters and strip out the ROI name itself
-    for run = 1:size(runtrans,1)
-        cdesign = fil(design,1,'>=',runtrans(run,1));
-        cdesign = fil(cdesign,1,'<=',runtrans(run,2));
-
-        for si = 1:size(cdesign,1)
-            % okay, for each stimvol, place its effect
-            sv = cdesign(si,1);
-            if ((cdesign(si,conidx)-cdesign(si,2))+(cdesign(si,cohidx)-cdesign(si,5)))>0
-                if fixedParams.fitroi || fixedParams.fitatt || fixedParams.refit
-                    if fixedParams.fitatt
-                        warning('Fitatt failure'); keyboard
-                        coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,cdesign(si,9),1);
-                        coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,cdesign(si,9),1);
-                    else
-                        coneff = conModel(cdesign(si,conidx)-cdesign(si,2),roiparams,0,1);
-                        coheff = cohModel(cdesign(si,cohidx)-cdesign(si,5),roiparams,0,1);
-                    end
-                    effect = coneff+coheff;
-                 
-                    % adjust timing
-                    if cdesign(si,8)>=1
-                        idxs = sv:min(runtrans(run,2),sv+(cdesign(si,8)-1));
-                    else
-                        idxs = sv;
-                        effect = effect * cdesign(si,8);
-                    end
-                    
-                    afunc = ones(size(idxs));
-%                     roimodel(:,idxs) = roimodel(:,idxs) + effect + roiparams.offset;
-                    roimodel(:,idxs) = roimodel(:,idxs) + effect * afunc;
-                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + prevOffset + roiparams.offset_shift;
-
-                else
-                    % we're just fitting the HRF model
-                    if cdesign(si,8)>=1
-                        idxs = sv:min(runtrans(run,2),sv+(cdesign(si,8)-1));
-                        effect = roiparams.betas;
-                    else
-                        idxs = sv;
-                        effect = roiparams.betas*cdesign(si,8);
-                    end
-                    if any(idxs)>length(roimodel)
-                        keyboard
-                    end
-                    roimodel(:,idxs) = roimodel(:,idxs) + effect; % don't use offset, correlated to betas
-                    roimodel(:,idxs(1)) = roimodel(:,idxs(1)) + params.offset;
-                end
-            end
-        end
+    if fixedParams.offset==2
+        resp = resp + fixedParams.baseoffset + roiparams.offset_con;
+    else
+        resp = resp + fixedParams.baseoffset + roiparams.offset_shift;
     end
-    cmt = conv(impulse,roimodel);
-    fit.model{ri} = cmt(1:size(ctSeries,2));
-    res((ri-1)*timepoints+1:(ri-1)*timepoints+timepoints) = fixedParams.mask .* (ctSeries-fit.model{ri});
-    % save a local copy of the residual just to use for the R^2 calculation
-    localres((ri-1)*timepoints+1:(ri-1)*timepoints+timepoints) = (ctSeries-fit.model{ri});
+    
+    res(i) = resp - data.betaCon(i);
+    clear resp
+    
+    % coherence!
+    pos = find(fixedParams.x>=data.cohidx(i),1);
+    if data.taskidx(i)==1
+        resp = coh_cohresp(pos);
+    else
+        resp = coh_conresp(pos);
+    end
+    if fixedParams.offset==2
+        resp = resp + fixedParams.baseoffset + roiparams.offset_coh;
+    else
+        resp = resp + fixedParams.baseoffset + roiparams.offset_shift;
+    end
+    
+    res(length(data.conidx)+i) = resp - data.betaCoh(i);
 end
 
+% we only compute for the non-delta (8 values)
+res = res(logical([data.deltaidx==0 data.deltaidx==0]));
+
+%% Finalize
+
 % this isn't used by lsqnonlin so it's safe to use the non-masked versions
-ssres = sum(localres.^2);
+ssres = sum(res.^2);
 fit.r2 = 1 - ssres/fixedParams.sstot;
 
 fit.likelihood = ssres;
-
-if false % f>0
-    figure(f)
-    plot(impulse);
-    return
-    
-    if fixedParams.refithrf
-        figure(f)
-        plot(impulse);
-%         disp(sprintf('Skipping plot: ss = %4.2f',fit.likelihood));
-%         disp(sprintf('Adaptation: %0.2f',params.adaptation));
-    elseif fixedParams.fithrf
-%         disp(sprintf('Skipping plot: ss = %4.2f',fit.likelihood));
-%         disp(sprintf('Adaptation: %0.2f Offset: %1.2f',params.adaptation,params.offset));
-        return
-        figure(f)
-        clf(f), hold on
-        curd = constructD(fit.tSeries{1}/100+1,fixedParams.sv,0.5,50,fixedParams.concatInfo,'none','deconv',0);
-        decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-        decon = rmfield(decon,'scm');
-        decon = rmfield(decon,'covar');
-        plot(decon.ehdr,'o');
-        curd = constructD(fit.model{1}/100+1,fixedParams.sv,0.5,50,fixedParams.concatInfo,'none','deconv',0);
-        decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-        decon = rmfield(decon,'scm');
-        decon = rmfield(decon,'covar');
-        plot(decon.ehdr);
-        title(sprintf('Amp1: %1.2f Tau1: %1.2f TL1: %1.2f Amp2: %1.2f Tau2: %1.2f TL2: %1.2f ',params.amp1,params.tau1,params.timelag1,params.amp2,params.tau2,params.timelag2));
-    else
-        figure(f)
-        subplot(211)
-        hold on
-        plot(ctSeries(1:1000),'b');
-        plot(fit.model{end}(1:1000),'r');
-        title(sprintf('R^2: %0.2f',fit.r2));
-        subplot(212), hold on
-        cmap = brewermap(7,'PuOr');
-        x = 0:.01:1;
-        plot(x,conModel(x,roiparams),'Color',cmap(2,:));
-        plot(x,cohModel(x,roiparams),'Color',cmap(6,:));
-    end
-end
 
 function [initparams, minparams, maxparams] = initParams()
 %%

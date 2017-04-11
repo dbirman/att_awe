@@ -14,6 +14,20 @@ osize = size(adata,1);
 adata = adata(adata(:,9)==-1,:);
 disp(sprintf('Reducing data to %i control trials from %i',size(adata,1),osize));
 
+%% Lower basecontrast
+
+%     1       2         3        4      5      6     7      8       9
+%   task - basecon - basecoh - conL - conR - cohL - cohR - resp - catch -
+%      10      11        12
+%   pedcon - pedcoh - correct
+
+if any(adata(:,2)>0)
+    disp('BASE CONTRAST LOWERED TO ZERO');
+    adata(:,4) = adata(:,4)-adata(:,2);
+    adata(:,5) = adata(:,5)-adata(:,2);
+    adata(:,2) = adata(:,2)-adata(:,2);
+end
+
 %% Special condition: just getting BIC for a model
 if isstruct(model)
     likelihood = fitBehavModel(model.params,adata,-1);

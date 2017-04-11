@@ -171,11 +171,12 @@ betas(5,:) = [params.beta_att_con_conw params.beta_att_con_cohw];
 betas(6,:) = [params.beta_unatt_con_conw params.beta_unatt_con_cohw];
 
 % compute effects
-conEffL = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
-conEffR = (conModel(adata(:,4),params)-conModel(adata(:,2),params));
+conEffL = (conModel(adata(:,4),params)-conModel(adata(:,2),params));
+conEffR = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
 conEff = conEffL - conEffR;
-cohEffL = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
-cohEffR = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
+
+cohEffL = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
+cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
 cohEff = cohEffL - cohEffR;
 
 for ai = 1:size(adata,1)
@@ -188,7 +189,7 @@ for ai = 1:size(adata,1)
     end
     
     if prob==0
-        warning('probably returned zero')
+%         warning('probably returned zero')
         prob = eps;
     end
     
@@ -196,8 +197,8 @@ for ai = 1:size(adata,1)
     if prob >= 0
         likelihood = likelihood + log(prob);
     else
-        warning('Probability returned non-useful value');
-        keyboard
+%         warning('Probability returned non-useful value');
+%         keyboard
     end
 end
 

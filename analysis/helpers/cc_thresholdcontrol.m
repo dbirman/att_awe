@@ -87,27 +87,5 @@ set(h1(1),'MarkerEdgeColor',[1 1 1],'MarkerFaceColor',map(6,:),'LineWidth',1.5);
 title(sprintf('Model Fit for Naka-Con, Linear-Coh, no Bias, Subject: %s',subj));
 xlabel('Contrast/Coherence Pedestal (%)');
 ylabel('Just Noticeable Difference (% Con/Coh)');
-drawPublishAxis
 
-%% Print
-
-
-fname = fullfile(datafolder,sprintf('%s_thresholdmodel.pdf',subj));
-set(h,'Units','Inches');
-pos = get(h,'Position');
-set(h,'InvertHardCopy','off');
-set(gcf,'Color',[1 1 1]);
-set(gca,'Color',[1 1 1]);
-set(h,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-print(fname,'-dpdf');
-%%
-data.contx = xcon;
-data.cont = cont;
-data.cohtx = xcoh;
-data.coht = coht;
-
-if strfind(getenv('OS'),'Windows')
-    save(fullfile(datafolder,sprintf('%s_data.mat',subj)),'data');
-else
-    warning('not implemented');
-end
+% savepdf(

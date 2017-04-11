@@ -25,6 +25,9 @@ for ai = 1:length(attend)
     subplot(1,2,ai), hold on
     title(sprintf('%s, n=%i',attend{ai},size(data,1)));
     conpeds = unique(data(:,10));
+    if isempty(conpeds)
+        conpeds = 0;
+    end
     for ci = 1:length(conpeds)
         %             dat = sel(data,10,conpeds(ci));
         %             cone = max(dat(:,5)-dat(:,4)); cont = cone/5;
@@ -37,6 +40,9 @@ for ai = 1:length(attend)
         plot(cr,fitcon,'-','Color',clist(ci,:));
     end
     cohpeds = unique(data(:,11));
+    if isempty(cohpeds)
+        cohpeds = 0;
+    end
     for ci = 1:length(cohpeds)
         %             dat = sel(data,11,cohpeds(ci));
         %             cohe = max(dat(:,7)-dat(:,6));
@@ -63,10 +69,11 @@ for ai = 1:length(attend)
     
     % set(ax,'XTickLabel',{'-3pi','-2pi','-pi','0','pi','2pi','3pi'})
     set(gca,'XTickLabel',{'-100','-50','0','50','100'});
-    set(gca,'YTick',[0 0.5 1],'YTickLabel',{'0','','100%'});
-    xlabel('Stimulus Strength (Right - Left, %)');
-    ylabel('Right Choice Probability');
-    drawPublishAxis
+    if ai==1
+        set(gca,'YTick',[0 0.5 1],'YTickLabel',{'0','','100%'});
+        xlabel('Stimulus Strength (Right - Left, %)');
+        ylabel('Right Choice Probability');
+    end
 end
 
 function [conr, resp] = fitCurveCon(fit,conped,conrange,attend)
