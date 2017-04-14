@@ -1,12 +1,6 @@
-function out = conModel(con,params,att,fitflag)
+function out = conModel(con,params)
 global fixedParams
 
-if ~exist('att','var')
-    att=0;
-end
-if ~exist('fitflag','var')
-    fitflag=0;
-end
 if isfield(params,'attgain')
     warning('Attention gain model failure');
 end
