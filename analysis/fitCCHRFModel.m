@@ -1,4 +1,4 @@
-function fit = fitCCHRFModel( data , mode)
+function fit = fitCCHRFModel( data , mode, pfit)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -23,6 +23,9 @@ if length(data.ROIs)>1
         ndata.ROIs = ndata.ROIs(ri);
         ndata.cc.resp = ndata.cc.resp(ri,:,:);
         ndata.time.resp = ndata.time.resp(ri,:,:);
+        if strfind(mode,'fitexp')
+            ndata.params = pfit.roifit{ri}.params;
+        end
         
         fit.roifit{ri} = fitCCHRFModel(ndata,mode);
         fit.r2(ri) = fit.roifit{ri}.r2;
@@ -37,7 +40,15 @@ roiparams = struct;
 fixedParams.fitroi = 0;
 fixedParams.spkdec = 0;
 
-if strfind(mode,'spkdec')
+if strfind(mode,'fitexp')
+    hrfparams.spkexp = 0;
+    hrfparams.hrfexp = [-0.7 -Inf Inf];
+    fixedParams.x = 0:.01:1;
+    fixedParams.con = conModel(fixedParams.x,data.params);
+    fixedParams.coh = cohModel(fixedParams.x,data.params);
+    roiparams.conmodel = 4;
+    roiparams.cohmodel = 4;
+elseif strfind(mode,'spkdec')
     % Spike rate decay
     hrfparams.spkexp = -0.7;%[-0.5 -inf 0];
     hrfparams.hrfexp = 0;

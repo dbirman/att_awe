@@ -49,81 +49,10 @@ if strfind(modes,'disp')
     %% dispInfo
     load(fullfile(datafolder,sprintf('%s',subj),files(end).name));
     ccDispInfocontrol(stimulus,subj);
-%     fname = fullfile(datafolder,sprintf('%s_threshold.pdf',subj));
-
-%     set(h1,'Units','Inches');
-%     pos = get(h1,'Position');
-%     set(h1,'InvertHardCopy','off');
-%     set(gcf,'Color',[1 1 1]);
-%     set(gca,'Color',[1 1 1]);
-%     set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-%     print(fname,'-dpdf');
-
-    %% Figure
-%     h1 = figure;
-%     x = 0:.01:1;
-%     con = x;
-%     cony = conModel(x,fit.params);
-%     cony_un = (fit.params.conRmax * fit.params.conunatt) .* ((con.^fit.params.conn) ./ (con.^fit.params.conn + fit.params.conc50.^fit.params.conn));
-% 
-%     cohy = cohModel(x,fit.params);
-%     cohy = fit.params.cohslope*x;
-%     cohy_un = fit.params.cohslope*x*fit.params.cohunatt;
-% 
-%     clist = brewermap(3,'PuOr');
-%     plot(x,cony,'Color',clist(1,:));
-%     plot(x,cohy,'Color',clist(3,:));
-%     if fit.params.poissonNoise
-%         [hl,hp] = boundedline(x,cony,sqrt(fit.params.sigma*cony),'alpha');
-%     else
-%         [hl,hp] = boundedline(x,cony,fit.params.sigma*ones(size(cony)),'alpha');
-%     end
-%     set(hl,'Color',clist(1,:));
-%     set(hp,'FaceColor',clist(1,:));
-%     [hl,hp] = boundedline(x,cony_un,fit.params.sigma*ones(size(cony)),'alpha');
-%     set(hl,'Color',clist(1,:));
-%     set(hp,'FaceColor',clist(1,:));
-%     [hl,hp] = boundedline(x,cohy,fit.params.sigma*ones(size(cohy)),'alpha');
-%     set(hl,'Color',clist(3,:));
-%     set(hp,'FaceColor',clist(3,:));
-%     [hl,hp] = boundedline(x,cohy_un,fit.params.sigma*ones(size(cohy)),'alpha');
-%     set(hl,'Color',clist(3,:));
-%     set(hp,'FaceColor',clist(3,:));
-%     legend({'Contrast','Coherence'});
-%     xlabel('Contrast / Coherence (%)');
-%     ylabel('Response (a.u.)');
-% 
-%     drawPublishAxis
-%     % fname = fullfile(ffolder,'response.pdf');
-%     % set(h2,'Units','Inches');
-%     % pos = get(h2,'Position');
-%     % set(h2,'InvertHardCopy','off');
-%     % set(gcf,'Color',[1 1 1]);
-%     % set(gca,'Color',[1 1 1]);
-%     % set(h2,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-%     % print(fname,'-dpdf');
-%     fname = fullfile(datafolder,sprintf('%s_response.pdf',subj));
-% 
-%     set(h1,'Units','Inches');
-%     pos = get(h1,'Position');
-%     set(h1,'InvertHardCopy','off');
-%     set(gcf,'Color',[1 1 1]);
-%     set(gca,'Color',[1 1 1]);
-%     set(h1,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-%     print(fname,'-dpdf');
 end
 %%
 if strfind(modes,'right')
     h1 = cc_rightchoicecontrol(adata, fit, 0);
-    % set(h3,'Units','Inches');
-    % pos = get(h3,'Position');
-    % set(h3,'PaperPositionMode','Auto','PaperUnits','Inches','PaperSize',[pos(3), pos(4)])
-    % title(sprintf('BIC: %4.2f',fit.BIC));
-    % fname = fullfile(ffolder,'rightchoice.pdf');
-    % set(h3,'InvertHardCopy','off');
-    % set(gcf,'Color',[1 1 1]);
-    % set(gca,'Color',[1 1 1]);
-    % print(fname,'-dpdf');
 
     %%
     savepdf(h1,fullfile(datafolder,sprintf('%s_rightchoice.pdf',subj)));
