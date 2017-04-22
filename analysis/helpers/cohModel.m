@@ -53,23 +53,3 @@ end
 if isfield(params,'cohalpha')
     out = out+params.cohalpha; % add the alpha parameter so that the function starts at zero
 end
-
-return
-if ~isfield(fixedParams,'fitting') || fixedParams.fitting==0
-    out = out + params.offset; % adds the offset, it'll do this equally for contrast and coherence which isn't strictly true, but for
-    % visualization purposes it's a reasonable approximation
-    if isfield(params,'attoff') && params.attoff
-        warning('code not implemented!!');
-        keyboard
-        if att==0
-            return
-        elseif att==2
-            out = out + params.conattoff;
-        elseif att==1
-            out = out + params.cohattoff;
-        else
-            warning('failure');
-            keyboard
-        end
-    end
-end

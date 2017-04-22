@@ -20,7 +20,7 @@ if strfind(modes,'refit')
     %fits = cell(1,length(strs));
 %     BICs = zeros(size(fits));
     minl = inf;
-    for si = 3:4
+    for si = 1:4
         fits{si} = fitCCBehavControlModel(adata,1,strs{si});
         BICs(si) = fits{si}.BIC;
         if fits{si}.BIC < (minl-5)

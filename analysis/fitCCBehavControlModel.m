@@ -218,7 +218,7 @@ for ai = 1:size(adata,1)
     end
     
     if prob==0
-        warning('probably returned zero')
+%         warning('probability returned zero')
         prob = eps;
     end
     
@@ -247,7 +247,7 @@ if f>0
     clf
     hold on
     clist = brewermap(3,'PuOr');
-    x = 0:.01:1;
+    x = 0:.001:1:1;
     fcon = conModel(x,params);
 %     fconp = 1-normcdf(0,fcon,params.sigma_con);
     fcoh = cohModel(x,params);

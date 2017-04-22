@@ -19,6 +19,14 @@ adata = adata(~any(isnan(adata),2),:);
 
 fixedParams = struct;
 
+%% Reduce base contrast
+if any(adata(:,2)>0)
+    disp('Base contrast reducing to 0');
+    adata(:,4) = adata(:,4)-adata(:,2);
+    adata(:,5) = adata(:,5)-adata(:,2);
+    adata(:,2) = adata(:,2)-adata(:,2);
+end
+
 %% Contrast Modeling Parameters
 numParams = 0;
 if strfind(model,'null')
