@@ -1,4 +1,4 @@
-function fit = fitCCHRFModel( data , mode, pfit)
+function fit = fitCCHRFModel_exp( data , mode, pfit)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -27,7 +27,7 @@ if length(data.ROIs)>1
             ndata.params = pfit.roifit{ri}.params;
         end
         
-        fit.roifit{ri} = fitCCHRFModel(ndata,mode);
+        fit.roifit{ri} = fitCCHRFModel_exp(ndata,mode);
         fit.r2(ri) = fit.roifit{ri}.r2;
         fit.BIC(ri) = fit.roifit{ri}.BIC;
     end
@@ -41,18 +41,27 @@ fixedParams.fitroi = 0;
 fixedParams.spkdec = 0;
 fixedParams.fitexp = 0;
 
-if strfind(mode,'spkdec')
+if strfind(mode,'fitexp')
+    hrfparams.spkexp = 0;
+    hrfparams.hrfexp = [-0.623 -Inf Inf];
+    fixedParams.x = 0:.01:1;
+    fixedParams.con = conModel(fixedParams.x,data.params);
+    fixedParams.coh = cohModel(fixedParams.x,data.params);
+    roiparams.conmodel = 4;
+    roiparams.cohmodel = 4;
+    fixedParams.fitexp = 1;
+elseif strfind(mode,'spkdec')
     % Spike rate decay
     hrfparams.spkexp = -0.7;%[-0.5 -inf 0];
     hrfparams.hrfexp = 0;
     fixedParams.spkdec = 1;
 elseif strfind(mode,'spkhrfdec')
-    hrfparams.spkexp = -0.623;
-    hrfparams.hrfexp = -0.623;
+    hrfparams.spkexp = -0.7;
+    hrfparams.hrfexp = -0.7;
 else
     % HRF response decay
     hrfparams.spkexp = 0;
-    hrfparams.hrfexp = -0.623; % adaptation exponent (for time)
+    hrfparams.hrfexp = -0.7; % adaptation exponent (for time)
 end
 
 fixedParams.numparams = 0;
@@ -115,18 +124,34 @@ function fit = fitModel(data)
 global fixedParams
 [initparams,minparams,maxparams] = initParams;
 
+f = figure;
+
+optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
+[bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data,f,fixedParams);
+
+n = length(data.cc.resp(:))+length(data.time.resp(:));
+
+[~,fit] = hrfResidual(bestparams,data,-1,fixedParams);
+fit.SSE = sum(fit.rres.^2);
+fit.sstot = fixedParams.sstot;
+fit.r2 = 1 - (fit.SSE/fit.sstot);
+fit.BIC = n*log(fit.SSE/n) + fixedParams.numparams*log(n);
+fit.params = getParams(bestparams,fixedParams);
+fit.ROIs = fixedParams.ROIs;
+
+function [res, fit] = hrfResidual(params,data,f,fixedParams)
+
+% stimvol basecon lcon rcon basecoh lcoh rcoh timing task
+params = getParams(params,fixedParams);
+
 data.utimes = [0.5 1 2 4 5 8];
 data.reps = [1 1 2 4 5 8];
 
-if fixedParams.fitexp
-    data.canonical = data.hrf;
-else
-    for ui = 1:length(data.utimes)
-        events = repmat(data.utimes(ui)^fixedParams.hrfexp,1,data.reps(ui));
-        if ui==1, events = events*0.5; end
-        canon = conv(events,data.hrf);
-        data.canonical(ui,:) = canon(1:length(data.hrf));
-    end
+for ui = 1:length(data.utimes)
+    events = repmat(data.utimes(ui)^params.hrfexp,1,data.reps(ui));
+    if ui==1, events = events*0.5; end
+    canon = conv(events,data.hrf);
+    data.canonical(ui,:) = canon(1:length(data.hrf));
 end
 
 % Transform data to fitted version
@@ -144,28 +169,7 @@ for i=1:size(data.time.time,2)
 end
 data.time.resp_ = out_time;
 
-f = figure;
-
-optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
-[bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data,f,fixedParams);
-
-n = length(data.cc.resp(:))+length(data.time.resp(:));
-
-[~,fit] = hrfResidual(bestparams,data,-1,fixedParams);
-fit.SSE = sum(fit.rres.^2);
-fit.sstot = fixedParams.sstot;
-fit.r2 = 1 - (fit.SSE/fit.sstot);
-fit.BIC = n*log(fit.SSE/n) + fixedParams.numparams*log(n);
-fit.params = getParams(bestparams,fixedParams);
-fit.params = getROIParams(fit.params,data.ROIs{1});
-fit.ROIs = fixedParams.ROIs;
-
-function [res, fit] = hrfResidual(params,data,f,fixedParams)
-
 fit = struct;
-
-% stimvol basecon lcon rcon basecoh lcoh rcoh timing task
-params = getParams(params,fixedParams);
 
 fit.cc = data.cc;
 fit.time = data.time;
@@ -176,8 +180,8 @@ res = zeros(1,length(data.cc.resp_)+length(data.time.resp_));
 
 roiparams = getROIParams(params,fixedParams.ROIs{1});
 
-baseConResp = conModel(data.basecon,roiparams,0,1);
-baseCohResp = cohModel(data.basecoh,roiparams,0,1);
+baseConResp = conModel(data.basecon,roiparams);
+baseCohResp = cohModel(data.basecoh,roiparams);
 
 cc_model = zeros(size(data.cc.resp));
 
@@ -185,13 +189,13 @@ for i = 1:length(data.cc.resp_)
     ccon = data.cc.con(i);
     ccoh = data.cc.coh(i);
     
-    conEff = conModel(ccon,roiparams,0,1)-baseConResp;
-    cohEff = cohModel(ccoh,roiparams,0,1)-baseCohResp;
+    conEff = conModel(ccon,roiparams)-baseConResp;
+    cohEff = cohModel(ccoh,roiparams)-baseCohResp;
     
     if conEff==0 && cohEff==0 % no change! res=0
         res(i) = 0;
     else
-        effect = conEff+cohEff+roiparams.offset;
+        effect = conEff+cohEff+data.params.offset;
 
         cc_model(1,i,:) = data.canonical(data.cc.time(i)==data.utimes,:)*effect;
 
@@ -205,13 +209,13 @@ for i = 1:length(data.time.resp_)
     ccon = data.time.con(i);
     ccoh = data.time.coh(i);
     
-    conEff = conModel(ccon,roiparams,0,1)-baseConResp;
-    cohEff = cohModel(ccoh,roiparams,0,1)-baseCohResp;
+    conEff = conModel(ccon,roiparams)-baseConResp;
+    cohEff = cohModel(ccoh,roiparams)-baseCohResp;
     
     if conEff==0 && cohEff==0 % no change! res=0
         res(length(data.cc.resp_)+i) = 0;
     else
-        effect = conEff+cohEff+roiparams.offset;
+        effect = conEff+cohEff+data.params.offset;
 
         time_model(1,i,:) = data.canonical(data.time.time(i)==data.utimes,:)*effect;
 
@@ -220,19 +224,19 @@ for i = 1:length(data.time.resp_)
 end
 
 if fixedParams.regularize
-    res = [res 0.1*conModel(0:.1:1,roiparams,0,1) 0.1*cohModel(0:.1:1,roiparams,0,1)];
+    res = [res 0.1*conModel(0:.1:1,roiparams) 0.1*cohModel(0:.1:1,roiparams,0,1)];
 end
     
-if f>0
-    figure(f)
-    subplot(2,2,1:2);
-    plot(res);
-    subplot(2,2,3);
-    x = 0:.01:1;
-    plot(x,conModel(x,roiparams,0,1));
-    subplot(2,2,4);
-    plot(x,cohModel(x,roiparams,0,1));
-end
+% if f>0
+%     figure(f)
+%     subplot(2,2,1:2);
+%     plot(res);
+%     subplot(2,2,3);
+%     x = 0:.01:1;
+%     plot(x,conModel(x,roiparams,0,1));
+%     subplot(2,2,4);
+%     plot(x,cohModel(x,roiparams,0,1));
+% end
 
 fit.cc.model = cc_model;
 fit.time.model = time_model;

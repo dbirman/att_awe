@@ -94,8 +94,14 @@ elseif strfind(model,'coh-exp')
     numParams = numParams+2;
 end
 
-if strfind(model,'notime')
+fixedParams.timelin = 0;
+if strfind(model,'timelin')
+    initparams.time = [0.5 -inf inf];
+    numParams = numParams+1;
+    fixedParams.timelin=1;
+elseif strfind(model,'notime')
     initparams.time = 0;
+    fixedParams.timelin=1;
 else
     initparams.time = [0.5 -inf inf]; % this is the time gain which is the exponent on the time (1:2:4)
     numParams = numParams+1;
@@ -170,6 +176,7 @@ fit.BIC = 2*fit.likelihood + numParams * log(size(adata,1));
 
 function likelihood = fitBehavModel(params,adata,f)
 %%
+global fixedParams
 if ~isstruct(params) && any(isnan(params))
     likelihood = Inf;
     return
@@ -198,11 +205,18 @@ betas(2,:) = [params.beta_control_con_conw params.beta_control_con_cohw];
 % betas(6,:) = [params.beta_unatt_con_conw params.beta_unatt_con_cohw];
 
 % compute effects
-conEffL = (conModel(adata(:,5),params)-conModel(adata(:,2),params)).*(adata(:,13).^params.time);;
-conEffR = (conModel(adata(:,4),params)-conModel(adata(:,2),params)).*(adata(:,13).^params.time);;
+if fixedParams.timelin
+    conEffL = (conModel(adata(:,5),params)-conModel(adata(:,2),params)).*(adata(:,13)*params.time);
+    conEffR = (conModel(adata(:,4),params)-conModel(adata(:,2),params)).*(adata(:,13)*params.time);
+    cohEffL = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params)).*(adata(:,13)*params.time);
+    cohEffR = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params)).*(adata(:,13)*params.time);
+else
+    conEffL = (conModel(adata(:,5),params)-conModel(adata(:,2),params)).*(adata(:,13).^params.time);
+    conEffR = (conModel(adata(:,4),params)-conModel(adata(:,2),params)).*(adata(:,13).^params.time);
+    cohEffL = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params)).*(adata(:,13).^params.time);
+    cohEffR = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params)).*(adata(:,13).^params.time);
+end
 conEff = conEffL - conEffR;
-cohEffL = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params)).*(adata(:,13).^params.time);;
-cohEffR = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params)).*(adata(:,13).^params.time);;
 cohEff = cohEffL - cohEffR;
 
 for ai = 1:size(adata,1)
@@ -215,7 +229,7 @@ for ai = 1:size(adata,1)
     end
     
     if prob==0
-        warning('probably returned zero')
+%         warning('probably returned zero')
         prob = eps;
     end
     
