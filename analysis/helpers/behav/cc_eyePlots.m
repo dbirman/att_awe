@@ -1,6 +1,6 @@
 function cc_eyePlots(sid)
 
-allData = loadAllData(sid);
+allData = loadadata(sid);
 
 eye = allData.behav.eye;
 

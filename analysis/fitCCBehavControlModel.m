@@ -178,6 +178,7 @@ bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minpar
 fit.params = getParams(bestparams);
 [fit.likelihood] = fitBehavModel(bestparams,adata,0);
 fit.BIC = 2*fit.likelihood + length(bestparams) * log(size(adata,1));
+fit.AIC = 2*fit.likelihood + length(bestparams) * 2;
 fit.numParams = length(bestparams);
 
 function likelihood = fitBehavModel(params,adata,f)

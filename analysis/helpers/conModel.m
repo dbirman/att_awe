@@ -5,7 +5,6 @@ if isfield(params,'conmodel')
     if params.conmodel==1
         out = params.conslope .* con;
     elseif params.conmodel==2
-        con = con+0.25;
         params.conn = round(params.conn);
         out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
     elseif params.conmodel==3 % exp model

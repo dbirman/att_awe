@@ -1,4 +1,4 @@
-function fit = fitCCHRFModel( data , mode, pfit)
+function fit = fitCCHRFModel_lsq( data , mode, pfit)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -27,13 +27,12 @@ if length(data.ROIs)>1
             ndata.params = pfit.roifit{ri}.params;
         end
         if strfind(mode,'fitsigma')
-            fit.roifit{ri} = fitCCHRFModel(ndata,mode,pfit);
+            fit.roifit{ri} = fitCCHRFModel_lsq(ndata,mode,pfit);
         else
-            fit.roifit{ri} = fitCCHRFModel(ndata,mode);
+            fit.roifit{ri} = fitCCHRFModel_lsq(ndata,mode);
         end
         fit.r2(ri) = fit.roifit{ri}.r2;
         fit.BIC(ri) = fit.roifit{ri}.BIC;
-        fit.AIC(ri) = fit.roifit{ri}.AIC;
         fit.like(ri) = fit.roifit{ri}.like;
     end
    
@@ -62,9 +61,6 @@ if strfind(mode,'fitsigma')
     roiparams.cohmodel = 4;
     roiparams.sigmacon = [0.1 0 1];
     roiparams.sigmacoh = [0.1 0 1];
-else
-    roiparams.sigmacon = 1;
-    roiparams.sigmacoh = 1;
 end
 
 if strfind(mode,'spkdec')
@@ -85,7 +81,6 @@ fixedParams.numparams = 0;
 if strfind(mode,'fitroi')
     % get hrf params
     % Offset
-    
     if strfind(mode,'nooffset')
         roiparams.offset=0;
     elseif strfind(mode,'doubleoffset')
@@ -208,8 +203,7 @@ data.time.resp_ = out_time;
 
 f = figure;
 
-optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
-[bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data,f,fixedParams);
+
 
 n = length(data.cc.resp(:))+length(data.time.resp(:));
 
@@ -218,7 +212,6 @@ fit.SSE = sum(fit.rres.^2);
 fit.sstot = fixedParams.sstot;
 fit.r2 = 1 - (fit.SSE/fit.sstot);
 fit.BIC = n*log(fit.SSE/n) + length(bestparams)*log(n);
-fit.AIC = n*log(fit.SSE/n) + length(bestparams)*2;
 fit.like = log(fit.SSE/n);
 fit.params = getParams(bestparams,fixedParams);
 fit.params = getROIParams(fit.params,data.ROIs{1});
