@@ -1,38 +1,15 @@
 
-function out = cohModel(coh,params,att,fitflag)
+function out = cohModel(coh,params)
 global fixedParams
 
-if ~exist('att','var')
-    att=0;
-end
-if ~exist('fitflag','var')
-    fitflag=0;
-end
 if isfield(params,'cohmodel')
     if params.cohmodel==1
-%         if isfield(params,'attgain') && params.attgain
-%             if att==1
-%                 params.cohslope = params.cohslope * params.cohatt_cohgain;
-%             elseif att==2
-%                 params.cohslope = params.cohslope * params.conatt_cohgain;
-%             end
-%         end
         out = params.cohslope .* coh;
     elseif params.cohmodel==2
-%         if isfield(params,'attgain') && params.attgain==1
-%             if att==1
-%                 params.cohRmax = params.cohRmax * params.cohatt_cohgain;
-%             elseif att==2
-%                 params.cohRmax = params.cohRmax * params.conatt_cohgain;
-%             end
-%         end
         params.cohn = round(params.cohn);
         out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
     elseif params.cohmodel ==3
-        if isfield(params,'attgain')
-            warning('attgain not implemented for exponential model');
-        end
-        out = -params.cohalpha * exp(-params.cohkappa*coh);
+        out = params.cohalpha-(params.cohalpha * exp(-params.cohkappa*coh));
     elseif params.cohmodel==4
         if isfield(params,'cohgain')
             lcoh = fixedParams.coh*params.cohgain;
@@ -44,12 +21,12 @@ if isfield(params,'cohmodel')
             out(ci) = lcoh(find(fixedParams.x>=coh(ci),1));
         end
         return
+    elseif params.cohmodel==5
+        out = params.cohalpha .* tanh(coh*params.cohkappa);
+    elseif params.cohmodel==6
+        out = 1./exp(coh).*(params.cohalpha -(params.cohalpha * exp(-params.cohkappa*coh)))+params.cohalpha*coh;
     end
 else
     warning('failure: no model selected');
     keyboard
-end
-
-if isfield(params,'cohalpha')
-    out = out+params.cohalpha; % add the alpha parameter so that the function starts at zero
 end

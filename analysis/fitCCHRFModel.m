@@ -26,8 +26,11 @@ if length(data.ROIs)>1
         if strfind(mode,'fitexp')
             ndata.params = pfit.roifit{ri}.params;
         end
-        
-        fit.roifit{ri} = fitCCHRFModel(ndata,mode);
+        if strfind(mode,'fitsigma')
+            fit.roifit{ri} = fitCCHRFModel(ndata,mode,pfit);
+        else
+            fit.roifit{ri} = fitCCHRFModel(ndata,mode);
+        end
         fit.r2(ri) = fit.roifit{ri}.r2;
         fit.BIC(ri) = fit.roifit{ri}.BIC;
     end
@@ -41,9 +44,32 @@ fixedParams.fitroi = 0;
 fixedParams.spkdec = 0;
 fixedParams.fitexp = 0;
 
+if strfind(mode,'fitsigmacon')
+    fixedParams.x = pfit.x;
+    fixedParams.con = pfit.con;
+    fixedParams.coh = pfit.coh*0;
+    roiparams.offset = [0 -inf inf];
+    roiparams.conmodel = 4;
+    roiparams.cohmodel = 4;
+    roiparams.sigmacon = [0.1 0 1];
+    roiparams.sigmacoh = 0;
+elseif strfind(mode,'fitsigmacoh')
+    fixedParams.x = pfit.x;
+    fixedParams.con = pfit.con*0;
+    fixedParams.coh = pfit.coh;
+    roiparams.offset = [0 -inf inf];
+    roiparams.conmodel = 4;
+    roiparams.cohmodel = 4;
+    roiparams.sigmacon = 0;
+    roiparams.sigmacoh = [0.1 0 1];
+else
+    roiparams.sigmacon = 1;
+    roiparams.sigmacoh = 1;
+end
+
 if strfind(mode,'spkdec')
     % Spike rate decay
-    hrfparams.spkexp = -0.7;%[-0.5 -inf 0];
+    hrfparams.spkexp = -0.623;%[-0.5 -inf 0];
     hrfparams.hrfexp = 0;
     fixedParams.spkdec = 1;
 elseif strfind(mode,'spkhrfdec')
@@ -59,27 +85,62 @@ fixedParams.numparams = 0;
 if strfind(mode,'fitroi')
     % get hrf params
     % Offset
-    if isempty(strfind(mode,'nooffset'))
-        roiparams.offset = [0 -inf inf];
-        fixedParams.numparams = fixedParams.numparams+1;
-    else
+    if strfind(mode,'nooffset')
         roiparams.offset=0;
+    elseif strfind(mode,'doubleoffset')
+        roiparams.conoffset = [0 -inf inf];
+        roiparams.cohoffset = [0 -inf inf];
+    else
+        roiparams.offset = [0 -inf inf];
     end
-    % Contrast Function Parameters
-    roiparams.conalpha = [1 -inf inf];
-    roiparams.conkappa = [1 -inf inf];
-    roiparams.conmodel = 3;
-    % Coherence Function Parameters
-    roiparams.cohalpha = [1 -inf inf];
-    roiparams.cohkappa = [1 -inf inf];
-    roiparams.cohmodel = 3;
-    fixedParams.numparams = fixedParams.numparams+4;
+    
+    if strfind(mode,'linear')
+        roiparams.conslope = [1 -inf inf];
+        roiparams.conmodel = 1;
+        roiparams.cohslope = [1 -inf inf];
+        roiparams.cohmodel = 1;
+    elseif strfind(mode,'naka')
+        roiparams.conRmax = [20 -inf inf];
+        roiparams.cohRmax = [20 -inf inf];
+        roiparams.conn = [2 eps inf];
+        roiparams.cohn = [2 eps inf];
+        roiparams.conc50 = [0.5 eps 1-eps];
+        roiparams.cohc50 = [0.5 eps 1-eps];
+        roiparams.conmodel = 2;
+        roiparams.cohmodel = 2;
+    elseif strfind(mode,'tanh')
+        roiparams.conalpha = [1 -inf inf];
+        roiparams.conkappa = [1 -inf inf];
+        roiparams.conmodel = 5;
+        roiparams.cohalpha = [1 -inf inf];
+        roiparams.cohkappa = [1 -inf inf];
+        roiparams.cohmodel = 5;
+    elseif strfind(mode,'explin')
+        roiparams.conalpha = [1 0 inf];
+        roiparams.conkappa = [1 0 inf];
+        roiparams.conmodel = 6;
+        roiparams.cohalpha = [1 0 inf];
+        roiparams.cohkappa = [1 0 inf];
+        roiparams.cohmodel = 6;
+    elseif strfind(mode,'exp')
+        % Contrast Function Parameters
+        roiparams.conalpha = [1 -inf inf];
+        roiparams.conkappa = [1 -inf inf];
+        roiparams.conmodel = 3;
+        % Coherence Function Parameters
+        roiparams.cohalpha = [1 -inf inf];
+        roiparams.cohkappa = [1 -inf inf];
+        roiparams.cohmodel = 3;
+    else
+        disp('No model specified');
+        keyboard
+    end
     % run type
     fixedParams.fitroi = 1;
 end
 
 fixedParams.regularize=0;
-if strfind(mode,'noreg')
+if strfind(mode,'doreg')
     fixedParams.regularize = 1;
 end
 
@@ -155,7 +216,7 @@ n = length(data.cc.resp(:))+length(data.time.resp(:));
 fit.SSE = sum(fit.rres.^2);
 fit.sstot = fixedParams.sstot;
 fit.r2 = 1 - (fit.SSE/fit.sstot);
-fit.BIC = n*log(fit.SSE/n) + fixedParams.numparams*log(n);
+fit.BIC = n*log(fit.SSE/n) + length(bestparams)*log(n);
 fit.params = getParams(bestparams,fixedParams);
 fit.params = getROIParams(fit.params,data.ROIs{1});
 fit.ROIs = fixedParams.ROIs;
@@ -176,8 +237,8 @@ res = zeros(1,length(data.cc.resp_)+length(data.time.resp_));
 
 roiparams = getROIParams(params,fixedParams.ROIs{1});
 
-baseConResp = conModel(data.basecon,roiparams,0,1);
-baseCohResp = cohModel(data.basecoh,roiparams,0,1);
+baseConResp = conModel(data.basecon,roiparams);
+baseCohResp = cohModel(data.basecoh,roiparams);
 
 cc_model = zeros(size(data.cc.resp));
 
@@ -185,13 +246,27 @@ for i = 1:length(data.cc.resp_)
     ccon = data.cc.con(i);
     ccoh = data.cc.coh(i);
     
-    conEff = conModel(ccon,roiparams,0,1)-baseConResp;
-    cohEff = cohModel(ccoh,roiparams,0,1)-baseCohResp;
+    conEff = roiparams.sigmacon*(conModel(ccon,roiparams)-baseConResp);
+    cohEff = roiparams.sigmacoh*(cohModel(ccoh,roiparams)-baseCohResp);
     
     if conEff==0 && cohEff==0 % no change! res=0
         res(i) = 0;
     else
-        effect = conEff+cohEff+roiparams.offset;
+        if isfield(roiparams,'offset')
+            if (conEff>0) || (cohEff>0)
+                effect = conEff+cohEff+roiparams.offset;
+            else
+                effect = conEff+cohEff;
+            end
+        else
+            effect = conEff+cohEff;
+            if conEff>0
+                effect = effect+ roiparams.conoffset;
+            end
+            if cohEff>0
+                effect = effect+roiparams.cohoffset;
+            end
+        end
 
         cc_model(1,i,:) = data.canonical(data.cc.time(i)==data.utimes,:)*effect;
 
@@ -205,13 +280,27 @@ for i = 1:length(data.time.resp_)
     ccon = data.time.con(i);
     ccoh = data.time.coh(i);
     
-    conEff = conModel(ccon,roiparams,0,1)-baseConResp;
-    cohEff = cohModel(ccoh,roiparams,0,1)-baseCohResp;
+    conEff = roiparams.sigmacon*(conModel(ccon,roiparams)-baseConResp);
+    cohEff = roiparams.sigmacoh*(cohModel(ccoh,roiparams)-baseCohResp);
     
     if conEff==0 && cohEff==0 % no change! res=0
         res(length(data.cc.resp_)+i) = 0;
     else
-        effect = conEff+cohEff+roiparams.offset;
+        if isfield(roiparams,'offset')
+            if (conEff>0) || (cohEff>0)
+                effect = conEff+cohEff+roiparams.offset;
+            else
+                effect = conEff+cohEff;
+            end
+        else
+            effect = conEff+cohEff;
+            if conEff>0
+                effect = effect+ roiparams.conoffset;
+            end
+            if cohEff>0
+                effect = effect+roiparams.cohoffset;
+            end
+        end
 
         time_model(1,i,:) = data.canonical(data.time.time(i)==data.utimes,:)*effect;
 
@@ -220,7 +309,7 @@ for i = 1:length(data.time.resp_)
 end
 
 if fixedParams.regularize
-    res = [res 0.1*conModel(0:.1:1,roiparams,0,1) 0.1*cohModel(0:.1:1,roiparams,0,1)];
+    res = [res 0.1*conModel(0:.1:1,roiparams) 0.1*cohModel(0:.1:1,roiparams)];
 end
     
 if f>0
@@ -229,9 +318,9 @@ if f>0
     plot(res);
     subplot(2,2,3);
     x = 0:.01:1;
-    plot(x,conModel(x,roiparams,0,1));
+    plot(x,conModel(x,roiparams));
     subplot(2,2,4);
-    plot(x,cohModel(x,roiparams,0,1));
+    plot(x,cohModel(x,roiparams));
 end
 
 fit.cc.model = cc_model;
