@@ -1,10 +1,8 @@
-function fit = fitCCBehavControlModel(adata,figs,model,confit,cohfit)
+function fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit)
 % CCBehavModel
 %
-% Fit the contrast (naka-rushton) and coherence (linear) models to the data
-% obtained from the behavioral experiment. Use only the control condition
-% data. This is just to compare linear vs. non-linear and constant vs.
-% decreasing noise.
+% Copy of fitCCBehavControlModel that allows you to fit a doublesigma (one
+% sigma for contrast, one for coherence)
 
 global fixedParams
 
@@ -69,112 +67,12 @@ elseif strfind(model,'sigma')
     return
 end
 
-fixedParams = struct;
-%% Contrast Modeling Parameters
-if strfind(model,'null')
-    disp('(behavmodel) Fitting null contrast model');
-    initparams.conslope = 0;
-    initparams.conmodel = 1;
-elseif strfind(model,'con-linear')
-    disp('(behavmodel) Fitting linear contrast model');
-    initparams.conslope = [1 -inf inf];
-    initparams.conmodel = 1;
-elseif strfind(model,'con-naka')
-    disp('(behavmodel) Fitting naka contrast model');
-    initparams.conRmax = [30 -inf inf];
-    initparams.conc50 = [0.75 0 1];
-    initparams.conn = 1;
-    initparams.conmodel = 2;
-elseif strfind(model,'con-explin')
-    disp('(behavmodel) Fitting explin contrast model');
-    initparams.conalpha = [30 -inf inf];
-    initparams.conkappa = [0.5 0 inf];
-    initparams.conmodel = 6;
-elseif strfind(model,'con-exp')
-    disp('(behavmodel) Fitting exp contrast model');
-    initparams.conalpha = [30 -inf inf];
-    initparams.conkappa = [0.5 0 inf];
-    initparams.conmodel = 3;
-end
-if strfind(model,'null')
-    disp('(behavmodel) Fitting null coherence model');
-    initparams.cohslope = 0;
-    initparams.cohmodel = 1;
-elseif strfind(model,'coh-linear')
-    disp('(behavmodel) Fitting linear coherence model');
-    initparams.cohslope = [10 -inf inf];
-    initparams.cohmodel = 1;
-elseif strfind(model,'coh-naka')
-    disp('(behavmodel) Fitting naka coherence model');
-    initparams.cohRmax = [1 -inf inf];
-    initparams.cohc50 = [0.5 0 1];
-    initparams.cohn = 1;
-    initparams.cohmodel = 2;
-elseif strfind(model,'coh-explin')
-    disp('(behavmodel) Fitting explin contrast model');
-    initparams.cohalpha = [30 -inf inf];
-    initparams.cohkappa = [0.5 0 inf];
-    initparams.cohmodel = 6;
-elseif strfind(model,'coh-exp')
-    disp('(behavmodel) Fitting exp coherence model');
-    initparams.cohmodel = 3;
-    initparams.cohalpha = [30 -inf inf];
-    initparams.cohkappa = [0.5 0 inf];
-end
-
-% freeze contrast and coherence at 1 so they force the other betas to
-% similar values (i.e. sigma can't trade off with the other functions)
-initparams.beta_control_con_conw = 1;
-initparams.beta_control_con_cohw = [0 -1 1];
-initparams.beta_control_coh_cohw = 1;
-initparams.beta_control_coh_conw = [0 -1 1];
-    
-if strfind(model,'poisson')
-    disp('(behavmodel) Fitting poisson noise');
-    initparams.poissonNoise = 1;
-    initparams.sigma = 1;
-else
-    initparams.poissonNoise = 0;
-    initparams.sigma = 1;
-end
-
-if strfind(model,'nobias')
-    disp('(behavmodel) No bias');
-    initparams.bias = 0;
-else
-    initparams.bias = [0 -inf inf];
-end
-
-if strfind(model,'stayswitch')
-    disp('(behavmodel) Fitting four stay/switch parameters');
-    initparams.right_correct = [0 -inf inf];
-    initparams.right_incorr = [0 -inf inf];
-    initparams.left_correct = [0 -inf inf];
-    initparams.left_incorr = [0 -inf inf];
-end
-
-%% Prep and Call
-if ieNotDefined('figs')
-    figs = 0;
-end
-
-% Call fmins
-if figs
-    f = figure;
-else
-    f = -1;
-end
-
-[~, fit] = fitModel(initparams,adata,f);
-
-fit.modelstr = model;
-
 function [bestparams,fit] = fitModel(params,adata,f)
 
 [initparams, minparams, maxparams] = initParams(params);
 
 % 
-if length(params.sigma)>1
+if (isfield(params,'sigmacon') && length(params.sigmacon)>1) || (isfield(params,'sigma') && length(params.sigma)>1)
     options = optimoptions('fmincon','TolFun',0.01); % set a limit or it goes on foreeeeeeeeeeeever
 else
     options = optimoptions('fmincon'); % set a limit or it goes on foreeeeeeeeeeeever
@@ -197,10 +95,15 @@ if ~isstruct(params)
     params = getParams(params);
 end
 
-if params.sigma < eps
+if isfield(params,'sigmacon') && params.sigmacon < eps
     likelihood = inf;
     return
 end
+if isfield(params,'sigma') && params.sigma < eps
+    likelihood = inf;
+    return
+end
+
 
 likelihood = 0;
 % For each observation in adata, calculate log(likelihood) and sum
@@ -261,15 +164,15 @@ if likelihood<.001
     keyboard
 end
 
-if 0
+if 1
     figure(1)
     clf
     hold on
     clist = brewermap(3,'PuOr');
     x = 0:.001:1;
-    fcon = params.sigma*conModel(x,params);
+    fcon = params.sigmacon*conModel(x,params);
 %     fconp = 1-normcdf(0,fcon,params.sigma_con);
-    fcoh = params.sigma*cohModel(x,params);
+    fcoh = params.sigmacoh*cohModel(x,params);
 %     fcohp = 1-normcdf(0,fcoh,params.sigma_coh);
     plot(x,fcon,'Color',clist(1,:));
     plot(x,fcoh,'Color',clist(3,:));
@@ -331,24 +234,29 @@ if isfield(params,'right_correct') && ~isempty(pobs)
 end
 effect = beta * [conEff cohEff]' + params.bias + extra;
 
-if params.poissonNoise
-    if obs(1)==1 % TASK==COHERENCE
-        noise = sqrt(sum(abs(mean(cohs))));
+if isfield(params,'sigmacon')
+    if obs(1)==1
+        usesigma = params.sigmacoh;
     else
-        noise = sqrt(sum(abs(mean(cons))));
+        usesigma = params.sigmacon;
     end
-%     noise = sqrt(abs(sum([mean(cons) mean(cohs)]))); old model
+else
+    usesigma = params.sigma;
+end
+
+if params.poissonNoise
+    noise = sqrt(abs(sum([mean(cons) mean(cohs)])));
     if obs(8)==1
-        prob = normcdf(0,effect,noise*params.sigma,'upper');
+        prob = normcdf(0,effect,noise*usesigma,'upper');
     elseif obs(8)==0
-        prob = normcdf(0,effect,noise*params.sigma);
+        prob = normcdf(0,effect,noise*usesigma);
     else warning('failure'); keyboard
     end
 else
     if obs(8)==1
-        prob = normcdf(0,effect,params.sigma,'upper');
+        prob = normcdf(0,effect,usesigma,'upper');
     elseif obs(8)==0
-        prob = normcdf(0,effect,params.sigma);
+        prob = normcdf(0,effect,usesigma);
     else warning('failure'); keyboard
     end
 end
