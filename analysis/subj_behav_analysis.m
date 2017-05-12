@@ -7,6 +7,16 @@ files = dir(fullfile(datafolder,subj));
 %% Load data
 adata = loadadata(subj);
 
+%% Compute lapse rate
+tdata = adata(adata(:,9)==-1,:);
+tdata(:,13) = abs(tdata(:,5)-tdata(:,4)); % contrast diff
+tdata(:,14) = abs(tdata(:,7)-tdata(:,6)); % coherence diff
+conbins = quantile(tdata(:,13),.95);
+cohbins = quantile(tdata(:,14),.95);
+conidxs = logical((tdata(:,1)==2) .* (tdata(:,13)>conbins));
+cohidxs = logical((tdata(:,1)==1) .* (tdata(:,14)>cohbins));
+lapse = 1-mean([tdata(conidxs,12) ; tdata(cohidxs,12)]);
+
 %% TEMP CODE
 %% load original models
 load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
@@ -21,7 +31,7 @@ if strfind(modes,'refit')
 %     BICs = zeros(size(fits));
     minl = inf;
     for si = 1:length(strs)
-        fits{si} = fitCCBehavControlModel(adata,1,strs{si});
+        fits{si} = fitCCBehavControlModel(adata,1,strs{si},[],[],lapse);
         BICs(si) = fits{si}.BIC;
         if fits{si}.BIC < (minl-5)
             minl = fits{si}.BIC;

@@ -1,4 +1,4 @@
-function fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit)
+function fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit,lapserate)
 % CCBehavModel
 %
 % Copy of fitCCBehavControlModel that allows you to fit a doublesigma (one
@@ -63,6 +63,7 @@ elseif strfind(model,'sigma')
             initparams.sigma = [0.02 eps 1];
         end
     end
+    initparams.lapse = lapserate;
     [~, fit] = fitModel(initparams,adata,-1);
     return
 end
@@ -141,6 +142,9 @@ for ai = 1:size(adata,1)
         prob = getObsProb(obs,params,[],betas,conEff(ai),cohEff(ai),[conEffL(ai) conEffR(ai)],[cohEffL(ai) cohEffR(ai)]);
     end
     
+    % add lapse rate
+    prob = params.lapse + (1-2*params.lapse)*prob;
+    
     if prob==0
 %         warning('probability returned zero')
         prob = eps;
@@ -170,10 +174,13 @@ if 1
     hold on
     clist = brewermap(3,'PuOr');
     x = 0:.001:1;
-    fcon = params.sigmacon*conModel(x,params);
-%     fconp = 1-normcdf(0,fcon,params.sigma_con);
-    fcoh = params.sigmacoh*cohModel(x,params);
-%     fcohp = 1-normcdf(0,fcoh,params.sigma_coh);
+    if isfield(params,'sigmacon')
+        fcon = params.sigmacon*conModel(x,params);
+        fcoh = params.sigmacoh*cohModel(x,params);
+    else
+        fcon = params.sigma*conModel(x,params);
+        fcoh = params.sigma*cohModel(x,params);
+    end
     plot(x,fcon,'Color',clist(1,:));
     plot(x,fcoh,'Color',clist(3,:));
     % now plot the unattended curves    

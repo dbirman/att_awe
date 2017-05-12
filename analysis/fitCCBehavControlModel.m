@@ -1,4 +1,4 @@
-function fit = fitCCBehavControlModel(adata,figs,model,confit,cohfit)
+function fit = fitCCBehavControlModel(adata,figs,model,confit,cohfit,lapserate)
 % CCBehavModel
 %
 % Fit the contrast (naka-rushton) and coherence (linear) models to the data
@@ -153,6 +153,8 @@ if strfind(model,'stayswitch')
     initparams.left_incorr = [0 -inf inf];
 end
 
+initparams.lapse = lapserate;
+
 %% Prep and Call
 if ieNotDefined('figs')
     figs = 0;
@@ -237,6 +239,9 @@ for ai = 1:size(adata,1)
     else
         prob = getObsProb(obs,params,[],betas,conEff(ai),cohEff(ai),[conEffL(ai) conEffR(ai)],[cohEffL(ai) cohEffR(ai)]);
     end
+    
+    % add lapse rate
+    prob = params.lapse + (1-2*params.lapse)*prob;
     
     if prob==0
 %         warning('probability returned zero')
