@@ -50,16 +50,20 @@ elseif strfind(model,'sigma')
     initparams.beta_control_coh_cohw = 1;
     initparams.beta_control_coh_conw = [0 -1 1];
     initparams.bias = [0 -1 1];
-    if strfind(model,'doublesigma')
-        initparams.poissonNoise = 0;
-        initparams.sigmacon = [0.02 eps 1];
-        initparams.sigmacoh = [0.02 eps 1];
-    else
-        if strfind(model,'poisson')
-            initparams.poissonNoise = 1;
-            initparams.sigma = [0.0002 eps 1];
+    if strfind(model,'poisson')
+        initparams.poissonNoise = 1;
+        if strfind(model,'doublesigma')
+            initparams.sigmacon = [0.002 eps 1];
+            initparams.sigmacoh = [0.002 eps 1];
         else
-            initparams.poissonNoise = 0;
+            initparams.sigma = [0.002 eps 1];
+        end
+    else
+        initparams.poissonNoise = 0;
+        if strfind(model,'doublesigma')
+            initparams.sigmacon = [0.02 eps 1];
+            initparams.sigmacoh = [0.02 eps 1];
+        else
             initparams.sigma = [0.02 eps 1];
         end
     end
@@ -252,7 +256,8 @@ else
 end
 
 if params.poissonNoise
-    noise = sqrt(abs(sum([mean(cons) mean(cohs)])));
+    noise = sqrt(abs(sum(beta*[mean(cons) mean(cohs)]')));
+
     if obs(8)==1
         prob = normcdf(0,effect,noise*usesigma,'upper');
     elseif obs(8)==0
