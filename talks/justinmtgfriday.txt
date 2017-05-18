@@ -1,0 +1,33 @@
+two very different representations but control very similar perceptual properties 
+
+contrast = structure
+coherence = motion
+
+- show the specific tuning for contrast
+- specific model from the rees / simoncelli heeger model
+
+naka-rushton vs. linear
+both monotonic increases (neural basis)
+
+contrast was one of the first variables seen-- motion coherence was sort of seen early on (linea rrelationship)
+
+how do you link these models? boynton proposed it (for contrast) not for both variables at oncew
+
+being more systematic + relationship between contrast adn motion (interactions?)
+
+pose the main goals (encode and behavior as questions): how are these encoded, what's the rgiht linking model
+
+fMRIL this is what we expect for contrast (responses in V1, all areas: early representation that 
+For motion coherence it's less well studied but we can look at this across areas
+
+What parameters exactly are we fitting
+
+Add interaction parameter to model!
+Estimate size of behavioral interaction from model interaction??????
+slope of (% signal / % contrast)
+
+JND first, then "how we calculat ethese things"
+
+when you get to behavior, we have 11 subjects response functions, but we have 21 behavioral responses
+
+Add tiem in as a "we can talk about this if you want"
