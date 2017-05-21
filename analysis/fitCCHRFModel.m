@@ -140,6 +140,12 @@ if strfind(mode,'fitroi')
     fixedParams.fitroi = 1;
 end
 
+if strfind(mode,'interaction')
+    roiparams.inbeta = [0.1 -inf inf];
+else
+    roiparams.inbeta = 0;
+end
+
 fixedParams.regularize=0;
 if strfind(mode,'doreg')
     fixedParams.regularize = 1;
@@ -251,6 +257,7 @@ for i = 1:length(data.cc.resp_)
     
     conEff = roiparams.sigmacon*(conModel(ccon,roiparams)-baseConResp);
     cohEff = roiparams.sigmacoh*(cohModel(ccoh,roiparams)-baseCohResp);
+    inEff = roiparams.inbeta*conEff*cohEff;
     
     if conEff==0 && cohEff==0 % no change! res=0
         res(i) = 0;
@@ -270,6 +277,7 @@ for i = 1:length(data.cc.resp_)
                 effect = effect+roiparams.cohoffset;
             end
         end
+        effect = effect+inEff;
 
         cc_model(1,i,:) = data.canonical(data.cc.time(i)==data.utimes,:)*effect;
 
