@@ -81,6 +81,16 @@ else
     hrfparams.hrfexp = -0.623; % adaptation exponent (for time)
 end
 
+if strfind(mode,'fithrf')
+    hrfparams.amp1 = 1;
+    hrfparams.tau1 = [0.4 -inf inf];
+    hrfparams.timelag1 = [1.5 0 3];
+    hrfparams.amp2 = [-0.1 -inf 0];
+    hrfparams.tau2 = [0.4 -inf inf];
+    hrfparams.timelag2 = [4 0 9];
+    hrfparams.exponent = 7;
+end
+
 fixedParams.numparams = 0;
 if strfind(mode,'fitroi')
     % get hrf params
@@ -101,10 +111,12 @@ if strfind(mode,'fitroi')
         roiparams.cohslope = [1 -inf inf];
         roiparams.cohmodel = 1;
     elseif strfind(mode,'naka')
-        roiparams.conRmax = [20 -inf inf];
-        roiparams.cohRmax = [20 -inf inf];
-        roiparams.conn = [2 eps inf];
-        roiparams.cohn = [2 eps inf];
+        roiparams.conRmax = [2 -inf inf];
+        roiparams.cohRmax = [2 -inf inf];
+        roiparams.conp = 0.3;%[ eps inf];
+        roiparams.cohp = 0.3;%[2 eps inf];
+        roiparams.conq = 2;
+        roiparams.cohq = 2;
         roiparams.conc50 = [0.5 eps 1-eps];
         roiparams.cohc50 = [0.5 eps 1-eps];
         roiparams.conmodel = 2;
@@ -161,12 +173,12 @@ adat = [data.cc.resp(:); data.time.resp(:)];
 fixedParams.sstot = sum((adat-mean(adat)).^2);
 
 %% Change base contrast if >0
-if data.basecon>0
-    data.realbasecon = data.basecon;
-    data.cc.con = data.cc.con-data.basecon;
-    data.time.con = data.time.con-data.basecon;
-    data.basecon = 0;
-end
+% if data.basecon>0
+%     data.realbasecon = data.basecon;
+%     data.cc.con = data.cc.con-data.basecon;
+%     data.time.con = data.time.con-data.basecon;
+%     data.basecon = 0;
+% end
 
 %% fit HRF
 fit = fitModel(data);
@@ -236,6 +248,23 @@ fit = struct;
 
 % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
 params = getParams(params,fixedParams);
+
+if isfield(params,'amp1')
+    % use non-canonical    
+    t = 0.25:0.5:40.5;
+    impulse = cc_gamma(t,params);
+    
+    fit.impulse = impulse;
+    
+    data.canonical = zeros(size(data.canonical));
+    
+    for ui = 1:length(data.utimes)
+        events = repmat(data.utimes(ui)^fixedParams.hrfexp,1,data.reps(ui));
+        if ui==1, events = events*0.5; end
+        canon = conv(events,fit.impulse);
+        data.canonical(ui,:) = canon(1:length(fit.impulse));
+    end    
+end
 
 fit.cc = data.cc;
 fit.time = data.time;
@@ -322,15 +351,21 @@ if fixedParams.regularize
     res = [res 0.1*conModel(0:.1:1,roiparams) 0.1*cohModel(0:.1:1,roiparams)];
 end
     
-if f>0
+if 0%f>0
     figure(f)
-    subplot(2,2,1:2);
+    subplot(3,2,1:2);
     plot(res);
-    subplot(2,2,3);
+    subplot(3,2,3);
     x = 0:.01:1;
     plot(x,conModel(x,roiparams)*roiparams.sigmacon);
-    subplot(2,2,4);
+    subplot(3,2,4);
     plot(x,cohModel(x,roiparams)*roiparams.sigmacoh);
+%     subplot(3,2,5);
+%     hold on
+%     plot(squeeze(fit.cc.resp)');
+%     plot(squeeze(cc_model)');
+    subplot(3,2,5:6);
+    plot(fit.impulse);
 end
 
 fit.cc.model = cc_model;
