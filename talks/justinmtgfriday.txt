@@ -29,5 +29,3 @@ slope of (% signal / % contrast)
 JND first, then "how we calculat ethese things"
 
 when you get to behavior, we have 11 subjects response functions, but we have 21 behavioral responses
-
-Add tiem in as a "we can talk about this if you want"
