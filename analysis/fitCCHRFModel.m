@@ -83,6 +83,11 @@ end
 
 fixedParams.numparams = 0;
 if strfind(mode,'fitroi')
+    roiparams.conRmax = [2 -inf inf];
+    roiparams.conp = 0.3;%[ eps inf];
+    roiparams.conq = 2;
+    roiparams.conc50 = [0.5 eps 1-eps];
+    roiparams.conmodel = 2;
     % get hrf params
     % Offset
     
@@ -96,20 +101,15 @@ if strfind(mode,'fitroi')
     end
     
     if strfind(mode,'linear')
-        roiparams.conslope = [1 -inf inf];
-        roiparams.conmodel = 1;
+%         roiparams.conslope = [1 -inf inf];
+%         roiparams.conmodel = 1;
         roiparams.cohslope = [1 -inf inf];
         roiparams.cohmodel = 1;
     elseif strfind(mode,'naka')
-        roiparams.conRmax = [2 -inf inf];
         roiparams.cohRmax = [2 -inf inf];
-        roiparams.conp = 0.3;%[ eps inf];
         roiparams.cohp = 0.3;%[2 eps inf];
-        roiparams.conq = 2;
         roiparams.cohq = 2;
-        roiparams.conc50 = [0.5 eps 1-eps];
         roiparams.cohc50 = [0.5 eps 1-eps];
-        roiparams.conmodel = 2;
         roiparams.cohmodel = 2;
     elseif strfind(mode,'tanh')
         roiparams.conalpha = [1 -inf inf];
