@@ -5,8 +5,11 @@ if isfield(params,'cohmodel')
     if params.cohmodel==1
         out = params.cohslope .* coh;
     elseif params.cohmodel==2
-%         out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
-        out = params.cohRmax .* ((coh.^(params.cohp+params.cohq)) ./ (coh.^params.cohq + params.cohc50.^params.cohq));
+        if isfield(params,'cohn')
+            out = params.cohRmax .* ((coh.^params.cohn) ./ (coh.^params.cohn + params.cohc50.^params.cohn));
+        else
+            out = params.cohRmax .* ((coh.^(params.cohp+params.cohq)) ./ (coh.^params.cohq + params.cohc50.^params.cohq));
+        end
     elseif params.cohmodel ==3
         out = params.cohalpha-(params.cohalpha * exp(-params.cohkappa*coh));
     elseif params.cohmodel==4

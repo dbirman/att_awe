@@ -297,7 +297,7 @@ for i = 1:length(data.time.resp_)
     cohEff = roiparams.sigmacoh*(cohModel(ccoh,roiparams)-baseCohResp);
     
     if conEff==0 && cohEff==0 % no change! res=0
-        res(length(data.cc.resp_)+i) = 0;
+        res(length(data.time.resp_)+i) = 0;
     else
         if isfield(roiparams,'offset')
             effect = conEff+cohEff;
@@ -316,7 +316,7 @@ for i = 1:length(data.time.resp_)
 
         time_model(1,i,:) = data.canonical(data.time.time(i)==data.utimes,:)*effect;
 
-        res(length(data.cc.resp_)+i) = effect-data.time.resp_(i);
+        res(length(data.time.resp_)+i) = effect-data.time.resp_(i);
     end
 end
 

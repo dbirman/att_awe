@@ -5,8 +5,11 @@ if isfield(params,'conmodel')
     if params.conmodel==1
         out = params.conslope .* con;
     elseif params.conmodel==2
-%         out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
-        out = params.conRmax .* ((con.^(params.conp+params.conq)) ./ (con.^params.conq + params.conc50.^params.conq));
+        if isfield(params,'conn')
+            out = params.conRmax .* ((con.^params.conn) ./ (con.^params.conn + params.conc50.^params.conn));
+        else
+            out = params.conRmax .* ((con.^(params.conp+params.conq)) ./ (con.^params.conq + params.conc50.^params.conq));
+        end
     elseif params.conmodel==3 % exp model
         out = params.conalpha -(params.conalpha * exp(-params.conkappa*con));
     elseif params.conmodel==4
