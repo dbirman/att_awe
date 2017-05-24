@@ -81,16 +81,6 @@ else
     hrfparams.hrfexp = -0.623; % adaptation exponent (for time)
 end
 
-if strfind(mode,'fithrf')
-    hrfparams.amp1 = 1;
-    hrfparams.tau1 = [0.4 -inf inf];
-    hrfparams.timelag1 = [1.5 0 3];
-    hrfparams.amp2 = [-0.1 -inf 0];
-    hrfparams.tau2 = [0.4 -inf inf];
-    hrfparams.timelag2 = [4 0 9];
-    hrfparams.exponent = 7;
-end
-
 fixedParams.numparams = 0;
 if strfind(mode,'fitroi')
     % get hrf params
@@ -173,12 +163,12 @@ adat = [data.cc.resp(:); data.time.resp(:)];
 fixedParams.sstot = sum((adat-mean(adat)).^2);
 
 %% Change base contrast if >0
-% if data.basecon>0
-%     data.realbasecon = data.basecon;
-%     data.cc.con = data.cc.con-data.basecon;
-%     data.time.con = data.time.con-data.basecon;
-%     data.basecon = 0;
-% end
+if data.basecon>0
+    data.realbasecon = data.basecon;
+    data.cc.con = data.cc.con-data.basecon;
+    data.time.con = data.time.con-data.basecon;
+    data.basecon = 0;
+end
 
 %% fit HRF
 fit = fitModel(data);
@@ -248,23 +238,6 @@ fit = struct;
 
 % stimvol basecon lcon rcon basecoh lcoh rcoh timing task
 params = getParams(params,fixedParams);
-
-if isfield(params,'amp1')
-    % use non-canonical    
-    t = 0.25:0.5:40.5;
-    impulse = cc_gamma(t,params);
-    
-    fit.impulse = impulse;
-    
-    data.canonical = zeros(size(data.canonical));
-    
-    for ui = 1:length(data.utimes)
-        events = repmat(data.utimes(ui)^fixedParams.hrfexp,1,data.reps(ui));
-        if ui==1, events = events*0.5; end
-        canon = conv(events,fit.impulse);
-        data.canonical(ui,:) = canon(1:length(fit.impulse));
-    end    
-end
 
 fit.cc = data.cc;
 fit.time = data.time;
