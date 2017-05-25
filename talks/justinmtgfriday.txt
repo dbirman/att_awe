@@ -26,6 +26,17 @@ Add interaction parameter to model!
 Estimate size of behavioral interaction from model interaction??????
 slope of (% signal / % contrast)
 
-JND first, then "how we calculat ethese things"
 
-when you get to behavior, we have 11 subjects response functions, but we have 21 behavioral responses
+
+
+
+
+%%%%%%%%
+take out shape/noise from first example
+perception linked to populations (monkey single neurons)
+ROIs = regions of interest slide 43
+add timeseries adding up (fmri model)
+sensitvity: color code contrast / motion coherence
+difference in AIC is a binary outcome
+get rid of length-weighted
+x-axis labels!
