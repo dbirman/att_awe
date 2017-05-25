@@ -1,5 +1,5 @@
 %%
-t = 0:pi/60:4*pi;
+t = 0:pi/60:2*pi;
 
 xs = randi(500,1,500);
 ys = randi(500,1,500);
@@ -35,6 +35,9 @@ for ti = 1:length(t)
     ys(ys>500)=ys(ys>500)-500;
     xs(xs<0)=xs(xs<0)+500;
     xs(xs>500)=xs(xs>500)-500;
+    
+    set(gca,'XTick',[]);
+    set(gca,'YTick',[]);
     
     pause(.01);
     F = getframe;
