@@ -10,8 +10,8 @@ h= figure;
 iptsetpref('ImshowBorder','tight');
 for ti = 1:length(t)
     ct = t(ti);
-    ccoh = (1 + cos(ct/2))/2;
-    ccon = (1 + cos(ct))/2;
+    ccoh = 0.60;%(1 + cos(ct/2))/2;
+    ccon = 1;%(1 + cos(ct))/2;
     cdir = 2;%cos(ct/5);
     
     clf; hold on
@@ -42,5 +42,5 @@ for ti = 1:length(t)
     pause(.01);
     F = getframe;
     [X,map] = frame2im(F);
-    imwrite(X,fullfile(sprintf('~/proj/att_awe/talks/data_figures/cohcon/cohcon_%03.0f.png',ti)));
+    imwrite(X,fullfile(sprintf('~/proj/att_awe/talks/data_figures/coh60/cohcon_%03.0f.png',ti)));
 end
