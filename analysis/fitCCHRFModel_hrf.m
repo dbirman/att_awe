@@ -29,7 +29,7 @@ elseif strfind(mode,'spkhrfdec')
 else
     % HRF response decay
     hrfparams.spkexp = 0;
-    hrfparams.hrfexp = -0.623; % adaptation exponent (for time)
+    hrfparams.hrfexp = [-0.623 -inf inf]; % adaptation exponent (for time)
 end
 
 for i = 1:(8*(20+size(data.time.resp,2)))
@@ -108,7 +108,7 @@ data.utimes = [0.5 1 2 4 5 8];
 data.reps = [1 1 2 4 5 8];
 
 for ui = 1:length(data.utimes)
-    events = repmat(data.utimes(ui)^fixedParams.hrfexp,1,data.reps(ui));
+    events = repmat(data.utimes(ui)^params.hrfexp,1,data.reps(ui));
     if ui==1, events = events*0.5; end
     canon = conv(events,fit.impulse);
     data.canonical(ui,:) = canon(1:length(fit.impulse));

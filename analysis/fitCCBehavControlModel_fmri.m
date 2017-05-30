@@ -85,12 +85,14 @@ end
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
 fit.params = getParams(bestparams);
-[fit.likelihood] = fitBehavModel(bestparams,adata,0);
+[fit.likelihood, probs] = fitBehavModel(bestparams,adata,0);
 fit.BIC = 2*fit.likelihood + length(bestparams) * log(size(adata,1));
 fit.AIC = 2*fit.likelihood + length(bestparams) * 2;
+fit.probs = probs;
+fit.muProb = nanmean(probs);
 fit.numParams = length(bestparams);
 
-function likelihood = fitBehavModel(params,adata,f)
+function [likelihood, probs] = fitBehavModel(params,adata,f)
 %%
 if ~isstruct(params) && any(isnan(params))
     likelihood = Inf;
@@ -137,6 +139,8 @@ cohEffL = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
 cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
 cohEff = cohEffR - cohEffL;
 
+probs = zeros(1,size(adata,1));
+
 for ai = 1:size(adata,1)
     obs = adata(ai,:);
     
@@ -163,6 +167,7 @@ for ai = 1:size(adata,1)
         likelihood = likelihood + log(prob);
 %         keyboard
     end
+    probs(ai) = prob;
 end
 
 likelihood = -likelihood;
