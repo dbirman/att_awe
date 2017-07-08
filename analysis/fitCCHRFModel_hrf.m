@@ -1,4 +1,4 @@
-function fit = fitCCHRFModel_hrf( data, mode)
+function fit = fitCCHRFModel_hrf( data, mode, dataopt)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -13,6 +13,10 @@ function fit = fitCCHRFModel_hrf( data, mode)
 global fixedParams
 fixedParams = struct;
 fixedParams.ROIs = data.ROIs;
+
+%% Set data
+data.cc.cresp = data.cc.(dataopt);
+data.time.cresp = data.time.(dataopt);
 
 %% parse mode:
 hrfparams = struct;
@@ -32,7 +36,7 @@ else
     hrfparams.hrfexp = [-0.623 -inf inf]; % adaptation exponent (for time)
 end
 
-for i = 1:(8*(20+size(data.time.resp,2)))
+for i = 1:(8*(20+size(data.time.cresp,2)))
     hrfparams.(sprintf('betas%i',i)) = [1 -inf inf];
 end
 
@@ -55,7 +59,7 @@ global params
 params.hrfparams = hrfparams;
 params.roiparams = roiparams;
 % 
-adat = [data.cc.resp(:); data.time.resp(:)];
+adat = [data.cc.cresp(:); data.time.cresp(:)];
 fixedParams.sstot = sum((adat-mean(adat)).^2);
 
 %% fit HRF
@@ -78,7 +82,7 @@ f = figure;
 optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
 [bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data,f,fixedParams);
 
-n = length(data.cc.resp(:))+length(data.time.resp(:));
+n = length(data.cc.cresp(:))+length(data.time.cresp(:));
 
 [~,fit] = hrfResidual(bestparams,data,-1,fixedParams);
 % fit.SSE = sum(fit.rres.^2);
@@ -116,32 +120,32 @@ end
 
 % fit.cc = data.cc;
 % fit.time = data.time;
-% fit.cc.model = zeros(size(fit.cc.resp));
-% fit.time.model = zeros(size(fit.time.resp));
+% fit.cc.model = zeros(size(fit.cc.cresp));
+% fit.time.model = zeros(size(fit.time.cresp));
 
 res = zeros(1,size(data.canonical,2)*8*40);
 
-cc_model = zeros(8,20,81);
-cc_res = zeros(8,20,81);
+cc_model = zeros(size(data.cc.cresp));
+cc_res = zeros(size(data.cc.cresp));
 
 for ri = 1:8
-    for gi = 1:20
+    for gi = 1:size(cc_model,2)
         beta = params.(sprintf('betas%i',(ri-1)*20+gi));
         sidx = ((ri-1)*20+gi-1)*81+1;
         cc_model(ri,gi,:) = data.canonical(data.cc.time(gi)==data.utimes,:)*beta;
-        cc_res(ri,gi,:) = cc_model(ri,gi,:) - data.cc.resp(ri,gi,:);
+        cc_res(ri,gi,:) = cc_model(ri,gi,:) - data.cc.cresp(ri,gi,:);
     end
 end
 
-time_model = zeros(size(data.time.resp));
-time_res = zeros(size(data.time.resp));
+time_model = zeros(size(data.time.cresp));
+time_res = zeros(size(data.time.cresp));
 
 for ri = 1:8
     for gi = 1:size(time_model,2)
         beta = params.(sprintf('betas%i',(ri-1)*size(time_model,2)+gi));
         sidx = ((ri-1)*(size(time_model,2))+gi-1)*81+1;
         time_model(ri,gi,:) = data.canonical(data.time.time(gi)==data.utimes,:)*beta;
-        time_res(ri,gi,:) = time_model(ri,gi,:) - data.time.resp(ri,gi,:);
+        time_res(ri,gi,:) = time_model(ri,gi,:) - data.time.cresp(ri,gi,:);
     end
 end
 
@@ -152,7 +156,7 @@ fit.time.model = time_model;
 res = [cc_res(:)' time_res(:)'];
  
 try
-    rres = [cc_model(:); time_model(:)] - [data.cc.resp(:); data.time.resp(:)];
+    rres = [cc_model(:); time_model(:)] - [data.cc.cresp(:); data.time.cresp(:)];
 catch
     keyboard
 end
@@ -165,7 +169,7 @@ if f>0
     plot(res);
 %     subplot(3,2,5);
 %     hold on
-%     plot(squeeze(fit.cc.resp)');
+%     plot(squeeze(fit.cc.cresp)');
 %     plot(squeeze(cc_model)');
     subplot(2,2,3:4);
     plot(fit.impulse);

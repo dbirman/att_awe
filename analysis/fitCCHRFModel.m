@@ -1,4 +1,4 @@
-function fit = fitCCHRFModel( data , mode, pfit)
+function fit = fitCCHRFModel( data , mode, pfit, dataopt)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -14,6 +14,12 @@ global fixedParams
 fixedParams = struct;
 fixedParams.ROIs = data.ROIs;
 
+%% Set data
+if ~isempty(dataopt)
+    data.cc.cresp = data.cc.(dataopt);
+    data.time.cresp = data.time.(dataopt);
+end
+
 %% If multiple ROIs, fit each individually
 if length(data.ROIs)>1
     for ri = 1:length(data.ROIs)
@@ -21,15 +27,15 @@ if length(data.ROIs)>1
         
         ndata = data;
         ndata.ROIs = ndata.ROIs(ri);
-        ndata.cc.resp = ndata.cc.resp(ri,:,:);
-        ndata.time.resp = ndata.time.resp(ri,:,:);
+        ndata.cc.cresp = ndata.cc.cresp(ri,:,:);
+        ndata.time.cresp = ndata.time.cresp(ri,:,:);
         if strfind(mode,'fitexp')
             ndata.params = pfit.roifit{ri}.params;
         end
         if strfind(mode,'fitsigma')
-            fit.roifit{ri} = fitCCHRFModel(ndata,mode,pfit);
+            fit.roifit{ri} = fitCCHRFModel(ndata,mode,pfit,'');
         else
-            fit.roifit{ri} = fitCCHRFModel(ndata,mode);
+            fit.roifit{ri} = fitCCHRFModel(ndata,mode,pfit,'');
         end
         fit.r2(ri) = fit.roifit{ri}.r2;
         fit.BIC(ri) = fit.roifit{ri}.BIC;
@@ -38,6 +44,13 @@ if length(data.ROIs)>1
     end
    
     return
+end
+
+%% predict mode
+if strfind(mode,'predict')
+    warning('waiting');
+    
+    keyboard
 end
 %% parse mode:
 hrfparams = struct;
@@ -101,39 +114,14 @@ if strfind(mode,'fitroi')
     end
     
     if strfind(mode,'linear')
-%         roiparams.conslope = [1 -inf inf];
-%         roiparams.conmodel = 1;
         roiparams.cohslope = [1 -inf inf];
         roiparams.cohmodel = 1;
     elseif strfind(mode,'naka')
-        roiparams.cohRmax = [2 -inf inf];
-        roiparams.cohp = 0.3;%[2 eps inf];
+        roiparams.cohRmax = [0.5 -inf inf];
+        roiparams.cohp = 0.3;
         roiparams.cohq = 2;
         roiparams.cohc50 = [0.5 eps 1-eps];
         roiparams.cohmodel = 2;
-    elseif strfind(mode,'tanh')
-        roiparams.conalpha = [1 -inf inf];
-        roiparams.conkappa = [1 -inf inf];
-        roiparams.conmodel = 5;
-        roiparams.cohalpha = [1 -inf inf];
-        roiparams.cohkappa = [1 -inf inf];
-        roiparams.cohmodel = 5;
-    elseif strfind(mode,'explin')
-        roiparams.conalpha = [1 0 inf];
-        roiparams.conkappa = [1 0 inf];
-        roiparams.conmodel = 6;
-        roiparams.cohalpha = [1 0 inf];
-        roiparams.cohkappa = [1 0 inf];
-        roiparams.cohmodel = 6;
-    elseif strfind(mode,'exp')
-        % Contrast Function Parameters
-        roiparams.conalpha = [1 -inf inf];
-        roiparams.conkappa = [1 -inf inf];
-        roiparams.conmodel = 3;
-        % Coherence Function Parameters
-        roiparams.cohalpha = [1 -inf inf];
-        roiparams.cohkappa = [1 -inf inf];
-        roiparams.cohmodel = 3;
     else
         disp('No model specified');
         keyboard
@@ -159,7 +147,7 @@ global params
 params.hrfparams = hrfparams;
 params.roiparams = roiparams;
 % 
-adat = [data.cc.resp(:); data.time.resp(:)];
+adat = [data.cc.cresp(:); data.time.cresp(:)];
 fixedParams.sstot = sum((adat-mean(adat)).^2);
 
 %% Change base contrast if >0
@@ -200,26 +188,26 @@ else
 end
 
 % Transform data to fitted version
-out_cc = zeros(1,size(data.cc.resp,2));
-for i=1:size(data.cc.resp,2)
+out_cc = zeros(1,size(data.cc.cresp,2));
+for i=1:size(data.cc.cresp,2)
     curhrf = data.canonical(data.utimes==data.cc.time(i),:);
-    out_cc(i) = curhrf'\squeeze(data.cc.resp(1,i,:));
+    out_cc(i) = curhrf'\squeeze(data.cc.cresp(1,i,:));
 end
-data.cc.resp_ = out_cc;
+data.cc.cresp_ = out_cc;
 
-out_time = zeros(1,size(data.time.resp,2));
+out_time = zeros(1,size(data.time.cresp,2));
 for i=1:size(data.time.time,2)
     curhrf = data.canonical(data.utimes==data.time.time(i),:);
-    out_time(i) = curhrf'\squeeze(data.time.resp(1,i,:));
+    out_time(i) = curhrf'\squeeze(data.time.cresp(1,i,:));
 end
-data.time.resp_ = out_time;
+data.time.cresp_ = out_time;
 
 f = figure;
 
 optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Display','off');
 [bestparams, ~, ~, ~, ~, ~, ~] = lsqnonlin(@hrfResidual,initparams,minparams,maxparams,optimParams,data,f,fixedParams);
 
-n = length(data.cc.resp(:))+length(data.time.resp(:));
+n = length(data.cc.cresp(:))+length(data.time.cresp(:));
 
 [~,fit] = hrfResidual(bestparams,data,-1,fixedParams);
 fit.SSE = sum(fit.rres.^2);
@@ -241,19 +229,19 @@ params = getParams(params,fixedParams);
 
 fit.cc = data.cc;
 fit.time = data.time;
-fit.cc.model = zeros(size(fit.cc.resp));
-fit.time.model = zeros(size(fit.time.resp));
+fit.cc.model = zeros(size(fit.cc.cresp));
+fit.time.model = zeros(size(fit.time.cresp));
 
-res = zeros(1,length(data.cc.resp_)+length(data.time.resp_));
+res = zeros(1,length(data.cc.cresp_)+length(data.time.cresp_));
 
 roiparams = getROIParams(params,fixedParams.ROIs{1});
 
 baseConResp = conModel(data.basecon,roiparams);
 baseCohResp = cohModel(data.basecoh,roiparams);
 
-cc_model = zeros(size(data.cc.resp));
+cc_model = zeros(size(data.cc.cresp));
 
-for i = 1:length(data.cc.resp_)
+for i = 1:length(data.cc.cresp_)
     ccon = data.cc.con(i);
     ccoh = data.cc.coh(i);
     
@@ -283,13 +271,13 @@ for i = 1:length(data.cc.resp_)
 
         cc_model(1,i,:) = data.canonical(data.cc.time(i)==data.utimes,:)*effect;
 
-        res(i) = effect-data.cc.resp_(i);
+        res(i) = effect-data.cc.cresp_(i);
     end
 end
 
-time_model = zeros(size(data.time.resp));
+time_model = zeros(size(data.time.cresp));
 
-for i = 1:length(data.time.resp_)
+for i = 1:length(data.time.cresp_)
     ccon = data.time.con(i);
     ccoh = data.time.coh(i);
     
@@ -297,7 +285,7 @@ for i = 1:length(data.time.resp_)
     cohEff = roiparams.sigmacoh*(cohModel(ccoh,roiparams)-baseCohResp);
     
     if conEff==0 && cohEff==0 % no change! res=0
-        res(length(data.time.resp_)+i) = 0;
+        res(length(data.time.cresp_)+i) = 0;
     else
         if isfield(roiparams,'offset')
             effect = conEff+cohEff;
@@ -316,7 +304,7 @@ for i = 1:length(data.time.resp_)
 
         time_model(1,i,:) = data.canonical(data.time.time(i)==data.utimes,:)*effect;
 
-        res(length(data.time.resp_)+i) = effect-data.time.resp_(i);
+        res(length(data.time.cresp_)+i) = effect-data.time.cresp_(i);
     end
 end
 
@@ -335,7 +323,7 @@ if 0%f>0
     plot(x,cohModel(x,roiparams)*roiparams.sigmacoh);
 %     subplot(3,2,5);
 %     hold on
-%     plot(squeeze(fit.cc.resp)');
+%     plot(squeeze(fit.cc.cresp)');
 %     plot(squeeze(cc_model)');
     subplot(3,2,5:6);
     plot(fit.impulse);
@@ -345,7 +333,7 @@ fit.cc.model = cc_model;
 fit.time.model = time_model;
  
 try
-    rres = [cc_model(:); time_model(:)] - [data.cc.resp(:); data.time.resp(:)];
+    rres = [cc_model(:); time_model(:)] - [data.cc.cresp(:); data.time.cresp(:)];
 catch
     keyboard
 end

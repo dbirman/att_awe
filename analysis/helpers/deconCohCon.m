@@ -1,5 +1,7 @@
-function deconCohCon( data, fit, roiname ,subj)
+function deconCohCon( data, roiname ,subj)
 %DECONCOHCON Deconvolve the cohxcon experiment
+
+% 6/17 update: adding cross-validation. 
 
 %% Concatenate Sessions if Necessary
 if iscell(data)
@@ -16,13 +18,19 @@ if iscell(data)
     data.ROIs = data_old{1}.ROIs;
     % (we can do this the slow way, perf doesn't really matter
     data.tSeries = cell(1,length(data_old{1}.ROIs));
+    data.rtSeriesAll = cell(1,length(data_old{1}.ROIs));
+    data.rtSeries25 = cell(1,length(data_old{1}.ROIs));
+    data.rtSeries2 = cell(1,length(data_old{1}.ROIs));
     length_sofar = 0;
     for ri = 1:length(data.tSeries), data.tSeries{ri} = []; end
     data.design = [];
     data.runtrans = [];
     for si = 1:length(data_old)
         for ri = 1:length(data_old{si}.tSeries)
-            data.tSeries{ri} = [data.tSeries{ri} data_old{si}.(fit.tSeriesname){ri}];
+            data.tSeries{ri} = [data.tSeries{ri} data_old{si}.tSeries{ri}];
+            data.rtSeriesAll{ri} = [data.rtSeriesAll{ri} data_old{si}.rtSeriesAll{ri}];
+            data.rtSeries25{ri} = [data.rtSeries25{ri} data_old{si}.rtSeries25{ri}];
+            data.rtSeries2{ri} = [data.rtSeries2{ri} data_old{si}.rtSeries2{ri}];
         end
         % tweak the SV by adding 
         cdes = data_old{si}.design;
@@ -52,19 +60,21 @@ end
 if length(roinums)==2
     disp('Using two ROIs concatenated');
     tSeries = [data.tSeries{roinums(1)} data.tSeries{roinums(2)}];
+    rtSeriesAll = [data.rtSeriesAll{roinums(1)} data.rtSeriesAll{roinums(2)}];
+    rtSeries25 = [data.rtSeries25{roinums(1)} data.rtSeries25{roinums(2)}];
+    rtSeries2 = [data.rtSeries2{roinums(1)} data.rtSeries2{roinums(2)}];
     % double the design
     design2 = data.design;
     design2(:,1) = design2(:,1)+length(data.tSeries{1}); % add to stimvols
     design = [data.design ; design2];
-    % model tseries
-    mtSeries = [fit.model{roinums(1)} fit.model{roinums(2)}];
     % run transitions
     runtrans2 = data.runtrans+length(data.tSeries{1});
     runtrans = [data.runtrans ; runtrans2];
 else
+    disp('failure');
+    keyboard
     roinum = roinums(1);
     tSeries = data.tSeries{roinum};
-    mtSeries = fit.model{roinum};
     design = data.design;
     runtrans = data.runtrans;
 end
@@ -108,63 +118,33 @@ for coni = 1:length(ucon)
     end
 end
 concatInfo.runTransition = runtrans;
-curd = constructD(tSeries,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
-decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-decon = rmfield(decon,'scm');
-decon = rmfield(decon,'covar');
-curd = constructD(mtSeries/100+1,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
-model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-model = rmfield(model,'scm');
-model = rmfield(model,'covar');
 
-%% save cohxcon data
+%% Load previous cohxcon data
+
 fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
 if exist(fname,'file')==2, load(fname); end
+
+%% Deconvolve
+tsOpts = {'tSeries','rtSeriesAll','rtSeries2','rtSeries25'};
+saveNames = {'resp_prf','resp_all','resp_2','resp_25'};
+
+for ti = 1:length(tsOpts)
+    cts = eval(tsOpts{ti});
+    curd = constructD(cts,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
+    decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+    decon = rmfield(decon,'scm');
+    decon = rmfield(decon,'covar');
+    decondata.(roiname).cc.(saveNames{ti}) = decon.ehdr;
+end
+% curd = constructD(mtSeries/100+1,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
+% model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+% model = rmfield(model,'scm');
+% model = rmfield(model,'covar');
+
+%% Save cohxcon data
 decondata.(roiname).cc.conidxs = conidx;
 decondata.(roiname).cc.cohidxs = cohidx;
-decondata.(roiname).cc.resp = decon.ehdr;
-decondata.(roiname).cc.mresp = model.ehdr;
 save(fname,'decondata');
-%%
-clist = brewermap(10,'PuOr');
-f= figure;
-% plot #1: contrast against 0% coherence (no change)
-lconidx = find(cohidx==0);
-convalues = [0.25 0.5 0.75 1];
-colmap = [4 3 2 1];
-subplot(2,1,1), hold on
-for i = 1:4
-    ci = colmap(find(convalues==conidx(lconidx(i)),1));
-    plot(decon.time,decon.ehdr(lconidx(i),:),'o','MarkerSize',10,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(lconidx(i),:),decon.ehdrste(lconidx(i),:),'Color',clist(ci,:));
-end
-for i = 1:4
-    ci = colmap(find(convalues==conidx(lconidx(i)),1));
-    plot(model.time,model.ehdr(lconidx(i),:),'Color',clist(ci,:));
-end
-% legend({'Contrast=+0%','Contrast=+25%','Contrast=+50%','Contrast=+75%'});
-% plot #2: coherence against 25% contrast (no change)
-lcohidx = find(conidx==0.25);
-a = axis;
-axis([0 14 a(3) a(4)]);
-drawPublishAxis
-subplot(2,1,2), hold on
-for i=1:5
-    plot(decon.time,decon.ehdr(lcohidx(i),:),'o','MarkerSize',10,'MarkerFaceColor',clist(i+5,:),'MarkerEdgeColor',[1 1 1]);
-    errbar(decon.time,decon.ehdr(lcohidx(i),:),decon.ehdrste(lcohidx(i),:),'Color',clist(i+5,:));
-end
-for i = 1:5
-    plot(model.time,model.ehdr(lcohidx(i),:),'Color',clist(i+5,:));
-end
-% legend({'Coherence+0%','Coherence+25%','Coherence+50%','Coherence+75%','Coherence+100%'});
-
-a = axis;
-axis([0 14 a(3) a(4)]);
-drawPublishAxis
-%% Print Figure #2
-
-fname = fullfile(datafolder,sprintf('%s_%s_cohconplot.pdf',subj,roiname));
-savepdf(f,fname);
 
 %% Return if no timing required
 % if ~isempty(strfind(mode,'droptiming'))
@@ -191,50 +171,27 @@ for coni = 1:length(ucon)
         end
     end
 end
-concatInfo.runTransition = runtrans;
-curd = constructD(tSeries,timing_sv,0.5,40,concatInfo,'none','deconv',0);
-decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-decon = rmfield(decon,'scm');
-decon = rmfield(decon,'covar');
-curd = constructD(mtSeries/100+1,timing_sv,0.5,40,concatInfo,'none','deconv',0);
-model = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-model = rmfield(model,'scm');
-model = rmfield(model,'covar');
 
-%% Save timing data
+%% Load previous data
+
 fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
 if exist(fname,'file')==2, load(fname); end
+
+%% Deconvolve
+tsOpts = {'tSeries','rtSeriesAll','rtSeries2','rtSeries25'};
+saveNames = {'resp_prf','resp_all','resp_2','resp_25'};
+
+for ti = 1:length(tsOpts)
+    cts = eval(tsOpts{ti});
+    curd = constructD(cts,timing_sv,0.5,40,concatInfo,'none','deconv',0);
+    decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+    decon = rmfield(decon,'scm');
+    decon = rmfield(decon,'covar');
+    decondata.(roiname).time.(saveNames{ti}) = decon.ehdr;
+end
+
+%% Save timing data
 decondata.(roiname).time.conidxs = conidxs;
 decondata.(roiname).time.cohidxs = cohidxs;
 decondata.(roiname).time.timidxs = timidxs;
-decondata.(roiname).time.resp = decon.ehdr;
-decondata.(roiname).time.mresp = model.ehdr;
 save(fname,'decondata');
-%% Time plot
-clist = brewermap(5,'Greys');
-f = figure; hold on
-% first plot will be contrast timing, when contrast goes up to 50% or 100%,
-% we'll draw each of these with increasing contrast colors
-conopts = [0.50 0.50 1 1];
-cohopts = [0.25 1 0.25 1];
-flip = [0.5 1 2 4 8];
-colpos = [1 2 3 4 5];
-for sub = 1:4
-    subplot(2,2,sub); hold on
-    title(sprintf('Con: %i%% Coh: %i%%',conopts(sub)*100,cohopts(sub)*100));
-    idxs = find(logical(conidxs==conopts(sub)).*logical(cohidxs==cohopts(sub)));
-    for i = idxs
-        ci = colpos(find(flip==timidxs(i),1));
-        plot(decon.time,decon.ehdr(i,:),'o','MarkerSize',10,'MarkerFaceColor',clist(ci,:),'MarkerEdgeColor',[1 1 1]);
-        errbar(decon.time,decon.ehdr(i,:),decon.ehdrste(i,:),'Color',clist(ci,:));
-        plot(model.time,model.ehdr(i,:),'Color',clist(ci,:));
-    end
-    xlabel('Time (s)');
-    ylabel('Response (%signal/s)');
-    axis([0 15 -2 5]);
-    drawPublishAxis
-end
-
-%% Print Figure #1
-title(sprintf('%s: %s',subj,roiname));
-savepdf(f,fullfile(datafolder,sprintf('%s_%s_timeplot.pdf',subj,roiname)));

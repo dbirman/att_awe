@@ -1,0 +1,33 @@
+Cite Liu Carrasco as an example of motion coherence influence on perception
+
+attention field size: Herrmann et al., 2010
+
+
+Abrahamyan, A., Silva, L. L., Dakin, S. C., Carandini, M., & Gardner, J. L. (2016). Adaptable history biases in human perceptual decisions. Proceedings of the National Academy of Sciences, 113(25), E3548–E3557.
+Akaike, H. (1987). Factor analysis and AIC. Psychometrika, 52(3), 317–332.
+Albrecht, D. G., & Hamilton, D. B. (1982). Striate cortex of monkey and cat: contrast response function. Journal of Neurophysiology, 48(1), 217–237.
+Andersson, J. L. R., Skare, S., & Ashburner, J. (2003). How to correct susceptibility distortions in spin-echo echo-planar images: application to diffusion tensor imaging. NeuroImage, 20(2), 870–888.
+Avidan, G., Harel, M., Hendler, T., Ben-Bashat, D., Zohary, E., & Malach, R. (2002). Contrast sensitivity in human visual areas and its relationship to object recognition. Journal of Neurophysiology, 87(6), 3102–3116.
+Boynton, G. M., Demb, J. B., Glover, G. H., & Heeger, D. J. (1999). Neuronal basis of contrast discrimination. Vision Research, 39(2), 257–269.
+Boynton, G. M., Engel, S. A., Glover, G. H., & Heeger, D. J. (1996). Linear systems analysis of functional magnetic resonance imaging in human V1. The Journal of Neuroscience: The Official Journal of the Society for Neuroscience, 16(13), 4207–4221.
+Britten, K. H., Shadlen, M. N., Newsome, W. T., & Movshon, J. A. (1992). The analysis of visual motion: a comparison of neuronal and psychophysical performance. The Journal of Neuroscience: The Official Journal of the Society for Neuroscience, 12(12), 4745–4765.
+Britten, K. H., Shadlen, M. N., Newsome, W. T., & Movshon, J. A. (1993). Responses of neurons in macaque MT to stochastic motion signals. Visual Neuroscience, 10(6), 1157–1169.
+Carrasco, M. (2011). Visual attention: the past 25 years. Vision Research, 51(13), 1484–1525.
+Coefficients of Determination in Logistic Regression Models—A New Proposal: The Coefficient of Discrimination. (2009). The American Statistician, 63(4), 366–372.
+Dumoulin, S. O., & Wandell, B. A. (2008). Population receptive field estimates in human visual cortex. NeuroImage, 39(2), 647–660.
+Gardner, J. L., Sun, P., Waggoner, R. A., Ueno, K., Tanaka, K., & Cheng, K. (2005). Contrast adaptation and representation in human early visual cortex. Neuron, 47(4), 607–620.
+Graf, A. B. A., Kohn, A., Jazayeri, M., & Movshon, J. A. (2011). Decoding the activity of neuronal populations in macaque primary visual cortex. Nature Neuroscience, 14(2), 239–245.
+Heeger, D. J., Huk, A. C., Geisler, W. S., & Albrecht, D. G. (2000). Spikes versus BOLD: what does neuroimaging tell us about neuronal activity? Nature Neuroscience, 3(7), 631–633.
+Logothetis, N. K., Pauls, J., Augath, M., Trinath, T., & Oeltermann, A. (2001). Neurophysiological investigation of the basis of the fMRI signal. Nature, 412(6843), 150–157.
+Nawrot, M., & Rizzo, M. (1995). Motion perception deficits from midline cerebellar lesions in human. Vision Research, 35(5), 723–731.
+Newsome, W. T., & Paré, E. B. (1988). A selective impairment of motion perception following lesions of the middle temporal visual area (MT). The Journal of Neuroscience: The Official Journal of the Society for Neuroscience, 8(6), 2201–2211.
+Olman, C. A., Ugurbil, K., Schrater, P., & Kersten, D. (2004). BOLD fMRI and psychophysical measurements of contrast response to broadband images. Vision Research, 44(7), 669–683.
+Rees, G., Friston, K., & Koch, C. (2000). A direct quantitative relationship between the functional properties of human and macaque V5. Nat.Neurosci., 3(7), 716–723.
+Sclar, G., Maunsell, J. H., & Lennie, P. (1990). Coding of image contrast in central visual pathways of the macaque monkey. Vision Research, 30(1), 1–10.
+Shadlen, M. N., Britten, K. H., Newsome, W. T., & Movshon, J. A. (1996). A computational analysis of the relationship between neuronal and behavioral responses to visual motion. The Journal of Neuroscience: The Official Journal of the Society for Neuroscience, 16(4), 1486–1510.
+Simoncelli, E. P., & Heeger, D. J. (1998). A model of neuronal responses in visual area MT. Vision Research, 38(5), 743–761.
+Stocker, A. A., & Simoncelli, E. P. (2006). Noise characteristics and prior expectations in human visual speed perception. Nature Neuroscience, 9(4), 578–585.
+Taylor, M., & Creelman, C. D. (1967). PEST: Efficient estimates on probability functions. The Journal of the Acoustical Society of America, 41(4A), 782–787.
+Tootell, R. B., Hadjikhani, N. K., Vanduffel, W., Liu, A. K., Mendola, J. D., Sereno, M. I., & Dale, A. M. (1998). Functional analysis of primary visual cortex (V1) in humans. Proceedings of the National Academy of Sciences of the United States of America, 95(3), 811–817.
+Tootell, R. B., & Taylor, J. B. (1995). Anatomical evidence for MT and additional cortical visual areas in humans. Cerebral Cortex , 5(1), 39–55.
+Wandell, B. A., Dumoulin, S. O., & Brewer, A. A. (2007). Visual field maps in human cortex. Neuron, 56(2), 366–383.
