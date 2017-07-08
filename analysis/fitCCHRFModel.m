@@ -1,4 +1,4 @@
-function fit = fitCCHRFModel( data , mode, pfit, dataopt)
+function fit = fitCCHRFModel( data , mode, pfit, dataopt, cvflag)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 %   Dan Birman - Gardner Lab, Stanford University
@@ -18,6 +18,25 @@ fixedParams.ROIs = data.ROIs;
 if ~isempty(dataopt)
     data.cc.cresp = data.cc.(dataopt);
     data.time.cresp = data.time.(dataopt);
+end
+
+%% Cross-validation
+if cvflag
+    disp('(fitCCHRFModel) CROSS-VALIDATION INITIATED');
+    
+    % split the data into train and test and run on each train, evaluated
+    % on each test
+    for ci = 1:40
+        if ci<=20
+            
+        else
+            
+        end
+    end
+
+    % merge the CV splits and compute r2
+    
+    return
 end
 
 %% If multiple ROIs, fit each individually
@@ -212,7 +231,9 @@ n = length(data.cc.cresp(:))+length(data.time.cresp(:));
 [~,fit] = hrfResidual(bestparams,data,-1,fixedParams);
 fit.SSE = sum(fit.rres.^2);
 fit.sstot = fixedParams.sstot;
-fit.r2 = 1 - (fit.SSE/fit.sstot);
+% fit.r2 = 1 - (fit.SSE/fit.sstot);
+fit.r = corrcoef([[fit.cc.cresp(:); fit.time.cresp(:)] [fit.cc.model(:); fit.time.model(:)]]);
+fit.r2 = (fit.r(1,2))^2;
 fit.BIC = n*log(fit.SSE/n) + length(bestparams)*log(n);
 fit.AIC = n*log(fit.SSE/n) + length(bestparams)*2;
 fit.like = log(fit.SSE/n);
