@@ -5,8 +5,11 @@
 
 
 popmean = 0;
-popstd = 25;
-popn = 10;
+popstd = 1;
+popn = 1;
+
+% base firing rate
+base = 10;
 
 structure = randi(5,1,popn);
 
@@ -22,7 +25,7 @@ for ci = 1:length(contrasts)
         for ti = 1:length(angles)
             theta = angles(ti);
             % this population prefers angle population, find my firing rate
-            spkrate = 10+con*normpdf(theta-population,0,popstd);
+            spkrate = base+con*normpdf(theta-population,0,popstd);
             data(ci,pi,ti,:) = structure .* poissrnd(spkrate,1,popn);
         end
     end
