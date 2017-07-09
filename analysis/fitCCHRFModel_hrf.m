@@ -85,11 +85,10 @@ optimParams = optimset('Algorithm','trust-region-reflective','MaxIter',inf,'Disp
 n = length(data.cc.cresp(:))+length(data.time.cresp(:));
 
 [~,fit] = hrfResidual(bestparams,data,-1,fixedParams);
-% fit.SSE = sum(fit.rres.^2);
-fit.sstot = fixedParams.sstot;
-% fit.r2 = 1 - (fit.SSE/fit.sstot);
-fit.r = corrcoef([[fit.cc.cresp(:); fit.time.cresp(:)] [fit.cc.model(:); fit.time.model(:)]]);
-fit.r2 = (fit.r(1,2))^2;
+% 
+% fit.r = corrcoef([[fit.cc.cresp(:); fit.time.cresp(:)] [fit.cc.model(:); fit.time.model(:)]]);
+% fit.r2 = (fit.r(1,2))^2;
+
 % fit.BIC = n*log(fit.SSE/n) + length(bestparams)*log(n);
 % fit.AIC = n*log(fit.SSE/n) + length(bestparams)*2;
 % fit.like = log(fit.SSE/n);
@@ -157,14 +156,10 @@ fit.time.model = time_model;
 
 res = [cc_res(:)' time_res(:)'];
  
-try
-    rres = [cc_model(:); time_model(:)] - [data.cc.cresp(:); data.time.cresp(:)];
-catch
-    keyboard
-end
-ssres = sum(rres.^2);
-fit.rres = rres;
-fit.r2 = 1 - ssres/fixedParams.sstot;
+fit.y = [cc_model(:);time_model(:)];
+fit.y_ = [data.cc.cresp(:); data.time.cresp(:)];
+fit.r2 = myr2(fit.y,fit.y_);
+
 if f>0
     figure(f)
     subplot(2,2,1:2);
