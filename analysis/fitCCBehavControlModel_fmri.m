@@ -1,4 +1,4 @@
-function fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit,lapserate)
+function fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit,lapserate,crossval)
 % CCBehavModel
 %
 % Copy of fitCCBehavControlModel that allows you to fit a doublesigma (one
@@ -26,11 +26,69 @@ if any(adata(:,2)>0)
     adata(:,2) = adata(:,2)-adata(:,2);
 end
 
+if crossval
+    disp('(fitCCBehavControlModel_fmri) CROSSVAL INITIATED');
+    
+    datapoints = 1:size(adata,1);
+    num = floor(size(adata,1)/10);
+    
+    aprobs = []; trainr2 = []; testr2 = []; sigmas = [];
+    for fold = 1:10
+        if fold < 10
+            test = datapoints((fold-1)*num+1:(fold-1)*num+num);
+        else
+            test = datapoints((fold-1)*num+1:end);
+        end
+        train = setdiff(datapoints,test);
+        
+        traindata = adata(train,:);
+        testdata = adata(test,:);
+        
+        trainfit = fitCCBehavControlModel_fmri(traindata,figs,model,confit,cohfit,lapserate,0);
+        trainr2(fold) = trainfit.r2;
+        sigmas(fold) = trainfit.params.sigma;
+        testfit = fitCCBehavControlModel_fmri(testdata,figs,trainfit,confit,cohfit,lapserate,0);
+        testr2(fold) = testfit.r2;
+        aprobs = [aprobs testfit.probs];
+    end
+    
+    fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit,lapserate,0);
+    fit.sigmas = sigmas;
+    fit.r2 = nanmean(aprobs);
+    
+    return
+end
+
 %% Special condition: just getting BIC for a model
 if isstruct(model)
-    likelihood = fitBehavModel(model.params,adata,-1);
-    fit.likelihood = likelihood;
+    fit = struct;
+    [fit.likelihood,probs] = fitBehavModel(model.params,adata,-1);
     fit.BIC = 2*fit.likelihood + model.numParams * log(size(adata,1));
+    fit.AIC = 2*fit.likelihood + model.numParams * 2;
+    fit.probs = probs;
+    fit.r2 = nanmean(probs);
+    return
+elseif strfind(model,'freeze')
+    % FREEZE SIGMA PARAMETER AT 1
+    fixedParams.x = 0:.001:1;
+    if isstruct(confit)
+        fixedParams.con = conModel(fixedParams.x,confit.params);
+        fixedParams.coh = cohModel(fixedParams.x,cohfit.params);
+    else
+        fixedParams.con = confit;
+        fixedParams.coh = cohfit;
+    end
+    initparams.conmodel = 4;
+    initparams.cohmodel = 4;
+    initparams.beta_control_con_conw = 1;
+    initparams.beta_control_con_cohw = 0;%[0 -1 1];
+    initparams.beta_control_coh_cohw = 1;
+    initparams.beta_control_coh_conw = 0;%[0 -1 1];
+    initparams.bias = 0;%;[0 -1 1];
+    initparams.sigma = [0.1 eps 1];
+    initparams.poissonNoise = 0;
+    initparams.lapse = lapserate;
+    [~, fit] = fitModel(initparams,adata,-1);
     return
 elseif strfind(model,'sigma')
     disp('Fitting sigma...');
@@ -50,21 +108,31 @@ elseif strfind(model,'sigma')
     initparams.beta_control_coh_cohw = 1;
     initparams.beta_control_coh_conw = [0 -1 1];
     initparams.bias = [0 -1 1];
-    if strfind(model,'poisson')
-        initparams.poissonNoise = 1;
-        if strfind(model,'doublesigma')
-            initparams.sigmacon = [0.002 eps 1];
-            initparams.sigmacoh = [0.002 eps 1];
-        else
-            initparams.sigma = [0.002 eps 1];
-        end
-    else
+    if strfind(model,'gain')
+        initparams.coh_gain = [1.2 0 inf];
+        initparams.sigma = figs.sigma; % we're doing something funky here by using figs, but fuckit
         initparams.poissonNoise = 0;
-        if strfind(model,'doublesigma')
-            initparams.sigmacon = [0.02 eps 1];
-            initparams.sigmacoh = [0.02 eps 1];
+        initparams.beta_control_con_cohw = figs.beta_control_con_cohw;
+        initparams.beta_control_coh_conw = figs.beta_control_coh_conw;
+        initparams.bias = figs.bias;
+    else
+        initparams.coh_gain = 1;
+        if strfind(model,'poisson')
+            initparams.poissonNoise = 1;
+            if strfind(model,'doublesigma')
+                initparams.sigmacon = [0.2 eps 1];
+                initparams.sigmacoh = [0.2 eps 1];
+            else
+                initparams.sigma = [0.2 eps 1];
+            end
         else
-            initparams.sigma = [0.02 eps 1];
+            initparams.poissonNoise = 0;
+            if strfind(model,'doublesigma')
+                initparams.sigmacon = [0.1 eps 1];
+                initparams.sigmacoh = [0.1 eps 1];
+            else
+                initparams.sigma = [0.1 eps 1];
+            end
         end
     end
     initparams.lapse = lapserate;
@@ -76,12 +144,8 @@ function [bestparams,fit] = fitModel(params,adata,f)
 
 [initparams, minparams, maxparams] = initParams(params);
 
-% 
-if (isfield(params,'sigmacon') && length(params.sigmacon)>1) || (isfield(params,'sigma') && length(params.sigma)>1)
-    options = optimoptions('fmincon','TolFun',0.01); % set a limit or it goes on foreeeeeeeeeeeever
-else
-    options = optimoptions('fmincon'); % set a limit or it goes on foreeeeeeeeeeeever
-end
+options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1); % set a limit or it goes on foreeeeeeeeeeeever
+
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
 fit.params = getParams(bestparams);
@@ -89,7 +153,7 @@ fit.params = getParams(bestparams);
 fit.BIC = 2*fit.likelihood + length(bestparams) * log(size(adata,1));
 fit.AIC = 2*fit.likelihood + length(bestparams) * 2;
 fit.probs = probs;
-fit.muProb = nanmean(probs);
+fit.r2 = nanmean(probs);
 fit.numParams = length(bestparams);
 
 function [likelihood, probs] = fitBehavModel(params,adata,f)
@@ -137,6 +201,10 @@ conEffR = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
 conEff = conEffR - conEffL;
 cohEffL = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
 cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
+if params.coh_gain ~= 1
+    cohEffL = cohEffL * params.coh_gain;
+    cohEffR = cohEffR * params.coh_gain;
+end
 cohEff = cohEffR - cohEffL;
 
 probs = zeros(1,size(adata,1));

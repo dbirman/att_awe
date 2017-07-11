@@ -1,4 +1,4 @@
-function fit = fitCCHRFModel_att( data , subj, mode)
+function fit = fitCCHRFModel_att( data , subj, mode, cvflag)
 %CCROIMODEL Fit the contrast coherence model to an ROI
 %
 % Okay the new attention model works as follows: it loads the contrast /
@@ -15,13 +15,94 @@ end
 
 %% Setup
 
-global fixedParams
+global fixedParams params
 fixedParams = struct;
 fixedParams.ROIs = data.ROIs;
+fixedParams.baseoffset = 0;
 
 %% Load subject's existing model information
 if ~isfield(data,'cc_fit')
     data.cc_fit = load(fullfile(datafolder,sprintf('s%04.0f_hrf.mat',subj)));
+end
+
+%% Cross-validation
+if ~isstruct(cvflag) && cvflag>0
+    disp('(fitCCHRFModel) CROSS-VALIDATION INITIATED');
+    
+    % split the data into train and test and run on each train, evaluated
+    % on each test
+
+    all = struct;
+    all.y = []; all.y_ = [];
+    all.train_r2 = zeros(1,8);
+    all.test_r2 = zeros(1,8);
+    
+    total = 8;
+    disppercent(-1/(total-1));
+    
+    idxs = find(~data.deltaidx);
+    % skip ci = 1, because that's the zero/zero condition
+    for ci = 1:total
+        % tdata will be used to train
+        tdata = data;
+        % test will be used to test
+        test = data;
+        % set the training data  
+        train = setdiff(1:total,ci);
+        train = idxs(train);
+        test_ = idxs(ci);
+        
+        tdata.conidx = tdata.conidx(train);
+        tdata.cohidx = tdata.cohidx(train);
+        tdata.taskidx = tdata.taskidx(train);
+        tdata.deltaidx = tdata.deltaidx(train);
+        tdata.conStim = tdata.conStim(train);
+        tdata.cohStim = tdata.cohStim(train);
+        tdata.betaCon = tdata.betaCon(:,:,train);
+        tdata.betaCoh = tdata.betaCoh(:,:,train);
+        
+        test.conidx = test.conidx(test_);
+        test.cohidx = test.cohidx(test_);
+        test.taskidx = test.taskidx(test_);
+        test.deltaidx = test.deltaidx(test_);
+        test.conStim = test.conStim(test_);
+        test.cohStim = test.cohStim(test_);
+        test.betaCon = test.betaCon(:,:,test_);
+        test.betaCoh = test.betaCoh(:,:,test_);
+        
+        % you have to remove dataopt and set to [] otherwise this code
+        % fails
+        trainfit = fitCCHRFModel_att(tdata,subj,mode,0); % no CV flag
+        
+        testfit = fitCCHRFModel_att(test,subj,mode,trainfit);
+        
+        all.y{ci} = testfit.y(:);
+        all.y_{ci} = testfit.y_(:);
+        
+        % clear explicitly
+        clear tdata test train trainfit testfit
+        disppercent((ci-1)/(total-1));
+    end
+    disppercent(inf);
+    
+    y = zeros(8,16);
+    y_ = y;
+    for i = 1:length(all.y)
+        y(i,:) = all.y{i};
+        y_(i,:) = all.y_{i};
+    end
+    all.y = y(:);
+    all.y_ = y_(:);
+    
+    for ri = 1:8
+        all.r2(ri) = myr2(y(:,ri),y_(:,ri));
+    end
+
+    % fit once to ALL available data
+    fit = fitCCHRFModel_att(data,subj,mode,0);
+    % merge the CV splits and compute r2
+    fit.cv = all;
+    return
 end
 
 %% If multiple ROIs, fit each individually
@@ -34,12 +115,51 @@ if length(data.ROIs)>1
         ndata.cc_fit = ndata.cc_fit.cur.roifit{ri};
         ndata.betaCon = squeeze(ndata.betaCon(:,ri,:));
         ndata.betaCoh = squeeze(ndata.betaCoh(:,ri,:));
-        
-        fit.roifit{ri} = fitCCHRFModel_att(ndata,subj,mode);
+        if isstruct(cvflag)
+            fit.roifit{ri} = fitCCHRFModel_att(ndata,subj,mode,cvflag.roifit{ri});
+        else
+            fit.roifit{ri} = fitCCHRFModel_att(ndata,subj,mode,0);
+        end
+        fit.y(ri,:) = fit.roifit{ri}.y;
+        fit.y_(ri,:) = fit.roifit{ri}.y_;
         fit.r2(ri) = fit.roifit{ri}.r2;
-        fit.BIC(ri) = fit.roifit{ri}.BIC;
+        fit.AIC(ri) = fit.roifit{ri}.AIC;
     end
    
+    return
+end
+
+%%
+if isstruct(cvflag)
+    % evaluate test model and return prediction
+    fixedParams.x = 0:.01:1;
+    fixedParams.con = conModel(fixedParams.x,data.cc_fit.params);
+    fixedParams.coh = cohModel(fixedParams.x,data.cc_fit.params);
+    p = cvflag.roiparams;
+    hrfparams = struct; roiparams = struct;
+    if isfield(p,'offset_con')
+        fixedParams.offset = 2;
+        roiparams.offset_con = p.offset_con;
+        roiparams.offset_coh = p.offset_coh;
+    elseif p.offset_shift > 0
+        fixedParams.offset = 1;
+        roiparams.offset_shift = p.offset_shift;
+    else
+        fixedParams.offset = 0;
+        roiparams.offset_shift = p.offset_shift;
+    end
+
+    roiparams.con_congain = p.con_congain;
+    roiparams.con_cohgain = p.con_cohgain;
+    roiparams.coh_congain = p.coh_congain;
+    roiparams.coh_cohgain = p.coh_cohgain;
+    
+    roiparams.conmodel = 4;
+    roiparams.cohmodel = 4;
+    params.hrfparams = hrfparams;
+    params.roiparams = roiparams;
+    
+    fit = fitModel(data);
     return
 end
 
@@ -89,12 +209,9 @@ else
 end
 
 %% Parameter initialization
-global params
 
 params.hrfparams = hrfparams;
 params.roiparams = roiparams;
-
-fixedParams.sstot = sum([data.betaCon(data.deltaidx==0)' data.betaCoh(data.deltaidx==0)'].^2);  
 
 %% fit
 fit = fitModel(data);
@@ -120,7 +237,7 @@ end
 fit.SSE = sum(res.^2);
 RSS = fit.SSE;
 n = sum(data.deltaidx==0);
-fit.BIC = n*log(RSS/n) + length(bestparams)*log(n);
+fit.AIC = n*log(RSS/n) + length(bestparams)*2;
 fit.params = getParams(bestparams,fixedParams);
 fit.roiparams = getROIParams(fit.params,data.ROIs{1});
 fit.ROIs = fixedParams.ROIs;
@@ -170,6 +287,7 @@ coh_cohresp = fixedParams.coh * roiparams.coh_cohgain;
 
 % compute residual
 res = zeros(1,2*length(data.conidx));
+y_ = zeros(1,2*length(data.conidx));
 for i = 1:length(data.conidx)
     
     % contrast!
@@ -186,6 +304,7 @@ for i = 1:length(data.conidx)
     end
     
     res(i) = resp - data.betaCon(i);
+    y_(i) = resp;
     clear resp
     
     % coherence!
@@ -202,18 +321,16 @@ for i = 1:length(data.conidx)
     end
     
     res(length(data.conidx)+i) = resp - data.betaCoh(i);
+    y_(length(data.conidx)+i) = resp;
 end
 
 % we only compute for the non-delta (8 values)
 res = res(logical([data.deltaidx==0 data.deltaidx==0]));
 
-%% Finalize
+fit.y = [data.betaCon; data.betaCoh];
+fit.y_ = y_;
 
-% this isn't used by lsqnonlin so it's safe to use the non-masked versions
-ssres = sum(res.^2);
-fit.r2 = 1 - ssres/fixedParams.sstot;
-
-fit.likelihood = ssres;
+fit.r2 = myr2(fit.y,fit.y_);
 
 function [initparams, minparams, maxparams] = initParams()
 %%
