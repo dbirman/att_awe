@@ -135,6 +135,14 @@ elseif strfind(model,'sigma')
             end
         end
     end
+    
+    if strfind(model,'stayswitch')
+        disp('(behavmodel) Fitting four stay/switch parameters');
+        initparams.right_correct = [0 -inf inf];
+        initparams.right_incorr = [0 -inf inf];
+        initparams.left_correct = [0 -inf inf];
+        initparams.left_incorr = [0 -inf inf];
+    end
     initparams.lapse = lapserate;
     [~, fit] = fitModel(initparams,adata,-1);
     return

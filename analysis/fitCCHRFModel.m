@@ -199,11 +199,16 @@ end
 
 fixedParams.numparams = 0;
 if strfind(mode,'fitroi')
-    roiparams.conRmax = [2 -inf inf];
-    roiparams.conp = 0.3;%[ eps inf];
-    roiparams.conq = 2;
-    roiparams.conc50 = [0.5 eps 1-eps];
-    roiparams.conmodel = 2;
+    if strfind(mode,'conlinear')
+        roiparams.conslope = [1 -inf inf];
+        roiparams.conmodel = 1;
+    else
+        roiparams.conRmax = [2 -inf inf];
+        roiparams.conp = 0.3;%[ eps inf];
+        roiparams.conq = 2;
+        roiparams.conc50 = [0.5 eps 1-eps];
+        roiparams.conmodel = 2;
+    end
     % get hrf params
     % Offset
     

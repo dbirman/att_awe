@@ -7,29 +7,11 @@ files = dir(fullfile(datafolder,'time',subj));
 %% Load data
 adata = loadadata_time(subj);
 
-%% load original models
-if isfile(fullfile(datafolder,'time',sprintf('%s_data.mat',subj)))
-    load(fullfile(datafolder,'time',sprintf('%s_data.mat',subj)));
-    fits = data.fits;
-    BICs = data.BICs;
-end
 
 %% Fit Models
 if strfind(modes,'refit')
-    %% Fit Contrast/Coherence response models (just to control condition)
-%     strs = {'con-exp,coh-exp','con-exp,coh-exp,poisson','con-linear,coh-linear','con-linear,coh-linear,poisson'}; %
-    strs = {'con-exp,coh-exp','con-exp,coh-exp,timelin','con-exp,coh-exp,notime'};
-    %fits = cell(1,length(strs));
-%     BICs = zeros(size(fits));
-    minl = inf;
-    for si = 1:length(strs)
-        fits{si} = fitCCBehavControlModel_time(adata,1,strs{si});
-        BICs(si) = fits{si}.BIC;
-        if fits{si}.BIC < (minl-5)
-            minl = fits{si}.BIC;
-            fit = fits{si};
-        end
-    end
+
+    fits{si} = fitCCBehavControlModel_time(adata,0,'freeze',squeeze(respcon(tcorrespond();
 end
 
 %% Save data

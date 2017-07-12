@@ -1,4 +1,4 @@
-function fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit,lapserate,crossval)
+function fit = fitCCBehavControlModel_time(adata,figs,model,confit,cohfit,lapserate,crossval)
 % CCBehavModel
 %
 % Copy of fitCCBehavControlModel that allows you to fit a doublesigma (one
@@ -33,6 +33,7 @@ if crossval
     num = floor(size(adata,1)/10);
     
     aprobs = []; trainr2 = []; testr2 = []; sigmas = [];
+    times = [];
     for fold = 1:10
         if fold < 10
             test = datapoints((fold-1)*num+1:(fold-1)*num+num);
@@ -43,18 +44,23 @@ if crossval
         
         traindata = adata(train,:);
         testdata = adata(test,:);
-        
-        trainfit = fitCCBehavControlModel_fmri(traindata,figs,model,confit,cohfit,lapserate,0);
+%         
+        trainfit = fitCCBehavControlModel_time(traindata,figs,model,confit,cohfit,lapserate,0);
         trainr2(fold) = trainfit.r2;
         sigmas(fold) = trainfit.params.sigma;
-        testfit = fitCCBehavControlModel_fmri(testdata,figs,trainfit,confit,cohfit,lapserate,0);
+        testfit = fitCCBehavControlModel_time(testdata,figs,trainfit,confit,cohfit,lapserate,0);
         testr2(fold) = testfit.r2;
         aprobs = [aprobs testfit.probs];
+        times = [times ;testdata(:,13)];
     end
     
-    fit = fitCCBehavControlModel_fmri(adata,figs,model,confit,cohfit,lapserate,0);
+    fit = fitCCBehavControlModel_time(adata,figs,model,confit,cohfit,lapserate,0);
     fit.sigmas = sigmas;
     fit.r2 = nanmean(aprobs);
+    topt = [250,500,1000];
+    for ti = 1:3
+        fit.r2_(ti,:) = bootci(10000,@nanmean,aprobs(times==topt(ti)));
+    end
     
     return
 end
@@ -88,9 +94,11 @@ elseif strfind(model,'freeze')
     initparams.sigma = [0.1 eps 1];
     initparams.poissonNoise = 0;
     initparams.lapse = lapserate;
+    initparams.hrfexp = -0.623;
     [~, fit] = fitModel(initparams,adata,-1);
     return
 elseif strfind(model,'sigma')
+    warning('failure');
     disp('Fitting sigma...');
     % SPECIAL CONDITION: Fitting sigma parameter
     fixedParams.x = 0:.001:1;
@@ -107,34 +115,35 @@ elseif strfind(model,'sigma')
     initparams.beta_control_con_cohw = [0 -1 1];
     initparams.beta_control_coh_cohw = 1;
     initparams.beta_control_coh_conw = [0 -1 1];
+    initparams.hrfexp = -0.623;
     initparams.bias = [0 -1 1];
-    if strfind(model,'gain')
-        initparams.coh_gain = [1.2 0 inf];
-        initparams.sigma = figs.sigma; % we're doing something funky here by using figs, but fuckit
-        initparams.poissonNoise = 0;
-        initparams.beta_control_con_cohw = figs.beta_control_con_cohw;
-        initparams.beta_control_coh_conw = figs.beta_control_coh_conw;
-        initparams.bias = figs.bias;
-    else
-        initparams.coh_gain = 1;
-        if strfind(model,'poisson')
-            initparams.poissonNoise = 1;
-            if strfind(model,'doublesigma')
-                initparams.sigmacon = [0.2 eps 1];
-                initparams.sigmacoh = [0.2 eps 1];
-            else
-                initparams.sigma = [0.2 eps 1];
-            end
+%     if strfind(model,'gain')
+%         initparams.coh_gain = [1.2 0 inf];
+%         initparams.sigma = figs.sigma; % we're doing something funky here by using figs, but fuckit
+%         initparams.poissonNoise = 0;
+%         initparams.beta_control_con_cohw = figs.beta_control_con_cohw;
+%         initparams.beta_control_coh_conw = figs.beta_control_coh_conw;
+%         initparams.bias = figs.bias;
+%     else
+    initparams.coh_gain = 1;
+    if strfind(model,'poisson')
+        initparams.poissonNoise = 1;
+        if strfind(model,'doublesigma')
+            initparams.sigmacon = [0.2 eps 1];
+            initparams.sigmacoh = [0.2 eps 1];
         else
-            initparams.poissonNoise = 0;
-            if strfind(model,'doublesigma')
-                initparams.sigmacon = [0.1 eps 1];
-                initparams.sigmacoh = [0.1 eps 1];
-            else
-                initparams.sigma = [0.1 eps 1];
-            end
+            initparams.sigma = [0.2 eps 1];
+        end
+    else
+        initparams.poissonNoise = 0;
+        if strfind(model,'doublesigma')
+            initparams.sigmacon = [0.1 eps 1];
+            initparams.sigmacoh = [0.1 eps 1];
+        else
+            initparams.sigma = [0.1 eps 1];
         end
     end
+%     end
     initparams.lapse = lapserate;
     [~, fit] = fitModel(initparams,adata,-1);
     return
@@ -184,8 +193,6 @@ likelihood = 0;
 %      10      11        12
 %   pedcon - pedcoh - correct
 
-probs = zeros(size(adata,1),1);
-
 % compute betas
 betas = zeros(6,2);
 betas(1,:) = [params.beta_control_coh_conw params.beta_control_coh_cohw];
@@ -201,11 +208,15 @@ conEffR = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
 conEff = conEffR - conEffL;
 cohEffL = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
 cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
-if params.coh_gain ~= 1
-    cohEffL = cohEffL * params.coh_gain;
-    cohEffR = cohEffR * params.coh_gain;
-end
 cohEff = cohEffR - cohEffL;
+
+% compute length effect
+len = adata(:,13)/500;
+len = len .* (len.^params.hrfexp);
+
+% multiply the effects by the hrf exponent
+conEff = conEff .* len;
+cohEff = cohEff .* len;
 
 probs = zeros(1,size(adata,1));
 
