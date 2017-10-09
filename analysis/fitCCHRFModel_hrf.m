@@ -24,16 +24,16 @@ roiparams = struct;
 
 if strfind(mode,'spkdec')
     % Spike rate decay
-    hrfparams.spkexp = -0.623;%[-0.5 -inf 0];
+    hrfparams.spkexp = -0.451916488002049;%[-0.5 -inf 0];
     hrfparams.hrfexp = 0;
     fixedParams.spkdec = 1;
 elseif strfind(mode,'spkhrfdec')
-    hrfparams.spkexp = -0.623;
-    hrfparams.hrfexp = -0.623;
+    hrfparams.spkexp = -0.451916488002049;
+    hrfparams.hrfexp = -0.451916488002049;
 else
     % HRF response decay
     hrfparams.spkexp = 0;
-    hrfparams.hrfexp = [-0.623 -inf inf]; % adaptation exponent (for time)
+    hrfparams.hrfexp = [-0.451916488002049 -inf inf]; % adaptation exponent (for time)
 end
 
 for i = 1:(8*(20+size(data.time.cresp,2)))
@@ -41,10 +41,10 @@ for i = 1:(8*(20+size(data.time.cresp,2)))
 end
 
 hrfparams.amp1 = 1;
-hrfparams.tau1 = [0.4 -inf inf];
+hrfparams.tau1 = [0.5 -inf inf];
 hrfparams.timelag1 = 1.5;
-hrfparams.amp2 = [-0.3 -inf 0];
-hrfparams.tau2 = [0.6 -inf inf];
+hrfparams.amp2 = [-0.23 -inf 0];
+hrfparams.tau2 = [1.77 -inf inf];
 hrfparams.timelag2 = 4;
 hrfparams.exponent = 7;
 

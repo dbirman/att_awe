@@ -161,7 +161,7 @@ if strfind(mode,'predict')
     fixedParams.regularize = 0;
     
     hrfparams.spkexp = 0;
-    hrfparams.hrfexp = -0.623;
+    hrfparams.hrfexp = -0.451916488002049;
     
     fds = fields(data.params);
     for fi = 1:length(fds)
@@ -205,7 +205,7 @@ if strfind(mode,'fitroi')
     else
         roiparams.conRmax = [2 -inf inf];
         roiparams.conp = 0.3;%[ eps inf];
-        roiparams.conq = 2;
+        roiparams.conq = 1.6;
         roiparams.conc50 = [0.5 eps 1-eps];
         roiparams.conmodel = 2;
     end
@@ -230,6 +230,10 @@ if strfind(mode,'fitroi')
         roiparams.cohq = 2;
         roiparams.cohc50 = [0.5 eps 1-eps];
         roiparams.cohmodel = 2;
+    elseif strfind(mode,'exp')
+        roiparams.cohalpha = [2 -inf inf];
+        roiparams.cohkappa = [1 -inf inf];
+        roiparams.cohmodel = 3;
     else
         disp('No model specified');
         keyboard

@@ -298,7 +298,11 @@ for i = 1:length(data.conidx)
         resp = con_conresp(pos);
     end
     if fixedParams.offset==2
-        resp = resp + fixedParams.baseoffset + roiparams.offset_con;
+        if data.taskidx(i)==1
+            resp = resp + fixedParams.baseoffset + roiparams.offset_coh;
+        else
+            resp = resp + fixedParams.baseoffset + roiparams.offset_con;
+        end
     else
         resp = resp + fixedParams.baseoffset + roiparams.offset_shift;
     end
@@ -315,7 +319,11 @@ for i = 1:length(data.conidx)
         resp = coh_conresp(pos);
     end
     if fixedParams.offset==2
-        resp = resp + fixedParams.baseoffset + roiparams.offset_coh;
+        if data.taskidx(i)==1
+            resp = resp + fixedParams.baseoffset + roiparams.offset_coh;
+        else
+            resp = resp + fixedParams.baseoffset + roiparams.offset_con;
+        end
     else
         resp = resp + fixedParams.baseoffset + roiparams.offset_shift;
     end
