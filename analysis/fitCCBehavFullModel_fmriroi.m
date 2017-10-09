@@ -1,16 +1,15 @@
-function fit = fitCCBehavControlModel_time(adata,figs,model,confit,cohfit,lapserate,crossval)
+function fit = fitCCBehavFullModel_fmriroi(adata,sigmaval,model,confit,cohfit,lapserate,crossval)
 % CCBehavModel
 %
-% Copy of fitCCBehavControlModel that allows you to fit a doublesigma (one
-% sigma for contrast, one for coherence)
+% Copy of fitCCBehavControlModel_fmri that allows you to fit an ROI variant
+% instead of con/coh response functions, this has a contrast/coherence
+% response for each ROI (no interactions) which are then weighted. ROI
+% dropout can be specified. 
 
 global fixedParams
 
 adata = adata(~any(isnan(adata),2),:);
 osize = size(adata,1);
-
-adata = adata(adata(:,9)==-1,:);
-disp(sprintf('Reducing data to %i control trials from %i',size(adata,1),osize));
 
 %% Lower basecontrast
 
@@ -20,20 +19,19 @@ disp(sprintf('Reducing data to %i control trials from %i',size(adata,1),osize));
 %   pedcon - pedcoh - correct
 
 if any(adata(:,2)>0)
-    disp('BASE CONTRAST LOWERED TO ZERO');
+%     disp('BASE CONTRAST LOWERED TO ZERO');
     adata(:,4) = adata(:,4)-adata(:,2);
     adata(:,5) = adata(:,5)-adata(:,2);
     adata(:,2) = adata(:,2)-adata(:,2);
 end
 
 if crossval
-    disp('(fitCCBehavControlModel_fmri) CROSSVAL INITIATED');
+%     disp('(fitCCBehavControlModel_fmri) CROSSVAL INITIATED');
     
     datapoints = 1:size(adata,1);
     num = floor(size(adata,1)/10);
     
-    aprobs = []; trainr2 = []; testr2 = []; sigmas = [];
-    times = [];
+    aprobs = []; trainr2 = []; testr2 = []; sigmas = []; aresp = []; pseudor2 = zeros(1,10); like = zeros(1,10); nulllike = zeros(1,10);
     for fold = 1:10
         if fold < 10
             test = datapoints((fold-1)*num+1:(fold-1)*num+num);
@@ -44,23 +42,34 @@ if crossval
         
         traindata = adata(train,:);
         testdata = adata(test,:);
-%         
-        trainfit = fitCCBehavControlModel_time(traindata,figs,model,confit,cohfit,lapserate,0);
-        trainr2(fold) = trainfit.r2;
+        
+        if ~isempty(intersect(train,test))
+            warning('Failure to fully separate training and testing data');
+            keyboard
+        end
+        
+        trainfit = fitCCBehavControlModel_fmri(traindata,sigmaval,model,confit,cohfit,lapserate,0);
+%         trainr2(fold) = trainfit.pseudor2;
         sigmas(fold) = trainfit.params.sigma;
-        testfit = fitCCBehavControlModel_time(testdata,figs,trainfit,confit,cohfit,lapserate,0);
-        testr2(fold) = testfit.r2;
+        testfit = fitCCBehavControlModel_fmri(testdata,sigmaval,trainfit,confit,cohfit,lapserate,0);
+%         testr2(fold) = testfit.pseudor2;
+        aresp = [aresp ;testdata(:,8)];
         aprobs = [aprobs testfit.probs];
-        times = [times ;testdata(:,13)];
+        pseudor2(fold) = testfit.pseudor2;
+        like(fold) = testfit.likelihood;
+        nulllike(fold) = testfit.null.likelihood;
     end
     
-    fit = fitCCBehavControlModel_time(adata,figs,model,confit,cohfit,lapserate,0);
-    fit.sigmas = sigmas;
-    fit.r2 = nanmean(aprobs);
-    topt = [250,500,1000];
-    for ti = 1:3
-        fit.r2_(ti,:) = bootci(10000,@nanmean,aprobs(times==topt(ti)));
-    end
+    fit = fitCCBehavControlModel_fmri(adata,sigmaval,model,confit,cohfit,lapserate,0);
+    fit.cv.sigmas = sigmas;
+    fit.cv.like = like;
+    fit.cv.nulllike = nulllike;
+    fit.cv.pseudor2 = 1-(sum(like)/sum(nulllike));
+    fit.cv.resp = aresp;
+    fit.cv.trainpr2 = trainr2;
+    fit.cv.testpr2 = testr2;
+    fit.cv.aprobs = aprobs;
+    fit.cv.cd = nanmean(aprobs(aresp==1))-nanmean(1-aprobs(aresp==0));
     
     return
 end
@@ -68,14 +77,41 @@ end
 %% Special condition: just getting BIC for a model
 if isstruct(model)
     fit = struct;
+    fit.null = fitCCBehavControlModel_fmri(adata,sigmaval,'null',confit,cohfit,0,0);
     [fit.likelihood,probs] = fitBehavModel(model.params,adata,-1);
     fit.BIC = 2*fit.likelihood + model.numParams * log(size(adata,1));
     fit.AIC = 2*fit.likelihood + model.numParams * 2;
+    fit.params = model.params;
     fit.probs = probs;
-    fit.r2 = nanmean(probs);
+    fit.resp = adata(:,8);
+    fit.cd = nanmean(probs(fit.resp==1))-nanmean(1-probs(fit.resp==0));
+    fit.pseudor2 = 1 - (fit.likelihood / fit.null.likelihood);
+    return
+elseif strfind(model,'null')
+    % ONLY ALLOW BIAS TO CHANGE (intercept only model)
+    fixedParams.x = 0:.001:1;
+    if isstruct(confit)
+        fixedParams.con = conModel(fixedParams.x,confit.params);
+        fixedParams.coh = cohModel(fixedParams.x,cohfit.params);
+    else
+        fixedParams.con = confit;
+        fixedParams.coh = cohfit;
+    end
+    initparams.conmodel = 4;
+    initparams.cohmodel = 4;
+    initparams.beta_control_con_conw = 0;
+    initparams.beta_control_con_cohw = 0;%[0 -1 1];
+    initparams.beta_control_coh_cohw = 0;
+    initparams.beta_control_coh_conw = 0;%[0 -1 1];
+    initparams.bias = [0 -1 1];
+    initparams.sigma = 1;
+    initparams.coh_gain = 0;
+    initparams.poissonNoise = 0;
+    initparams.lapse = 0;
+    [~, fit] = fitModel(initparams,adata,-1);
     return
 elseif strfind(model,'freeze')
-    % FREEZE SIGMA PARAMETER AT 1
+    % ONLY ALLOW SIGMA TO CHANGE
     fixedParams.x = 0:.001:1;
     if isstruct(confit)
         fixedParams.con = conModel(fixedParams.x,confit.params);
@@ -94,12 +130,10 @@ elseif strfind(model,'freeze')
     initparams.sigma = [0.1 eps 1];
     initparams.poissonNoise = 0;
     initparams.lapse = lapserate;
-    initparams.hrfexp = -0.623;
     [~, fit] = fitModel(initparams,adata,-1);
     return
 elseif strfind(model,'sigma')
-    warning('failure');
-    disp('Fitting sigma...');
+%     disp('Fitting sigma...');
     % SPECIAL CONDITION: Fitting sigma parameter
     fixedParams.x = 0:.001:1;
     if isstruct(confit)
@@ -115,35 +149,47 @@ elseif strfind(model,'sigma')
     initparams.beta_control_con_cohw = [0 -1 1];
     initparams.beta_control_coh_cohw = 1;
     initparams.beta_control_coh_conw = [0 -1 1];
-    initparams.hrfexp = -0.623;
     initparams.bias = [0 -1 1];
-%     if strfind(model,'gain')
-%         initparams.coh_gain = [1.2 0 inf];
-%         initparams.sigma = figs.sigma; % we're doing something funky here by using figs, but fuckit
-%         initparams.poissonNoise = 0;
-%         initparams.beta_control_con_cohw = figs.beta_control_con_cohw;
-%         initparams.beta_control_coh_conw = figs.beta_control_coh_conw;
-%         initparams.bias = figs.bias;
-%     else
-    initparams.coh_gain = 1;
-    if strfind(model,'poisson')
-        initparams.poissonNoise = 1;
-        if strfind(model,'doublesigma')
-            initparams.sigmacon = [0.2 eps 1];
-            initparams.sigmacoh = [0.2 eps 1];
-        else
-            initparams.sigma = [0.2 eps 1];
-        end
-    else
+    if strfind(model,'gain')
+        initparams.coh_gain = [1.2 0 inf];
+        initparams.sigma = sigmaval.sigma; % we're doing something funky here by using figs, but fuckit
         initparams.poissonNoise = 0;
-        if strfind(model,'doublesigma')
-            initparams.sigmacon = [0.1 eps 1];
-            initparams.sigmacoh = [0.1 eps 1];
+        initparams.beta_control_con_cohw = sigmaval.beta_control_con_cohw;
+        initparams.beta_control_coh_conw = sigmaval.beta_control_coh_conw;
+        initparams.bias = sigmaval.bias;
+    else
+        initparams.coh_gain = 1;
+        if strfind(model,'poisson')
+            initparams.poissonNoise = 1;
+            if strfind(model,'doublesigma')
+%                 initparams.sigmacon = [0.1 eps 1];
+%                 initparams.sigmacoh = [0.1 eps 1];
+            else
+                initparams.sigma = [sigmaval eps 1];
+            end
+        elseif strfind(model,'mergenoise')
+            % mixture of poisson and non-poisson noise
+            initparams.psigma = [.17 eps 1];
+            initparams.sigma = [.11 eps 1];
+            initparams.merge = [0.5 0 1];
         else
-            initparams.sigma = [0.1 eps 1];
+            initparams.poissonNoise = 0;
+            if strfind(model,'doublesigma')
+%                 initparams.sigmacon = [0.1 eps 1];
+%                 initparams.sigmacoh = [0.1 eps 1];
+            else
+                initparams.sigma = [sigmaval eps 1];
+            end
         end
     end
-%     end
+    
+    if strfind(model,'stayswitch')
+%         disp('(behavmodel) Fitting four stay/switch parameters');
+        initparams.right_correct = [0 -inf inf];
+        initparams.right_incorr = [0 -inf inf];
+        initparams.left_correct = [0 -inf inf];
+        initparams.left_incorr = [0 -inf inf];
+    end
     initparams.lapse = lapserate;
     [~, fit] = fitModel(initparams,adata,-1);
     return
@@ -153,7 +199,7 @@ function [bestparams,fit] = fitModel(params,adata,f)
 
 [initparams, minparams, maxparams] = initParams(params);
 
-options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1); % set a limit or it goes on foreeeeeeeeeeeever
+options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
 
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
@@ -162,7 +208,8 @@ fit.params = getParams(bestparams);
 fit.BIC = 2*fit.likelihood + length(bestparams) * log(size(adata,1));
 fit.AIC = 2*fit.likelihood + length(bestparams) * 2;
 fit.probs = probs;
-fit.r2 = nanmean(probs);
+fit.resp = adata(:,8);
+fit.cd = nanmean(probs(fit.resp==1))-nanmean(1-probs(fit.resp==0));
 fit.numParams = length(bestparams);
 
 function [likelihood, probs] = fitBehavModel(params,adata,f)
@@ -185,13 +232,14 @@ if isfield(params,'sigma') && params.sigma < eps
 end
 
 
-likelihood = 0;
 % For each observation in adata, calculate log(likelihood) and sum
 
 %     1       2         3        4      5      6     7      8       9
 %   task - basecon - basecoh - conL - conR - cohL - cohR - resp - catch -
 %      10      11        12
 %   pedcon - pedcoh - correct
+
+probs = zeros(size(adata,1),1);
 
 % compute betas
 betas = zeros(6,2);
@@ -208,15 +256,11 @@ conEffR = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
 conEff = conEffR - conEffL;
 cohEffL = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
 cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
+if params.coh_gain ~= 1
+    cohEffL = cohEffL * params.coh_gain;
+    cohEffR = cohEffR * params.coh_gain;
+end
 cohEff = cohEffR - cohEffL;
-
-% compute length effect
-len = adata(:,13)/500;
-len = len .* (len.^params.hrfexp);
-
-% multiply the effects by the hrf exponent
-conEff = conEff .* len;
-cohEff = cohEff .* len;
 
 probs = zeros(1,size(adata,1));
 
@@ -237,42 +281,48 @@ for ai = 1:size(adata,1)
         prob = eps;
     end
     
-    probs(ai) = prob;
-    if prob >= 0
-        likelihood = likelihood + log(prob);
-    elseif isnan(prob)
+    if isnan(prob)
         warning('Probability returned non-useful value');
         prob = eps;
-        likelihood = likelihood + log(prob);
-%         keyboard
+        keyboard
     end
     probs(ai) = prob;
 end
 
-likelihood = -likelihood;
+likelihood = -sum(log(probs));
 
 if likelihood<.001
     warning('Potential failure...');
     keyboard
 end
 
-if 1
+if 0
     figure(1)
     clf
-    hold on
-    clist = brewermap(3,'PuOr');
-    x = 0:.001:1;
-    if isfield(params,'sigmacon')
-        fcon = params.sigmacon*conModel(x,params);
-        fcoh = params.sigmacoh*cohModel(x,params);
-    else
-        fcon = params.sigma*conModel(x,params);
-        fcoh = params.sigma*cohModel(x,params);
-    end
-    plot(x,fcon,'Color',clist(1,:));
-    plot(x,fcoh,'Color',clist(3,:));
-    % now plot the unattended curves    
-    title(sprintf('L: %2.3f.',likelihood));
+    resp = adata(:,8);
+    subplot(211)
+    bins = 0.05:.1:.95;
+    hist(probs(resp==1),bins);
+    title('Response RIGHT');
+    subplot(212);
+    hist(1-probs(resp==0),bins);
+    title('Response LEFT');
+    stop = 1;
+%     clf
+%     hold on
+%     clist = brewermap(3,'PuOr');
+%     x = 0:.001:1;
+%     if isfield(params,'sigmacon')
+%         fcon = params.sigmacon*conModel(x,params);
+%         fcoh = params.sigmacoh*cohModel(x,params);
+%     else
+%         fcon = params.sigma*conModel(x,params);
+%         fcoh = params.sigma*cohModel(x,params);
+%     end
+%     plot(x,fcon,'Color',clist(1,:));
+%     plot(x,fcoh,'Color',clist(3,:));
+%     % now plot the unattended curves    
+%     title(sprintf('L: %2.3f.',likelihood));
 end
 
 function prob = getObsProb(obs,params,pobs,betas,conEff,cohEff,cons,cohs)
@@ -317,13 +367,13 @@ end
 
 extra = 0;
 if isfield(params,'right_correct') && ~isempty(pobs)
-    if pobs(12)==1 && pobs(8)==1 % left correct
+    if pobs(12)==1 && pobs(8)==0 % left correct
         extra = params.left_correct;
-    elseif pobs(12)==1 && pobs(8)==2 % right correct
+    elseif pobs(12)==1 && pobs(8)==1 % right correct
         extra = params.right_correct;
-    elseif pobs(12)==0 && pobs(8)==1
+    elseif pobs(12)==0 && pobs(8)==0
         extra = params.left_incorr;
-    elseif pobs(12)==0 && pobs(8)==2
+    elseif pobs(12)==0 && pobs(8)==1
         extra = params.right_incorr;
     end
 end
@@ -339,9 +389,30 @@ else
     usesigma = params.sigma;
 end
 
-if params.poissonNoise
-    noise = sqrt(abs(sum(beta*[mean(cons) mean(cohs)]')));
-
+if isfield(params,'merge')
+    cval = mean(abs(cons));
+    mval = mean(abs(cohs));        
+    pnoise = params.psigma*sqrt(abs(sum(abs(beta)*[cval ;mval])));
+    
+    if params.merge<0, params.merge=0; end
+    if params.merge>1, params.merge=1; end
+    
+    tnoise = params.sigma * params.merge + pnoise * (1-params.merge);
+    
+    if obs(8)==1
+        prob = normcdf(0,effect,tnoise,'upper');
+    elseif obs(8)==0
+        prob = normcdf(0,effect,tnoise);
+    else warning('failure'); keyboard
+    end
+    
+elseif params.poissonNoise
+    
+    cval = mean(abs(cons));
+    mval = mean(abs(cohs));
+        
+    noise = sqrt(abs(sum(abs(beta)*[cval ;mval])));
+    
     if obs(8)==1
         prob = normcdf(0,effect,noise*usesigma,'upper');
     elseif obs(8)==0
