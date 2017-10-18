@@ -50,7 +50,7 @@ if any(adata(:,2)>0)
 end
 
 if crossval
-%     disp('(fitCCBehavControlModel_fmri) CROSSVAL INITIATED');
+%     disp('(fitCCBehavFullModel_fmri) CROSSVAL INITIATED');
     
     datapoints = 1:size(adata,1);
     num = floor(size(adata,1)/10);
@@ -72,12 +72,12 @@ if crossval
             keyboard
         end
         
-        trainfit = fitCCBehavControlModel_fmri(traindata,info,0);
+        trainfit = fitCCBehavFullModel_fmri(traindata,info,0);
 %         trainr2(fold) = trainfit.pseudor2;
         sigmas(fold) = trainfit.params.sigma;
         testinfo = info;
         testinfo.fitmodel = trainfit;
-        testfit = fitCCBehavControlModel_fmri(testdata,testinfo,0);
+        testfit = fitCCBehavFullModel_fmri(testdata,testinfo,0);
 %         testr2(fold) = testfit.pseudor2;
         aresp = [aresp ;testdata(:,8)];
         aprobs = [aprobs testfit.probs];
@@ -86,7 +86,7 @@ if crossval
         nulllike(fold) = testfit.null.likelihood;
     end
     
-    fit = fitCCBehavControlModel_fmri(adata,info,0);
+    fit = fitCCBehavFullModel_fmri(adata,info,0);
     fit.cv.sigmas = sigmas;
     fit.cv.like = like;
     fit.cv.nulllike = nulllike;
@@ -124,7 +124,7 @@ if isfield(info,'fitmodel') && isstruct(info.fitmodel)
         nullinfo.model = 'null';
     end
     nullinfo.lapse = 0;
-    fit.null = fitCCBehavControlModel_fmri(adata,nullinfo,0);
+    fit.null = fitCCBehavFullModel_fmri(adata,nullinfo,0);
     [fit.likelihood,fitted] = fitBehavModel(info.fitmodel.params,adata,-1);
     probs = fitted.probs;
     fit.adata = fitted.adata;
@@ -147,8 +147,12 @@ if strfind(model,'null')
         for ri = 1:length(rois)
             cbeta = sprintf('beta_control_%s_conw',rois{ri});
             mbeta = sprintf('beta_control_%s_cohw',rois{ri});
+            uncbeta = sprintf('beta_unatt_%s_conw',rois{ri});
+            unmbeta = sprintf('beta_unatt_%s_cohw',rois{ri});
             initparams.(cbeta) = 0;
             initparams.(mbeta) = 0;
+            initparams.(uncbeta) = 0;
+            initparams.(unmbeta) = 0;
         end
     else
         initparams.beta_control_con_conw = 0;
@@ -319,7 +323,7 @@ end
 %   pedcon - pedcoh - correct
 
 if fixedParams.roi
-    betas = zeros(fixedParams.roi,2);
+    betas = zeros(6,fixedParams.roi);
     for ri = 1:fixedParams.roi
         betas(1,ri) = params.(sprintf('beta_control_%s_cohw',fixedParams.rois{ri}));
         betas(2,ri) = params.(sprintf('beta_control_%s_conw',fixedParams.rois{ri}));
@@ -466,14 +470,14 @@ switch obs(1) % switch condition
             beta = betas(3,:);
         else
             % catch
-            beta = betas(4,:);
+            beta = betas(6,:);
         end
     case -2
         if obs(9)==0
             % main
-            beta = betas(5,:);
+            beta = betas(4,:);
         else
-            beta = betas(6,:);
+            beta = betas(5,:);
         end
 end
 
