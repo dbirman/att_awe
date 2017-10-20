@@ -27,7 +27,6 @@ Sclar, G., Maunsell, J. H., & Lennie, P. (1990). Coding of image contrast in cen
 Shadlen, M. N., Britten, K. H., Newsome, W. T., & Movshon, J. A. (1996). A computational analysis of the relationship between neuronal and behavioral responses to visual motion. The Journal of Neuroscience: The Official Journal of the Society for Neuroscience, 16(4), 1486–1510.
 Simoncelli, E. P., & Heeger, D. J. (1998). A model of neuronal responses in visual area MT. Vision Research, 38(5), 743–761.
 Stocker, A. A., & Simoncelli, E. P. (2006). Noise characteristics and prior expectations in human visual speed perception. Nature Neuroscience, 9(4), 578–585.
-Taylor, M., & Creelman, C. D. (1967). PEST: Efficient estimates on probability functions. The Journal of the Acoustical Society of America, 41(4A), 782–787.
 Tootell, R. B., Hadjikhani, N. K., Vanduffel, W., Liu, A. K., Mendola, J. D., Sereno, M. I., & Dale, A. M. (1998). Functional analysis of primary visual cortex (V1) in humans. Proceedings of the National Academy of Sciences of the United States of America, 95(3), 811–817.
 Tootell, R. B., & Taylor, J. B. (1995). Anatomical evidence for MT and additional cortical visual areas in humans. Cerebral Cortex , 5(1), 39–55.
 Wandell, B. A., Dumoulin, S. O., & Brewer, A. A. (2007). Visual field maps in human cortex. Neuron, 56(2), 366–383.
