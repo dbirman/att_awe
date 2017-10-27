@@ -27,8 +27,15 @@ if strfind(info.model,'roi')
     roifit = struct;
     for ri = 1:length(rois)
         roifit.(rois{ri}) = struct;
-        roifit.(rois{ri}).confit = info.respcon(info.rois(ri),:);
-        roifit.(rois{ri}).cohfit = info.respcoh(info.rois(ri),:);
+        if strfind(info.model,'att')
+            for ai = 1:2
+                roifit.(rois{ri}).confit(ai,:) = info.respcon(info.rois(ri),ai,:);
+                roifit.(rois{ri}).cohfit(ai,:) = info.respcoh(info.rois(ri),ai,:);
+            end
+        else
+            roifit.(rois{ri}).confit = info.respcon(info.rois(ri),:);
+            roifit.(rois{ri}).cohfit = info.respcoh(info.rois(ri),:);
+        end
     end
 else
     confit = squeeze(mean(info.respcon(info.conGroup,:),1));
@@ -336,16 +343,34 @@ if fixedParams.roi
     % compute the effect for each ROI for each side
     roiEff = zeros(size(adata,1),fixedParams.roi);
     for ri = 1:fixedParams.roi
-        fixedParams.con = fixedParams.roifit.(fixedParams.rois{ri}).confit;
-        fixedParams.coh = fixedParams.roifit.(fixedParams.rois{ri}).cohfit;
-        conEffL = (conModel(adata(:,4),params)-conModel(adata(:,2),params));
-        conEffR = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
-        conEff = conEffR - conEffL;
-        cohEffL = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
-        cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
-        cohEff = cohEffR - cohEffL;
-        
-        roiEff(:,ri) = conEffR + cohEffR - conEffL -cohEffL;
+        if size(fixedParams.roifit.V1.confit,1)==2
+            % index response by whether attention is directed to contrast
+            % or coherence
+            for i = 1:size(adata,1)
+                fixedParams.con = fixedParams.roifit.(fixedParams.rois{ri}).confit(adata(i,1),:);
+                fixedParams.coh = fixedParams.roifit.(fixedParams.rois{ri}).cohfit(adata(i,1),:);
+                
+                conEffL = (conModel(adata(i,4),params)-conModel(adata(i,2),params));
+                conEffR = (conModel(adata(i,5),params)-conModel(adata(i,2),params));
+                conEff = conEffR - conEffL;
+                cohEffL = (cohModel(adata(i,6),params)-cohModel(adata(i,3),params));
+                cohEffR = (cohModel(adata(i,7),params)-cohModel(adata(i,3),params));
+                cohEff = cohEffR - cohEffL;
+
+                roiEff(i,ri) = conEffR + cohEffR - conEffL -cohEffL;
+            end
+        else
+            fixedParams.con = fixedParams.roifit.(fixedParams.rois{ri}).confit;
+            fixedParams.coh = fixedParams.roifit.(fixedParams.rois{ri}).cohfit;
+            conEffL = (conModel(adata(:,4),params)-conModel(adata(:,2),params));
+            conEffR = (conModel(adata(:,5),params)-conModel(adata(:,2),params));
+            conEff = conEffR - conEffL;
+            cohEffL = (cohModel(adata(:,6),params)-cohModel(adata(:,3),params));
+            cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
+            cohEff = cohEffR - cohEffL;
+
+            roiEff(:,ri) = conEffR + cohEffR - conEffL -cohEffL;
+        end
     end
     
 else
@@ -367,10 +392,20 @@ probs = zeros(1,size(adata,1));
 for ai = 1:size(adata,1)
     obs = adata(ai,:);
     
-    if ai>1
-        prob = getObsProb(obs,params,adata(ai-1,:),betas,conEff(ai),cohEff(ai),[conEffL(ai) conEffR(ai)],[cohEffL(ai) cohEffR(ai)],roiEff(ai,:));
+    if length(conEff)>1
+        ce = conEff(ai);
+        me = cohEff(ai);
+        lr_con = [conEffL(ai) conEffR(ai)];
+        lr_coh = [cohEffL(ai) cohEffR(ai)];
     else
-        prob = getObsProb(obs,params,[],betas,conEff(ai),cohEff(ai),[conEffL(ai) conEffR(ai)],[cohEffL(ai) cohEffR(ai)],roiEff(ai,:));
+        ce = []; me = [];
+        lr_con = []; lr_coh = [];
+    end
+    
+    if ai>1
+        prob = getObsProb(obs,params,adata(ai-1,:),betas,ce,me,lr_con,lr_coh,roiEff(ai,:));
+    else
+        prob = getObsProb(obs,params,[],betas,ce,me,lr_con,lr_coh,roiEff(ai,:));
     end
     
     % add lapse rate

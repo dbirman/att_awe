@@ -38,15 +38,14 @@ figure; hold on
 for mi = 1
 %     plot(squeeze(mean(respcon_([1 2 3 4],1,:),1)),'--r');
 %     plot(squeeze(mean(respcoh_([5 8],1,:),1)),'--');
-    plot(squeeze(mean(respcon_([1 2 3 4],2,:),1)),'-r');
-    plot(squeeze(mean(respcoh_([5 8],2,:),1)),'-');
+    plot(squeeze(mean(respcon_([1 2 3 4],1,:),1)),'-r');
+    plot(squeeze(mean(respcoh_([5 8],1,:),1)),'-');
 end
 
 %% Lapse rate calculation
 
 mopts = 1;
 
-afits = cell(1,length(aSIDs));
 lapses = zeros(1,length(aSIDs));
 ltrials = lapses;
 for ai = 1:length(aSIDs)
@@ -68,16 +67,16 @@ end
 
 models = {'exp'};
 % 'sigma','sigma,poisson',
-bmodels = {'sigma,roi','sigma,roi,poisson'};%,'doublesigma','doublesigma,poisson'};
+bmodels = {'sigma,roi,att'};%,'doublesigma','doublesigma,poisson'};
 % bmodels = {'sigma,roi'};
 
 % options list
-aopts = zeros(10000,5);
+attopts = zeros(10000,5);
 count = 1;
 
 % build options 
 
-ropts = {[1 8]};
+ropts = {[1:8]};
 % rconopts = {1, [1 2 3 4], 1:8};
 % rcohopts = {8, [5 8], 1:8};
 
@@ -90,11 +89,11 @@ for ai = 1:length(aSIDs)
                 if strfind(bmodels{ni},'roi')
                     % roi models have sigma fixed, no need to do
                     % multiple
-                    aopts(count,:) = [ai mi ni ropt 1];
+                    attopts(count,:) = [ai mi ni ropt 1];
                     count = count+1;
                 else
                     for si = 1:length(sigmaopts)
-                        aopts(count,:) = [ai mi ni ropt si];
+                        attopts(count,:) = [ai mi ni ropt si];
                         count = count+1;
                     end
                 end
@@ -102,28 +101,28 @@ for ai = 1:length(aSIDs)
         end
     end
 end
-aopts = aopts(1:(count-1),:);
+attopts = attopts(1:(count-1),:);
 
 % break into 12*10 size chunks
-breaks = 1:240:size(aopts,1);
-breaks(end) = size(aopts,1)+1;
+breaks = 1:240:size(attopts,1);
+breaks(end) = size(attopts,1)+1;
 
 if length(breaks)==1
     breaks(2) = breaks(1); breaks(1) = 1;
 end
     
 %% fit all options
-disppercent(-1/size(aopts,1));
+disppercent(-1/size(attopts,1));
 
 % breaks = [breaks(1) breaks(end)];
-afits = cell(size(aopts,1),1);
-wfits = cell(size(aopts,1),1);
+attfits = cell(size(attopts,1),1);
+wfits = cell(size(attopts,1),1);
 for ni = 1:(length(breaks)-1)
     bstart = breaks(ni);
     bend = breaks(ni+1)-1;
     
     parfor ii = bstart:bend
-        copt = aopts(ii,:);
+        copt = attopts(ii,:);
         
         subj = copt(1);
         adata = loadadata(sprintf('s%03.0f',aSIDs(subj)));
@@ -148,14 +147,14 @@ for ni = 1:(length(breaks)-1)
 %             tinfo.model = bmodels{iii};
 %             temps{iii} = fitCCBehavControlModel_fmri(adata,tinfo,1);
 %         end
-        afits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
+        attfits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
    end
     
-    disppercent(bend/size(aopts,1));
+    disppercent(bend/size(attopts,1));
 end
 disppercent(inf);
 
-save(fullfile(datafolder,'avg_indiv_fits_att.mat'),'afits');
+save(fullfile(datafolder,'avg_indiv_fits_att.mat'),'attfits');
 % save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
 %     save(fullfile(datafolder,sprintf('avg_indiv_fits_%02.0f.mat',100*sigmaopts(si))),'afits');
 %     disp('************************************');
@@ -163,3 +162,16 @@ save(fullfile(datafolder,'avg_indiv_fits_att.mat'),'afits');
 %     disp('************************************');
 % end
 % disppercent(inf);
+
+%% Plot
+
+plot_rightchoice_model_full;
+
+
+%% Compare afits and attfits
+restructure_afits;
+
+for i = 1:21
+    cd(i) = afits{i}{1}.cv.cd;
+    cd_att(i) = attfits{i}.cv.cd;
+end
