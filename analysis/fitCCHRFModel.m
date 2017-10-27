@@ -29,8 +29,8 @@ if cvflag
 
     all = struct;
     all.y = []; all.y_ = [];
-    all.train_r2 = zeros(1,39);
-    all.test_r2 = zeros(1,39);
+    all.train_r2 = zeros(39,8);
+    all.test_r2 = zeros(39,8);
     
     ccn = length(data.cc.con);
     timen = length(data.time.con);
@@ -91,6 +91,9 @@ if cvflag
         
         all.y{ci-1} = testfit.y;
         all.y_{ci-1} = testfit.y_;
+        
+        all.train_r2(ci-1,:) = trainfit.r2;
+        all.test_r2(ci-1,:) = testfit.r2;
         
         % clear explicitly
         clear tdata test train trainfit testfit
@@ -198,7 +201,13 @@ else
 end
 
 fixedParams.numparams = 0;
-if strfind(mode,'fitroi')
+if strfind(mode,'null')
+    roiparams.conslope = 0;
+    roiparams.conmodel = 1;
+    roiparams.cohslope = 0;
+    roiparams.cohmodel = 1;
+    roiparams.nulloffset = [1 -inf inf];
+elseif strfind(mode,'fitroi')
     if strfind(mode,'conlinear')
         roiparams.conslope = [1 -inf inf];
         roiparams.conmodel = 1;
@@ -363,10 +372,12 @@ for i = 1:length(data.cc.cresp_)
     cohEff = cohModel(ccoh,roiparams)-baseCohResp;
     inEff = roiparams.inbeta*conEff*cohEff;
     
-    if conEff==0 && cohEff==0 % no change! res=0
+    if conEff==0 && cohEff==0 && ~isfield(roiparams,'nulloffset') % no change! res=0
         res(i) = 0;
     else
-        if isfield(roiparams,'offset')
+        if isfield(roiparams,'nulloffset')
+            effect = roiparams.nulloffset;
+        elseif isfield(roiparams,'offset')
             if (conEff>0) || (cohEff>0)
                 effect = conEff+cohEff+roiparams.offset;
             else
@@ -398,10 +409,12 @@ for i = 1:length(data.time.cresp_)
     conEff = conModel(ccon,roiparams)-baseConResp;
     cohEff = cohModel(ccoh,roiparams)-baseCohResp;
     
-    if conEff==0 && cohEff==0 % no change! res=0
+    if conEff==0 && cohEff==0 && ~isfield(roiparams,'nulloffset') % no change! res=0
         res(length(data.time.cresp_)+i) = 0;
     else
-        if isfield(roiparams,'offset')
+        if isfield(roiparams,'nulloffset')
+            effect = roiparams.nulloffset;
+        elseif isfield(roiparams,'offset')
             effect = conEff+cohEff;
             if (conEff>0) || (cohEff>0)
                 effect = effect+roiparams.offset;

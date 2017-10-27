@@ -6,7 +6,12 @@ function fit = fitCCBehavFullModel_fmri(adata,info,crossval)
 
 ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
 
-global fixedParams
+global fixedParams origfits
+
+if ~isempty(strfind(info.model,'pfit')) && crossval==1
+    % load the prefitted weights
+    info.ofit = origfits{info.subj}{1};
+end
 
 adata = adata(~any(isnan(adata),2),:);
 osize = size(adata,1);
@@ -101,6 +106,7 @@ end
 
 %% Setup responses
 fixedParams.x = 0:.001:1;
+
 if strfind(model,'roi')
     % confit/cohfit contain the relevant data
     fixedParams.roifit = roifit;
@@ -206,11 +212,20 @@ elseif strfind(model,'sigma')
 %             if strfind(rois{ri},'V1')
 %                 initparams.(cbeta) = 1;
 %             else
-            initparams.(cbeta) = [rand -inf inf];
-            initparams.(uncbeta) = [rand -inf inf];
-%             end
-            initparams.(mbeta) = [rand -inf inf];
-            initparams.(unmbeta) = [rand -inf inf];
+            if strfind(model,'pfit')
+               % set the controls to the actual values
+               initparams.(cbeta) = info.ofit.params.(sprintf('beta_control_%s_conw',rois{ri}));
+               initparams.(mbeta) = info.ofit.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+               % set the unatt to the reversed values
+               initparams.(uncbeta) = info.ofit.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+               initparams.(unmbeta) = info.ofit.params.(sprintf('beta_control_%s_conw',rois{ri}));
+            else
+                initparams.(cbeta) = [rand -inf inf];
+                initparams.(uncbeta) = [rand -inf inf];
+    %             end
+                initparams.(mbeta) = [rand -inf inf];
+                initparams.(unmbeta) = [rand -inf inf];
+            end
         end
     else
         initparams.beta_control_con_conw = 1;

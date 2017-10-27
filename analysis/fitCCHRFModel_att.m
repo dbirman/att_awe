@@ -132,7 +132,7 @@ end
 %%
 if isstruct(cvflag)
     % evaluate test model and return prediction
-    fixedParams.x = 0:.01:1;
+    fixedParams.x = 0:.001:1;
     fixedParams.con = conModel(fixedParams.x,data.cc_fit.params);
     fixedParams.coh = cohModel(fixedParams.x,data.cc_fit.params);
     p = cvflag.roiparams;
@@ -165,7 +165,7 @@ end
 
 %%
 
-fixedParams.x = 0:.01:1;
+fixedParams.x = 0:.001:1;
 fixedParams.con = conModel(fixedParams.x,data.cc_fit.params);
 fixedParams.coh = cohModel(fixedParams.x,data.cc_fit.params);
 
