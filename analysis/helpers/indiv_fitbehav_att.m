@@ -165,7 +165,7 @@ save(fullfile(datafolder,'avg_indiv_fits_att.mat'),'attfits');
 
 %% Plot
 
-plot_rightchoice_model_full;
+plot_rightchoice_model_att;
 
 
 %% Compare afits and attfits
