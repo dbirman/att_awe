@@ -176,10 +176,10 @@ save(fname,'decondata');
 % concolor = brewermap(11,'PuOr');
 % concolor = flipud(concolor(1:4,:));
 % 
-% ehdr = decon.ehdr(logical(~deltaidx),:);
-% conidx = conidx(logical(~deltaidx));
-% taskidx = taskidx(logical(~deltaidx));
-% stimNames = stimNames(logical(~deltaidx));
+% ehdr = decon.ehdr(logical(deltaidx),:);
+% conidx = conidx(logical(deltaidx));
+% taskidx = taskidx(logical(deltaidx));
+% stimNames = stimNames(logical(deltaidx));
 % 
 % for si = 1:length(stimNames)
 %     subplot(1,2,taskidx(si)); hold on

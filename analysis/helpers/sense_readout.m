@@ -220,167 +220,103 @@ set(l,'box','off');
 
 drawPublishAxis('figSize=[4.5 4.5]');
 
-savepdf(h,fullfile(datafolder,'avg_fitatt','roi_sensitivty.pdf'));
+savepdf(h,fullfile(datafolder,'avg_fitatt','roi_sensitivity.pdf'));
 
 %% Compute readout response functions
 
+% RESPONSE TO FEAT | DISCRIMINATING
+% First use the weights to run through
+clear readout_p readout_c readout_m readout_a readout_l
+for ni = 1:10
+    for di = 1:2
+        readout_p(ni,2,di,:) = squeeze(respcon(ncorrespond(ni),:,:))' * w_addpass(:,di);
+        
+        readout_p(ni,1,di,:) = squeeze(respcoh(ncorrespond(ni),:,:))' * w_addpass(:,di);
+    end
+        
+    readout_a(ni,2,2,:) = squeeze(respcon_ac(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+    readout_a(ni,2,1,:) = squeeze(respcon_am(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+    readout_a(ni,1,2,:) = squeeze(respcoh_ac(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+    readout_a(ni,1,1,:) = squeeze(respcoh_am(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+    
+    readout_l(ni,2,2,:) = squeeze(respcon_ac(ni,:,:))' * w_addpass(:,di);
+    readout_l(ni,2,1,:) = squeeze(respcon_am(ni,:,:))' * w_addpass(:,di);
+    readout_l(ni,1,2,:) = squeeze(respcoh_ac(ni,:,:))' * w_addpass(:,di);
+    readout_l(ni,1,1,:) = squeeze(respcoh_am(ni,:,:))' * w_addpass(:,di);
+end
 
+% avg
+readout_p = squeeze(median(bootci(1000,@mean,readout_p)));
+readout_a = squeeze(median(bootci(1000,@mean,readout_a)));
+readout_l = squeeze(median(bootci(1000,@mean,readout_l)));
 
-
-%% OLD CODE
-
-
+readout_p = readout_p - repmat(readout_p(:,:,1),1,1,1001);
+readout_a = readout_a - repmat(readout_a(:,:,1),1,1,1001);
+readout_l = readout_l - repmat(readout_l(:,:,1),1,1,1001);
+% readout_m = readout_m - repmat(readout_m(:,:,1),1,1,1001);
 
 %% Plot
-rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-% passive
+
+
+conds = {'motion','contrast'};
+group = {'p','a','a'};
+rois = {'V1','MT'};
+% split discrimination condition by subplot
 h = figure;
-plot(rc_p,rm_p,'ok');
-for rii = 1:length(ros)
-    text(.025+rc_p(rii),rm_p(rii),rois{ros(rii)});
-end
-title('Passive');
-%axis([0 1 0 1.6]);
-set(gca,'XTick',[0 1],'YTick',[0 1]);
-xlabel('Norm con sens');
-ylabel('Norm coh sens');
-a = axis;
-axis([min(a(1),0) max(a(2),1) min(a(3),0) max(a(4),0)]);
-drawPublishAxis;
 
-h = figure;
-plot(rc_c,rm_c,'ok');
-for rii = 1:length(ros)
-    text(.025+rc_c(rii),rm_c(rii),rois{ros(rii)});
-end
-title('Attend con');
-%axis([0 1 0 1.6]);
-set(gca,'XTick',[0 1],'YTick',[0 1]);
-xlabel('Norm con sens');
-ylabel('Norm coh sens');
-a = axis;
-axis([min(a(1),0) max(a(2),1) min(a(3),0) max(a(4),0)]);
-drawPublishAxis;
+subplot(2,2,1); hold on
 
-h = figure;
-plot(rc_c,rm_c,'ok');
-for rii = 1:length(ros)
-    arrow([rc_p(rii) rm_p(rii)],[rc_c(rii) rm_c(rii)],3,[],[],[]);
-    text(.025+rc_c(rii),rm_c(rii),rois{ros(rii)});
-end
-title('Attend con (arrows)');
-%axis([0 1 0 1.6]);
-set(gca,'XTick',[0 1],'YTick',[0 1]);
-xlabel('Norm con sens');
-ylabel('Norm coh sens');
-a = axis;
-axis([min(a(1),0) max(a(2),1) min(a(3),0) max(a(4),0)]);
-drawPublishAxis;
+title('Readout of contrast predicted by linking model');
+plot(x,squeeze(readout_p(2,2,:)),'-','Color',cmap(2,:));
+plot(x,squeeze(readout_p(2,1,:)),'-','Color',[0.8 0.8 0.8]);
+l=legend({'Contrast attended','Contrast unattended'},'FontSize',7,'FontName','Helvetica');
+set(l,'box','off');
 
-h = figure;
-plot(rc_m,rm_m,'ok');
-for rii = 1:length(ros)
-    text(.025+rc_m(rii),rm_m(rii),rois{ros(rii)});
-end
-title('Attend motion');
-%axis([0 1 0 1.6]);
-set(gca,'XTick',[0 1],'YTick',[0 1]);
-xlabel('Norm con sens');
-ylabel('Norm coh sens');
-a = axis;
-axis([min(a(1),0) max(a(2),1) min(a(3),0) max(a(4),0)]);
-drawPublishAxis;
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Contrast (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
 
-h = figure;
-plot(rc_m,rm_m,'ok');
-for rii = 1:length(ros)
-    arrow([rc_p(rii) rm_p(rii)],[rc_m(rii) rm_m(rii)],3,[],[],[]);
-    text(.025+rc_m(rii),rm_m(rii),rois{ros(rii)});
-end
-title('Attend motion (arrows)');
-%axis([0 1 0 1.6]);
-set(gca,'XTick',[0 1],'YTick',[0 1]);
-xlabel('Norm con sens');
-ylabel('Norm coh sens');
-a = axis;
-axis([min(a(1),0) max(a(2),1) min(a(3),0) max(a(4),0)]);
-drawPublishAxis;
+% % % % % % % % % % % % % % % % 
+subplot(2,2,2); hold on
+title('Readout of coherence predicted by linking model');
+plot(x,squeeze(readout_p(1,1,:)),'-','Color',cmap(6,:));
+plot(x,squeeze(readout_p(1,2,:)),'Color',[0.8 0.8 0.8]);
+l=legend({'Coherence attended','Coherence unattended'},'FontSize',7,'FontName','Helvetica');
+set(l,'box','off');
 
-%% Readout space
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Coherence (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
 
-%       viewing condition | feature response function | discrimination condition | response
-readout = zeros(10,3,2,2,1001);
-group = {'','_ac','_am'};
-feat = {'respcon','respcoh'};
-for gi = 1:3
-    for fi = 1:2
-        for weights = 1:2
-            for ni = 1:10
-                eval(sprintf('readout(ni,gi,fi,weights,:) = squeeze(%s%s(ni,:,:))''*w_addpass(:,%i);',feat{fi},group{gi},weights));
-            end
-        end
-    end
-end
+% % % % % % % % % % % % % % % % 
+subplot(2,2,3); hold on
+title('Readout of contrast (from active viewing)');
+% plot(x,squeeze(readout_a(2,2,:)),'-k');
+% plot(x,squeeze(readout_l(2,1,:)),'Color',[0.8 0.8 0.8]);
+plot(x,squeeze(readout_l(2,2,:)),'-','Color',cmap(2,:));
+plot(x,squeeze(readout_l(2,1,:)),'Color',[0.8 0.8 0.8]);
 
-readout = squeeze(mean(readout));
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Contrast (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
 
-%% Plot readout space
-h = figure;
-cmap = brewermap(7,'PuOr');
+% % % % % % % % % % % % % % % % 
+subplot(2,2,4); hold on
+title('Readout of coherence (from active viewing)');
+% plot(x,squeeze(readout_a(1,1,:)),'-k');
+plot(x,squeeze(readout_l(1,2,:)),'Color',[0.8 0.8 0.8]);
+plot(x,squeeze(readout_l(1,1,:)),'-','Color',cmap(6,:));
 
-si = 1:10:1001;
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Coherence (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
 
-for gi = 1:3
-    subplot(3,1,gi); hold on
-    
-    % plot the contrast and coherence response functions
-    line = {'-','--'}; % different line type for discriminations
-    col = [2 6];
-    
-    for fi = 1:2
-        for di = 1:2
-            y = squeeze(readout(gi,fi,di,:));
-            plot(x(si),y(si),line{di},'Color',cmap(col(fi),:));
-        end
-    end
-    
-    axis([0 1 0 40]);
-end
-
-%% Get readout sensitivity
-readout_sense = zeros(3,2,2);
-con_norm_read = squeeze(readout(1,2,2,:));
-coh_norm_read = squeeze(readout(1,1,1,:));
-
-for gi = 1:3
-    for di = 1:2
-        readout_sense(gi,1,di) = squeeze(readout(gi,1,di,:))\coh_norm_read;
-        readout_sense(gi,2,di) = squeeze(readout(gi,2,di,:))\con_norm_read;
-    end
-end
-
-%% Plot readout sensitivity
-h = figure; subplot(211); hold on
-title('Contrast response (normalized');
-plot(1,1,'o','MarkerFaceColor','k');
-text(.6,1,'Normalized maximum response');
-plot(readout_sense(1,2,2),readout_sense(1,2,1),'o');
-plot(readout_sense(2,2,2),readout_sense(2,2,1),'x');
-plot(readout_sense(3,2,2),readout_sense(3,2,1),'s');
-xlabel('Discriminating contrast');
-ylabel('Discriminating coherence');
-% axis([0 1 0 1]);
-
-subplot(212); hold on
-title('Coherence response (normalized');
-plot(1,1,'o','MarkerFaceColor','k');
-text(1.05,1,'Normalized maximum response');
-plot(readout_sense(1,1,2),readout_sense(1,1,1),'o');
-plot(readout_sense(2,1,2),readout_sense(2,1,1),'x');
-% text(readout_sense(2,1,2)+0.05,readout_sense(2,1,1),'x');
-plot(readout_sense(3,1,2),readout_sense(3,1,1),'s');
-xlabel('Discriminating contrast');
-ylabel('Discriminating coherence');
-% axis([0 1 0 1]);
-
-%% Load the perceptual 
+savepdf(h,fullfile(datafolder,'avg_fitatt','readout.pdf'));
