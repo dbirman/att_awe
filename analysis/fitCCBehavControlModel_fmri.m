@@ -28,6 +28,7 @@ if strfind(info.model,'roi')
     for ri = 1:length(rois)
         roifit.(rois{ri}) = struct;
         if strfind(info.model,'att')
+            fixedParams.att = 1;
             for ai = 1:2
                 roifit.(rois{ri}).confit(ai,:) = info.respcon(info.rois(ri),ai,:);
                 roifit.(rois{ri}).cohfit(ai,:) = info.respcoh(info.rois(ri),ai,:);
@@ -201,15 +202,24 @@ elseif strfind(model,'sigma')
     initparams.conmodel = 4;
     initparams.cohmodel = 4;
     if strfind(model,'roi')
-        for ri = 1:length(rois)
-            cbeta = sprintf('beta_control_%s_conw',rois{ri});
-            mbeta = sprintf('beta_control_%s_cohw',rois{ri});
-%             if strfind(rois{ri},'V1')
-%                 initparams.(cbeta) = 1;
-%             else
-            initparams.(cbeta) = [rand -inf inf];
-%             end
-            initparams.(mbeta) = [rand -inf inf];
+        if strfind(model,'onebeta')
+            fixedParams.onebeta = 1;
+            for ri = 1:length(rois)
+                beta = sprintf('beta_control_%s_w',rois{ri});
+                
+                initparams.(beta) = [rand -inf inf];
+            end
+        else
+            for ri = 1:length(rois)
+                cbeta = sprintf('beta_control_%s_conw',rois{ri});
+                mbeta = sprintf('beta_control_%s_cohw',rois{ri});
+    %             if strfind(rois{ri},'V1')
+    %                 initparams.(cbeta) = 1;
+    %             else
+                initparams.(cbeta) = [rand -inf inf];
+    %             end
+                initparams.(mbeta) = [rand -inf inf];
+            end
         end
     else
         initparams.beta_control_con_conw = 1;
@@ -323,9 +333,15 @@ end
 
 if fixedParams.roi
     betas = zeros(fixedParams.roi,2);
-    for ri = 1:fixedParams.roi
-        betas(1,ri) = params.(sprintf('beta_control_%s_cohw',fixedParams.rois{ri}));
-        betas(2,ri) = params.(sprintf('beta_control_%s_conw',fixedParams.rois{ri}));
+    if fixedParams.onebeta
+        for ri = 1:fixedParams.roi
+            betas(:,ri) = repmat(params.(sprintf('beta_control_%s_w',fixedParams.rois{ri})),2,1);
+        end
+    else
+        for ri = 1:fixedParams.roi
+            betas(1,ri) = params.(sprintf('beta_control_%s_cohw',fixedParams.rois{ri}));
+            betas(2,ri) = params.(sprintf('beta_control_%s_conw',fixedParams.rois{ri}));
+        end
     end
 else
     % compute betas
@@ -343,7 +359,9 @@ if fixedParams.roi
     % compute the effect for each ROI for each side
     roiEff = zeros(size(adata,1),fixedParams.roi);
     for ri = 1:fixedParams.roi
-        if size(fixedParams.roifit.V1.confit,1)==2
+        if fixedParams.att
+            % ATTENTION MODEL 
+            
             % index response by whether attention is directed to contrast
             % or coherence
             for i = 1:size(adata,1)

@@ -30,8 +30,8 @@ for si = 1:10
     end
 end
 
-respcon_ = squeeze(mean(bootci(10000,@mean,respcon)));
-respcoh_ = squeeze(mean(bootci(10000,@mean,respcoh)));
+respcon_ = squeeze(median(bootci(10000,@mean,respcon)));
+respcoh_ = squeeze(median(bootci(10000,@mean,respcoh)));
 
 %% Check that responses look right
 figure; hold on
@@ -154,7 +154,106 @@ for ni = 1:(length(breaks)-1)
 end
 disppercent(inf);
 
-save(fullfile(datafolder,'avg_indiv_fits_att.mat'),'attfits');
+save(fullfile(datafolder,'avg_indiv_fits_2_att.mat'),'attfits');
+% save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
+%     save(fullfile(datafolder,sprintf('avg_indiv_fits_%02.0f.mat',100*sigmaopts(si))),'afits');
+%     disp('************************************');
+%     disppercent(si/length(sigmaopts));
+%     disp('************************************');
+% end
+% disppercent(inf);
+
+
+models = {'exp'};
+% 'sigma','sigma,poisson',
+bmodels = {'sigma,roi,att,onebeta'};%,'doublesigma','doublesigma,poisson'};
+% bmodels = {'sigma,roi'};
+
+% options list
+attopts = zeros(10000,5);
+count = 1;
+
+% build options 
+
+ropts = {[1:8]};
+% rconopts = {1, [1 2 3 4], 1:8};
+% rcohopts = {8, [5 8], 1:8};
+
+sigmaopts = linspace(.01,.5,6);
+
+for ai = 1:length(aSIDs)
+    for mi = 1:length(mopts)
+        for ropt = 1:length(ropts)
+            for ni = 1:length(bmodels)
+                if strfind(bmodels{ni},'roi')
+                    % roi models have sigma fixed, no need to do
+                    % multiple
+                    attopts(count,:) = [ai mi ni ropt 1];
+                    count = count+1;
+                else
+                    for si = 1:length(sigmaopts)
+                        attopts(count,:) = [ai mi ni ropt si];
+                        count = count+1;
+                    end
+                end
+            end
+        end
+    end
+end
+attopts = attopts(1:(count-1),:);
+
+% break into 12*10 size chunks
+breaks = 1:240:size(attopts,1);
+breaks(end) = size(attopts,1)+1;
+
+if length(breaks)==1
+    breaks(2) = breaks(1); breaks(1) = 1;
+end
+    
+%% fit all options
+disppercent(-1/size(attopts,1));
+
+% breaks = [breaks(1) breaks(end)];
+attfits = cell(size(attopts,1),1);
+wfits = cell(size(attopts,1),1);
+for ni = 1:(length(breaks)-1)
+    bstart = breaks(ni);
+    bend = breaks(ni+1)-1;
+    
+    parfor ii = bstart:bend
+        copt = attopts(ii,:);
+        
+        subj = copt(1);
+        adata = loadadata(sprintf('s%03.0f',aSIDs(subj)));
+        
+        shape = copt(2);
+        noise = copt(3);
+        ropt = ropts{copt(4)};
+        sigma = sigmaopts(copt(5));
+        
+        info = struct;
+        info.sigma = sigma;
+        info.model = bmodels{noise};
+        info.rois = ropt;
+        info.lapse = lapses(subj);
+        info.respcon = respcon_;
+        info.respcoh = respcoh_;
+        
+%         temps = cell{1,4};
+%         parfor iii=1:4
+%             
+%             tinfo = info;
+%             tinfo.model = bmodels{iii};
+%             temps{iii} = fitCCBehavControlModel_fmri(adata,tinfo,1);
+%         end
+        attfits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
+   end
+    
+    disppercent(bend/size(attopts,1));
+end
+disppercent(inf);
+
+save(fullfile(datafolder,'avg_indiv_fits_onebeta_att.mat'),'attfits');
 % save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
 %     save(fullfile(datafolder,sprintf('avg_indiv_fits_%02.0f.mat',100*sigmaopts(si))),'afits');
 %     disp('************************************');
@@ -177,3 +276,72 @@ for i = 1:21
     cd(i) = afits{i}{1}.cv.cd;
     cd_att(i) = attfits{i}.cv.cd;
 end
+
+%% Compare weight parameters
+restructure_afits;
+rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+cons = {'cohw','conw'};
+for ai = 1:21
+    for ri = 1:8
+        for ci = 1:2
+            % original
+            w(ai,ri,1,ci) = afits{ai}{1}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
+            w(ai,ri,2,ci) = attfits{ai}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
+        end
+    end
+end
+
+w = squeeze(median(w));
+
+%% Compare weight2 parameters
+restructure_afits_2;
+rois = {'V1','MT'};
+cons = {'cohw','conw'};
+clear w
+for ai = 1:21
+    for ri = 1:2
+        for ci = 1:2
+            % original
+            w(ai,ri,1,ci) = afits{ai}{1}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
+            w(ai,ri,2,ci) = attfits{ai}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
+        end
+    end
+end
+
+w = squeeze(median(w));
+
+wcon = wcon([1 8],:);
+wcoh = wcoh([1 8],:);
+
+%% Correlation
+wcon = squeeze(w(:,2,:));
+wcoh = squeeze(w(:,1,:));
+[rp,pp] = corr(wcon(:,1),wcoh(:,1));
+[ra,pa] = corr(wcon(:,2),wcoh(:,2));
+%% Plot
+h = figure;
+
+wcon = squeeze(w(:,2,:));
+wcon = wcon / wcon(1,2);
+wcoh = squeeze(w(:,1,:));
+wcoh = wcoh / wcoh(1,2);
+
+cmap = brewermap(7,'PuOr');
+
+subplot(211);
+title('Passive viewing');
+b = bar(wcoh);
+b(1).FaceColor = cmap(6,:); b(2).FaceColor = cmap(2,:);
+mylegend({'Coherence weight','Contrast weight'},{{'s' cmap(6,:)},{'s' cmap(2,:)}});
+set(gca,'XTick',1:2,'XTickLabel',rois);
+a = axis;
+axis([a(1) a(2) -2 4]);
+drawPublishAxis;
+subplot(212);
+title('Active viewing');
+b = bar(wcon);
+b(1).FaceColor = cmap(6,:); b(2).FaceColor = cmap(2,:);
+set(gca,'XTick',1:2,'XTickLabel',rois);
+a = axis;
+axis([a(1) a(2) -2 4]);
+drawPublishAxis;
