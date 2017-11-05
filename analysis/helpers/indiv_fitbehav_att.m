@@ -39,7 +39,7 @@ for mi = 1
 %     plot(squeeze(mean(respcon_([1 2 3 4],1,:),1)),'--r');
 %     plot(squeeze(mean(respcoh_([5 8],1,:),1)),'--');
     plot(squeeze(mean(respcon_([1 2 3 4],1,:),1)),'-r');
-    plot(squeeze(mean(respcoh_([5 8],1,:),1)),'-');
+    plot(squeeze(mean(respcoh_([5 8],1,:),1)),'-b');
 end
 
 %% Lapse rate calculation
@@ -76,7 +76,7 @@ count = 1;
 
 % build options 
 
-ropts = {[1:8]};
+ropts = {[1 8]};
 % rconopts = {1, [1 2 3 4], 1:8};
 % rcohopts = {8, [5 8], 1:8};
 
@@ -112,7 +112,7 @@ if length(breaks)==1
 end
     
 %% fit all options
-disppercent(-1/size(attopts,1));
+% disppercent(-1/size(attopts,1));
 
 % breaks = [breaks(1) breaks(end)];
 attfits = cell(size(attopts,1),1);
@@ -148,11 +148,12 @@ for ni = 1:(length(breaks)-1)
 %             temps{iii} = fitCCBehavControlModel_fmri(adata,tinfo,1);
 %         end
         attfits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
+        disp(sprintf('Done with %i',subj));
    end
     
-    disppercent(bend/size(attopts,1));
+%     disppercent(bend/size(attopts,1));
 end
-disppercent(inf);
+% disppercent(inf);
 
 save(fullfile(datafolder,'avg_indiv_fits_2_att.mat'),'attfits');
 % save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
@@ -163,7 +164,7 @@ save(fullfile(datafolder,'avg_indiv_fits_2_att.mat'),'attfits');
 % end
 % disppercent(inf);
 
-
+%%
 models = {'exp'};
 % 'sigma','sigma,poisson',
 bmodels = {'sigma,roi,att,onebeta'};%,'doublesigma','doublesigma,poisson'};

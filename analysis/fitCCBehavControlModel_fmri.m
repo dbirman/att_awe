@@ -127,7 +127,11 @@ if isfield(info,'fitmodel') && isstruct(info.fitmodel)
     nullinfo = info;
     nullinfo.fitmodel = [];
     if strfind(model,'roi')
-        nullinfo.model = 'null,roi';
+        if strfind(model,'onebeta')
+            nullinfo.model = 'null,roi,onebeta';
+        else
+            nullinfo.model = 'null,roi';
+        end
     else
         nullinfo.model = 'null';
     end
@@ -152,11 +156,20 @@ if strfind(model,'null')
     initparams.conmodel = 4;
     initparams.cohmodel = 4;
     if strfind(model,'roi')
-        for ri = 1:length(rois)
-            cbeta = sprintf('beta_control_%s_conw',rois{ri});
-            mbeta = sprintf('beta_control_%s_cohw',rois{ri});
-            initparams.(cbeta) = 0;
-            initparams.(mbeta) = 0;
+        if strfind(model,'onebeta')
+            fixedParams.onebeta = 1;
+            for ri = 1:length(rois)
+                beta = sprintf('beta_control_%s_w',rois{ri});
+                
+                initparams.(beta) = 0;
+            end
+        else
+            for ri = 1:length(rois)
+                cbeta = sprintf('beta_control_%s_conw',rois{ri});
+                mbeta = sprintf('beta_control_%s_cohw',rois{ri});
+                initparams.(cbeta) = 0;
+                initparams.(mbeta) = 0;
+            end
         end
     else
         initparams.beta_control_con_conw = 0;
@@ -332,7 +345,7 @@ end
 %   pedcon - pedcoh - correct
 
 if fixedParams.roi
-    betas = zeros(fixedParams.roi,2);
+    betas = zeros(2,fixedParams.roi);
     if fixedParams.onebeta
         for ri = 1:fixedParams.roi
             betas(:,ri) = repmat(params.(sprintf('beta_control_%s_w',fixedParams.rois{ri})),2,1);
