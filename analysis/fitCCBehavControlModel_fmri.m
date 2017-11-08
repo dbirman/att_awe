@@ -136,7 +136,12 @@ if isfield(info,'fitmodel') && isstruct(info.fitmodel)
         nullinfo.model = 'null';
     end
     nullinfo.lapse = 0;
-    fit.null = fitCCBehavControlModel_fmri(adata,nullinfo,0);
+    if strfind(model,'onebeta')
+        fit.null = struct;
+        fit.null.likelihood = 0;
+    else
+        fit.null = fitCCBehavControlModel_fmri(adata,nullinfo,0);
+    end
     [fit.likelihood,fitted] = fitBehavModel(info.fitmodel.params,adata,-1);
     probs = fitted.probs;
     fit.adata = fitted.adata;

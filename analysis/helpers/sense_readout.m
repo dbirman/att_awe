@@ -26,7 +26,7 @@ end
 
 % Load the sensitivity data for V1->MT during contrast and coherence
 % discrimination
-load(fullfile(datafolder,'avg_att_fits_sb.mat'));
+load(fullfile(datafolder,'avg_att_cross_fits_sb.mat'));
 
 x = 0:.001:1;
 respcon_ac = zeros(10,8,length(x));
@@ -35,7 +35,7 @@ respcoh_ac = zeros(10,8,length(x));
 respcoh_am = zeros(10,8,length(x));
 
 for si = 1:10
-    fit = afits{si}{1}; % 4 refers to resp-25, which is our standard model
+    fit = attfits{si}{1}; % 4 refers to resp-25, which is our standard model
 
     for ri = 1:8
         respcon_am(si,ri,:) = fit.roifit{ri}.conresp_coh;
@@ -125,6 +125,15 @@ end
 weights_passive = squeeze(weights_passive(1,:,:,:));
 w_addpass = squeeze(mean(bootci(10000,@mean,weights_passive)));
 
+%% Load: weights one beta 2
+
+load(fullfile(datafolder,'avg_indiv_fits_onebeta_att_2.mat'));
+clear w
+for ai = 1:10
+    w(ai,1) = attfits{ai}.params.beta_control_V1_w;
+    w(ai,2) = attfits{ai}.params.beta_control_MT_w;
+end
+
 %% Sensory space sensitivity plots
 
 % normalize functions
@@ -140,31 +149,31 @@ for rii = 1:length(ros)
     ri = ros(rii);
     
     for ni = 1:10
-        rc_p(ni,rii) = norm_con(ncorrespond(ni),:)'\squeeze(respcon(ncorrespond(ni),ri,:));
-        rc_c(ni,rii) = norm_conatt(ni,:)'\squeeze(respcon_ac(ni,ri,:));
-        rc_m(ni,rii) = norm_conatt(ni,:)'\squeeze(respcon_am(ni,ri,:));
-
-        rm_p(ni,rii) = norm_coh(ncorrespond(ni),:)'\squeeze(respcoh(ncorrespond(ni),ri,:));
-        rm_c(ni,rii) = norm_cohatt(ni,:)'\squeeze(respcoh_ac(ni,ri,:));
-        rm_m(ni,rii) = norm_cohatt(ni,:)'\squeeze(respcoh_am(ni,ri,:));
+        rc_p(ni,rii) = x'\squeeze(respcon(ncorrespond(ni),ri,:));
+        rc_c(ni,rii) = x'\squeeze(respcon_ac(ni,ri,:));
+        rc_m(ni,rii) = x'\squeeze(respcon_am(ni,ri,:));
+        
+        rm_p(ni,rii) = x'\squeeze(respcoh(ncorrespond(ni),ri,:));
+        rm_c(ni,rii) = x'\squeeze(respcoh_ac(ni,ri,:));
+        rm_m(ni,rii) = x'\squeeze(respcoh_am(ni,ri,:));
+        
+%         rc_p(ni,rii) = norm_con(ncorrespond(ni),:)'\squeeze(respcon(ncorrespond(ni),ri,:));
+%         rc_c(ni,rii) = norm_conatt(ni,:)'\squeeze(respcon_ac(ni,ri,:));
+%         rc_m(ni,rii) = norm_conatt(ni,:)'\squeeze(respcon_am(ni,ri,:));
+% 
+%         rm_p(ni,rii) = norm_coh(ncorrespond(ni),:)'\squeeze(respcoh(ncorrespond(ni),ri,:));
+%         rm_c(ni,rii) = norm_cohatt(ni,:)'\squeeze(respcoh_ac(ni,ri,:));
+%         rm_m(ni,rii) = norm_cohatt(ni,:)'\squeeze(respcoh_am(ni,ri,:));
     end
 end
 
-%% Multiply by SNR
-
-% rc_c = rc_c .* sqrt(squeeze(snr(:,2,:)));
-% rc_m = rc_m .* sqrt(squeeze(snr(:,2,:)));
-% 
-% rm_c = rm_c .* sqrt(squeeze(snr(:,1,:)));
-% rm_m = rm_m .* sqrt(squeeze(snr(:,1,:)));
-
 %% Average across subjects
-rc_p_ci = bootci(1000,@mean,rc_p);
-rc_c_ci = bootci(1000,@mean,rc_c);
-rc_m_ci = bootci(1000,@mean,rc_m);
-rm_p_ci = bootci(1000,@mean,rm_p);
-rm_c_ci = bootci(1000,@mean,rm_c);
-rm_m_ci = bootci(1000,@mean,rm_m);
+rc_p_ci = bootci(1000,@median,rc_p);
+rc_c_ci = bootci(1000,@median,rc_c);
+rc_m_ci = bootci(1000,@median,rc_m);
+rm_p_ci = bootci(1000,@median,rm_p);
+rm_c_ci = bootci(1000,@median,rm_c);
+rm_m_ci = bootci(1000,@median,rm_m);
 
 group = {'rc','rm'};
 disc = {'p','c','m'};
@@ -175,7 +184,92 @@ for gi = 1:2
     end
 end
 
-%% Average over ROIs
+%% Bar plot comparisons
+h = figure;
+cmap = brewermap(7,'PuOr');
+rois = {'V1','V2','V3','V3a','V3b','V4','V7','MT'};
+
+%%%%%%%%%%%%%%%%%%%%%
+subplot(321); hold on
+bar(1:8,rc_p,'FaceColor',cmap(2,:),'EdgeColor','w');
+errbar(1:8,rc_p,abs(rc_p_ci(2,:)-rc_p),'-','Color',[0 0 0]);
+a = axis; a(2) = 9;
+axis([a(1) a(2) 0 2]);
+set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 1 2]);
+title('Passive viewing');
+ylabel('Contrast sensitivity');
+drawPublishAxis;
+
+%%%%%%%%%%%%%%%%%%%%%
+subplot(322); hold on
+bar(1:8,rm_p,'FaceColor',cmap(6,:),'EdgeColor','w');
+errbar(1:8,rm_p,abs(rm_p_ci(2,:)-rm_p),'-','Color',[0 0 0]);
+axis([a(1) a(2) 0 1]);
+set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 1]);
+ylabel('Coherence sensitivity');
+drawPublishAxis;
+
+subplot(3,2,[3 5]); hold on
+
+title('Contrast sensitivity');
+
+plot([0 max(rc_c)],[0 max(rc_c)],'--k');
+% error bars
+for ri = 1:8
+    plot([rc_c(ri) rc_c(ri)],rc_m_ci(:,ri),'-','Color',cmap(2,:));
+    plot(rc_c_ci(:,ri),[rc_m(ri) rc_m(ri)],'-','Color',cmap(2,:));
+end
+% markers
+plot(rc_c,rc_m,'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',3);
+
+% lsline
+b = [ones(size(rc_c))' rc_c']\rc_m';
+x = [min(rc_c) max(rc_c)];
+y = b(1) + b(2)*x;
+plot(x,y,'--r');
+
+xlabel('Discriminating contrast');
+ylabel('Discriminating coherence');
+axis equal
+axis([0 2 0 1.5]);
+set(gca,'Xtick',[0 1],'YTick',[0 1]);
+
+% compute and plot correlation
+
+
+drawPublishAxis;
+
+
+subplot(3,2,[4 6]); hold on
+title('Coherence sensitivity');
+plot([0 max(rm_c)],[0 max(rm_c)],'--k');
+for ri = 1:8
+    plot([rm_c(ri) rm_c(ri)],rm_m_ci(:,ri),'-','Color',cmap(6,:));
+    plot(rm_c_ci(:,ri),[rm_m(ri) rm_m(ri)],'-','Color',cmap(6,:));
+end
+
+% markers
+plot(rm_c,rm_m,'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',3);
+% lsline
+b = [ones(size(rm_c))' rm_c']\rm_m';
+x = [min(rm_c) max(rm_c)];
+y = b(1) + b(2)*x;
+plot(x,y,'--r');
+
+
+xlabel('Discriminating contrast');
+ylabel('Discriminating coherence');
+axis equal
+axis([0 1 0 1]);
+set(gca,'Xtick',[0 1],'YTick',[0 1]);
+
+
+
+drawPublishAxis('figSize=[4.5 4.5]');
+
+savepdf(h,fullfile(datafolder,'avg_fitatt','roi_sensitivity_bar.pdf'));
+
+%% Plot average sensitivity across ROIs
 cmap = brewermap(7,'PuOr');
 h = figure; hold on
 
@@ -209,11 +303,11 @@ for di = 1:3
     p(di) = plot(vc_mu,vm_mu,'o','MarkerFaceColor',col{di},'MarkerEdgeColor','w','MarkerSize',6);
 end
 
-set(gca,'XTick',[0 1],'YTick',[0 1]);
-axis([0 1 0 3]);
+set(gca,'XTick',0:.5:1.5,'YTick',0:.5:1.5);
+% axis([0 1 0 3]);
 
-xlabel('Normalized contrast sensitivity');
-ylabel('Normalized coherence sensitivity');
+xlabel('Contrast sensitivity');
+ylabel('Coherence sensitivity');
 
 l = legend(p,{'Passive viewing','Discriminate contrast','Discriminate coherence'},'FontSize',7,'FontName','Helvetica');
 set(l,'box','off');
@@ -221,6 +315,8 @@ set(l,'box','off');
 drawPublishAxis('figSize=[4.5 4.5]');
 
 savepdf(h,fullfile(datafolder,'avg_fitatt','roi_sensitivity.pdf'));
+
+%% Means and such for paper
 
 %% Compute readout response functions
 
@@ -234,26 +330,67 @@ for ni = 1:10
         readout_p(ni,1,di,:) = squeeze(respcoh(ncorrespond(ni),:,:))' * w_addpass(:,di);
     end
         
-    readout_a(ni,2,2,:) = squeeze(respcon_ac(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
-    readout_a(ni,2,1,:) = squeeze(respcon_am(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
-    readout_a(ni,1,2,:) = squeeze(respcoh_ac(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
-    readout_a(ni,1,1,:) = squeeze(respcoh_am(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
-    
-    readout_l(ni,2,2,:) = squeeze(respcon_ac(ni,:,:))' * w_addpass(:,di);
-    readout_l(ni,2,1,:) = squeeze(respcon_am(ni,:,:))' * w_addpass(:,di);
-    readout_l(ni,1,2,:) = squeeze(respcoh_ac(ni,:,:))' * w_addpass(:,di);
-    readout_l(ni,1,1,:) = squeeze(respcoh_am(ni,:,:))' * w_addpass(:,di);
+%     readout_a(ni,2,2,:) = squeeze(respcon_ac(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+%     readout_a(ni,2,1,:) = squeeze(respcon_am(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+%     readout_a(ni,1,2,:) = squeeze(respcoh_ac(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+%     readout_a(ni,1,1,:) = squeeze(respcoh_am(ni,:,:))' * ones(size(w_addpass(:,di)));%w_addpass(:,di);
+%     
+%     readout_l(ni,2,2,:) = squeeze(respcon_ac(ni,:,:))' * w_addpass(:,di);
+%     readout_l(ni,2,1,:) = squeeze(respcon_am(ni,:,:))' * w_addpass(:,di);
+%     readout_l(ni,1,2,:) = squeeze(respcoh_ac(ni,:,:))' * w_addpass(:,di);
+%     readout_l(ni,1,1,:) = squeeze(respcoh_am(ni,:,:))' * w_addpass(:,di);
 end
 
 % avg
 readout_p = squeeze(median(bootci(1000,@mean,readout_p)));
-readout_a = squeeze(median(bootci(1000,@mean,readout_a)));
-readout_l = squeeze(median(bootci(1000,@mean,readout_l)));
+% readout_a = squeeze(median(bootci(1000,@mean,readout_a)));
+% readout_l = squeeze(median(bootci(1000,@mean,readout_l)));
 
 readout_p = readout_p - repmat(readout_p(:,:,1),1,1,1001);
-readout_a = readout_a - repmat(readout_a(:,:,1),1,1,1001);
-readout_l = readout_l - repmat(readout_l(:,:,1),1,1,1001);
-% readout_m = readout_m - repmat(readout_m(:,:,1),1,1,1001);
+% readout_a = readout_a - repmat(readout_a(:,:,1),1,1,1001);
+% readout_l = readout_l - repmat(readout_l(:,:,1),1,1,1001);
+
+%% Setup raw data values and multiply through the readout:
+
+fname = fullfile(datafolder,'avg_deconatt','avg_deconEffects_att_cross.mat');
+load(fname);
+
+% avgdecon is now available for use
+
+%% Convert allCon to betas
+
+allResp = avgdecon.allResp;
+beta = zeros(size(allResp,1),size(allResp,2),size(allResp,3));
+
+load(fullfile(datafolder,'avg_hrf.mat'));
+
+for ni = 1:10
+    for ri = 1:8
+        for ci = 1:32
+            % get the right hrf, i.e. the average of the other observers
+            pull = setdiff(1:11,ncorrespond(ni));
+            ahrf = squeeze(mean(hrfs(pull,4,:)));
+            % ahrf = mean(hrfs,1);
+            ahrf = ahrf./max(ahrf);
+
+            beta(ni,ri,ci) = ahrf\squeeze(allResp(ni,ri,ci,:));
+        end
+    end
+end
+%%
+bc = mean(betaCon); bc= squeeze(mean(bc,3));
+bm = mean(betaCoh); bm = squeeze(mean(bm,3));
+
+%%
+fname = fullfile(datafolder,'avg_deconEffects_att.mat');
+load(fname);
+
+conidx = avgdecon.conidx;
+cohidx = avgdecon.cohidx;
+contrasts = avgdecon.contrasts;
+coherences = avgdecon.coherences;
+taskidx = avgdecon.taskidx;
+deltaidx = avgdecon.deltaidx;
 
 %% Plot
 
@@ -320,3 +457,95 @@ ylabel('Readout response (s.d.)');
 drawPublishAxis('figSize=[8.9, 8.9]');
 
 savepdf(h,fullfile(datafolder,'avg_fitatt','readout.pdf'));
+
+
+%% READOUT 2: JUST V1/MT FROM ATTENTION DATA
+
+% RESPONSE TO FEAT | DISCRIMINATING
+% First use the weights to run through
+clear readout_p readout_c readout_m readout_a readout_l
+
+for ni = 1:10
+    for di = 1:2
+        readout_p(ni,2,di,:) = squeeze(respcon(ncorrespond(ni),:,:))' * w_addpass(:,di);
+        
+        readout_p(ni,1,di,:) = squeeze(respcoh(ncorrespond(ni),:,:))' * w_addpass(:,di);
+    end
+    readout_l(ni,2,2,:) = squeeze(respcon_ac(ni,[1 8],:))' * w(ni,:)';
+    readout_l(ni,2,1,:) = squeeze(respcon_am(ni,[1 8],:))' * w(ni,:)';
+    readout_l(ni,1,2,:) = squeeze(respcoh_ac(ni,[1 8],:))' * w(ni,:)';
+    readout_l(ni,1,1,:) = squeeze(respcoh_am(ni,[1 8],:))' * w(ni,:)';
+end
+
+% avg
+readout_p = squeeze(median(bootci(1000,@mean,readout_p)));
+readout_l = squeeze(median(bootci(1000,@mean,readout_l)));
+
+readout_p = readout_p - repmat(readout_p(:,:,1),1,1,1001);
+readout_l = readout_l - repmat(readout_l(:,:,1),1,1,1001);
+
+%% Plot
+
+
+conds = {'motion','contrast'};
+group = {'p','a','a'};
+rois = {'V1','MT'};
+% split discrimination condition by subplot
+h = figure;
+
+subplot(2,2,1); hold on
+
+title('Readout of contrast predicted by linking model');
+plot(x,squeeze(readout_p(2,2,:)),'-','Color',cmap(2,:));
+plot(x,squeeze(readout_p(2,1,:)),'-','Color',[0.8 0.8 0.8]);
+l=legend({'Contrast attended','Contrast unattended'},'FontSize',7,'FontName','Helvetica');
+set(l,'box','off');
+
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Contrast (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
+
+% % % % % % % % % % % % % % % % 
+subplot(2,2,2); hold on
+title('Readout of coherence predicted by linking model');
+plot(x,squeeze(readout_p(1,1,:)),'-','Color',cmap(6,:));
+plot(x,squeeze(readout_p(1,2,:)),'Color',[0.8 0.8 0.8]);
+l=legend({'Coherence attended','Coherence unattended'},'FontSize',7,'FontName','Helvetica');
+set(l,'box','off');
+
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Coherence (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
+
+% % % % % % % % % % % % % % % % 
+subplot(2,2,3); hold on
+title('Readout of contrast (from active viewing)');
+% plot(x,squeeze(readout_a(2,2,:)),'-k');
+% plot(x,squeeze(readout_l(2,1,:)),'Color',[0.8 0.8 0.8]);
+plot(x,squeeze(readout_l(2,2,:)),'-','Color',cmap(2,:));
+plot(x,squeeze(readout_l(2,1,:)),'Color',[0.8 0.8 0.8]);
+
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Contrast (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
+
+% % % % % % % % % % % % % % % % 
+subplot(2,2,4); hold on
+title('Readout of coherence (from active viewing)');
+% plot(x,squeeze(readout_a(1,1,:)),'-k');
+plot(x,squeeze(readout_l(1,2,:)),'Color',[0.8 0.8 0.8]);
+plot(x,squeeze(readout_l(1,1,:)),'-','Color',cmap(6,:));
+
+axis([0 .75 -5 30]);
+set(gca,'XTick',[0 .75],'XTickLabel',[0 1],'YTick',0:10:30);
+xlabel('Coherence (%)');
+ylabel('Readout response (s.d.)');
+drawPublishAxis('figSize=[8.9, 8.9]');
+
+savepdf(h,fullfile(datafolder,'avg_fitatt','readout_one2.pdf'));

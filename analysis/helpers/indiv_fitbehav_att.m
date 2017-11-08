@@ -176,7 +176,7 @@ count = 1;
 
 % build options 
 
-ropts = {[1:8]};
+ropts = {[1 8]};
 % rconopts = {1, [1 2 3 4], 1:8};
 % rcohopts = {8, [5 8], 1:8};
 
@@ -212,7 +212,7 @@ if length(breaks)==1
 end
     
 %% fit all options
-disppercent(-1/size(attopts,1));
+% disppercent(-1/size(attopts,1));
 
 % breaks = [breaks(1) breaks(end)];
 attfits = cell(size(attopts,1),1);
@@ -248,13 +248,14 @@ for ni = 1:(length(breaks)-1)
 %             temps{iii} = fitCCBehavControlModel_fmri(adata,tinfo,1);
 %         end
         attfits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
+        disp(sprintf('Done with %i',subj));
    end
     
-    disppercent(bend/size(attopts,1));
+%     disppercent(bend/size(attopts,1));
 end
-disppercent(inf);
+% disppercent(inf);
 
-save(fullfile(datafolder,'avg_indiv_fits_onebeta_att.mat'),'attfits');
+save(fullfile(datafolder,'avg_indiv_fits_onebeta_att_2.mat'),'attfits');
 % save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
 %     save(fullfile(datafolder,sprintf('avg_indiv_fits_%02.0f.mat',100*sigmaopts(si))),'afits');
 %     disp('************************************');
@@ -263,9 +264,6 @@ save(fullfile(datafolder,'avg_indiv_fits_onebeta_att.mat'),'attfits');
 % end
 % disppercent(inf);
 
-%% Plot
-
-plot_rightchoice_model_att;
 
 %%
 load(fullfile(datafolder,'avg_indiv_fits_att.mat'));
@@ -275,8 +273,26 @@ restructure_afits;
 
 for i = 1:21
     cd(i) = afits{i}{1}.cv.cd;
+end
+
+load(fullfile(datafolder,'avg_indiv_fits_att.mat'));
+for i = 1:21
     cd_att(i) = attfits{i}.cv.cd;
 end
+
+load(fullfile(datafolder,'avg_indiv_fits_onebeta_att.mat'));
+for i = 1:21
+    cd_one(i) = attfits{i}.cv.cd;
+end
+
+load(fullfile(datafolder,'avg_indiv_fits_onebeta_att_2.mat'));
+for i = 1:21
+    cd_one2(i) = attfits{i}.cv.cd;
+end
+
+%% Plot
+
+plot_rightchoice_model_att;
 
 %% Compare weight parameters
 restructure_afits;
@@ -313,6 +329,16 @@ w = squeeze(median(w));
 
 wcon = wcon([1 8],:);
 wcoh = wcoh([1 8],:);
+
+%% Compare weight_onebeta parameters
+
+rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+clear w
+for ai = 1:21
+    for ri = 1:8
+        w(ai,ri) = attfits{ai}.params.(sprintf('beta_control_%s_w',rois{ri}));
+    end
+end
 
 %% Correlation
 wcon = squeeze(w(:,2,:));

@@ -132,110 +132,110 @@ end
 % coherence pedestals in each condition, and see where that gets us.
 
 %% Contrast
-con_sv = {};
-stimNames = {};
-conidx = [];
-taskidx = [];
-deltaidx = [];
-
-delta = taskdesign(:,10);
-contrast_ = roundnearest(contrast,contrasts);
-
-for taski = 1:2
-    for di = 0:1
-        for coni = 1:length(contrasts)
-            con_sv{end+1} = sv(logical((delta==di) .* (task==taski) .* (contrasts(coni)==contrast_)));
-            stimNames{end+1} = sprintf('Task=%i Delta? %i Contrast=%0.2f',taski,di,contrasts(coni));
-            conidx(end+1) = contrasts(coni);
-            taskidx(end+1) = taski;
-            deltaidx(end+1) = di;
-        end
-    end
-end
-
-concatInfo.runTransition = runtrans;
-curd = constructD(tSeries,con_sv,0.5,40,concatInfo,'none','deconv',0);
-decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-decon = rmfield(decon,'scm');
-decon = rmfield(decon,'covar');
-
-%% Save
-fname = fullfile(datafolder,sprintf('%s_deconEffects_att.mat',subj));
-if exist(fname,'file')==2, load(fname); end
-decondata.(roiname).cc.conidxs = conidx;
-decondata.(roiname).cc.conStim = stimNames;
-decondata.(roiname).cc.taskidx = taskidx;
-decondata.(roiname).cc.deltaidx = deltaidx;
-decondata.(roiname).cc.conresp = decon.ehdr;
-save(fname,'decondata');
-
-%% Plot Contrast
-% h = figure; hold on
+% con_sv = {};
+% stimNames = {};
+% conidx = [];
+% taskidx = [];
+% deltaidx = [];
 % 
-% taskdisp = {'-o','--o'};
-% concolor = brewermap(11,'PuOr');
-% concolor = flipud(concolor(1:4,:));
+% delta = taskdesign(:,10);
+% contrast_ = roundnearest(contrast,contrasts);
 % 
-% ehdr = decon.ehdr(logical(deltaidx),:);
-% conidx = conidx(logical(deltaidx));
-% taskidx = taskidx(logical(deltaidx));
-% stimNames = stimNames(logical(deltaidx));
-% 
-% for si = 1:length(stimNames)
-%     subplot(1,2,taskidx(si)); hold on
-%     plot(decon.time,ehdr(si,:),'o','MarkerSize',10,'MarkerFaceColor',concolor(find(conidx(si)==contrasts,1),:),'MarkerEdgeColor',[1 1 1]);
+% for taski = 1:2
+%     for di = 0:1
+%         for coni = 1:length(contrasts)
+%             con_sv{end+1} = sv(logical((delta==di) .* (task==taski) .* (contrasts(coni)==contrast_)));
+%             stimNames{end+1} = sprintf('Task=%i Delta? %i Contrast=%0.2f',taski,di,contrasts(coni));
+%             conidx(end+1) = contrasts(coni);
+%             taskidx(end+1) = taski;
+%             deltaidx(end+1) = di;
+%         end
+%     end
 % end
 % 
-% tasks = {'Motion','Contrast'};
-% for i = 1:2
-%     subplot(1,2,i);
-%     title(sprintf('Task %s',tasks{i}));
-%     a = axis;
-%     axis([0 15 a(3) a(4)]);
-%     
-%     if i==2, legend(stimNames); end
-%     drawPublishAxis
+% concatInfo.runTransition = runtrans;
+% curd = constructD(tSeries,con_sv,0.5,40,concatInfo,'none','deconv',0);
+% decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+% decon = rmfield(decon,'scm');
+% decon = rmfield(decon,'covar');
+% 
+% %% Save
+% fname = fullfile(datafolder,sprintf('%s_deconEffects_att.mat',subj));
+% if exist(fname,'file')==2, load(fname); end
+% decondata.(roiname).cc.conidxs = conidx;
+% decondata.(roiname).cc.conStim = stimNames;
+% decondata.(roiname).cc.taskidx = taskidx;
+% decondata.(roiname).cc.deltaidx = deltaidx;
+% decondata.(roiname).cc.conresp = decon.ehdr;
+% save(fname,'decondata');
+% 
+% %% Plot Contrast
+% % h = figure; hold on
+% % 
+% % taskdisp = {'-o','--o'};
+% % concolor = brewermap(11,'PuOr');
+% % concolor = flipud(concolor(1:4,:));
+% % 
+% % ehdr = decon.ehdr(logical(deltaidx),:);
+% % conidx = conidx(logical(deltaidx));
+% % taskidx = taskidx(logical(deltaidx));
+% % stimNames = stimNames(logical(deltaidx));
+% % 
+% % for si = 1:length(stimNames)
+% %     subplot(1,2,taskidx(si)); hold on
+% %     plot(decon.time,ehdr(si,:),'o','MarkerSize',10,'MarkerFaceColor',concolor(find(conidx(si)==contrasts,1),:),'MarkerEdgeColor',[1 1 1]);
+% % end
+% % 
+% % tasks = {'Motion','Contrast'};
+% % for i = 1:2
+% %     subplot(1,2,i);
+% %     title(sprintf('Task %s',tasks{i}));
+% %     a = axis;
+% %     axis([0 15 a(3) a(4)]);
+% %     
+% %     if i==2, legend(stimNames); end
+% %     drawPublishAxis
+% % end
+%    
+% 
+% %% Coherence
+% coh_sv = {};
+% stimNames = {};
+% cohidx = [];
+% taskidx = [];
+% deltaidx = [];
+% 
+% delta = taskdesign(:,11);
+% 
+% coherence_ = roundnearest(coherence,coherences);
+% 
+% for taski = 1:2
+%     for di = 0:1
+%         for cohi = 1:length(coherences)
+%             coh_sv{end+1} = sv(logical((delta==di) .* (task==taski) .* (coherences(cohi)==coherence_)));
+%             stimNames{end+1} = sprintf('Task=%i Delta? %i Contrast=%0.2f',taski,di,coherences(cohi));
+%             cohidx(end+1) = coherences(cohi);
+%             taskidx(end+1) = taski;
+%             deltaidx(end+1) = di;
+%         end
+%     end
 % end
-   
-
-%% Coherence
-coh_sv = {};
-stimNames = {};
-cohidx = [];
-taskidx = [];
-deltaidx = [];
-
-delta = taskdesign(:,11);
-
-coherence_ = roundnearest(coherence,coherences);
-
-for taski = 1:2
-    for di = 0:1
-        for cohi = 1:length(coherences)
-            coh_sv{end+1} = sv(logical((delta==di) .* (task==taski) .* (coherences(cohi)==coherence_)));
-            stimNames{end+1} = sprintf('Task=%i Delta? %i Contrast=%0.2f',taski,di,coherences(cohi));
-            cohidx(end+1) = coherences(cohi);
-            taskidx(end+1) = taski;
-            deltaidx(end+1) = di;
-        end
-    end
-end
-
-concatInfo.runTransition = runtrans;
-curd = constructD(tSeries,coh_sv,0.5,40,concatInfo,'none','deconv',0);
-decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
-decon = rmfield(decon,'scm');
-decon = rmfield(decon,'covar');
-
-%% Save
-fname = fullfile(datafolder,sprintf('%s_deconEffects_att.mat',subj));
-if exist(fname,'file')==2, load(fname); end
-decondata.(roiname).cc.cohidxs = cohidx;
-decondata.(roiname).cc.cohStim = stimNames;
-decondata.(roiname).cc.taskidx = taskidx;
-decondata.(roiname).cc.deltaidx = deltaidx;
-decondata.(roiname).cc.cohresp = decon.ehdr;
-save(fname,'decondata');
+% 
+% concatInfo.runTransition = runtrans;
+% curd = constructD(tSeries,coh_sv,0.5,40,concatInfo,'none','deconv',0);
+% decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+% decon = rmfield(decon,'scm');
+% decon = rmfield(decon,'covar');
+% 
+% %% Save
+% fname = fullfile(datafolder,sprintf('%s_deconEffects_att.mat',subj));
+% if exist(fname,'file')==2, load(fname); end
+% decondata.(roiname).cc.cohidxs = cohidx;
+% decondata.(roiname).cc.cohStim = stimNames;
+% decondata.(roiname).cc.taskidx = taskidx;
+% decondata.(roiname).cc.deltaidx = deltaidx;
+% decondata.(roiname).cc.cohresp = decon.ehdr;
+% save(fname,'decondata');
 
 
 %% Plot Coherence
@@ -265,3 +265,41 @@ save(fname,'decondata');
 %     if i==2, legend(stimNames); end
 %     drawPublishAxis
 % end
+
+%% Combined with no delta
+
+svs = {};
+stimNames = {};
+conidx = [];
+cohidx = [];
+taskidx = [];
+
+contrast_ = roundnearest(contrast,contrasts);
+coherence_ = roundnearest(coherence,coherences);
+
+for taski = 1:2
+    for cohi = 1:length(coherences)
+        for coni = 1:length(contrasts)
+            svs{end+1} = sv(logical((contrasts(coni)==contrast_) .* (task==taski) .* (coherences(cohi)==coherence_)));
+            stimNames{end+1} = sprintf('Task=%i Contrast=%0.2f Coherence=%0.2f',taski,contrasts(coni),coherences(cohi));
+            conidx(end+1) = contrasts(coni);
+            cohidx(end+1) = coherences(cohi);
+            taskidx(end+1) = taski;
+        end
+    end
+end
+
+concatInfo.runTransition = runtrans;
+curd = constructD(tSeries,svs,0.5,40,concatInfo,'none','deconv',0);
+decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
+decon = rmfield(decon,'scm');
+decon = rmfield(decon,'covar');
+%%
+fname = fullfile(datafolder,sprintf('%s_deconEffects_att.mat',subj));
+if exist(fname,'file')==2, load(fname); end
+decondata.(roiname).cross.conidxs = conidx;
+decondata.(roiname).cross.cohidxs = cohidx;
+decondata.(roiname).cross.stim = stimNames;
+decondata.(roiname).cross.taskidx = taskidx;
+decondata.(roiname).cross.resp = decon.ehdr;
+save(fname,'decondata');
