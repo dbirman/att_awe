@@ -351,7 +351,7 @@ end
 
 if fixedParams.roi
     betas = zeros(2,fixedParams.roi);
-    if fixedParams.onebeta
+    if isfield(fixedParams,'onebeta') && fixedParams.onebeta
         for ri = 1:fixedParams.roi
             betas(:,ri) = repmat(params.(sprintf('beta_control_%s_w',fixedParams.rois{ri})),2,1);
         end
