@@ -124,22 +124,16 @@ end
 if isfield(info,'fitmodel') && isstruct(info.fitmodel)
     fit = struct;
     
-    nullinfo = info;
-    nullinfo.fitmodel = [];
-    if strfind(model,'roi')
-        if strfind(model,'onebeta')
-            nullinfo.model = 'null,roi,onebeta';
-        else
-            nullinfo.model = 'null,roi';
-        end
-    else
-        nullinfo.model = 'null';
-    end
-    nullinfo.lapse = 0;
     if strfind(model,'onebeta')
         fit.null = struct;
         fit.null.likelihood = 0;
     else
+        % setup null model
+        nullinfo = info;
+        nullinfo.fitmodel = [];
+        nullinfo.model = strcat(model,',null');
+        nullinfo.lapse = 0;
+        % fit
         fit.null = fitCCBehavControlModel_fmri(adata,nullinfo,0);
     end
     [fit.likelihood,fitted] = fitBehavModel(info.fitmodel.params,adata,-1);
@@ -191,29 +185,29 @@ if strfind(model,'null')
     return
 elseif strfind(model,'freeze')
     % ONLY ALLOW SIGMA TO CHANGE
-
-    initparams.conmodel = 4;
-    initparams.cohmodel = 4;
-    if strfind(model,'roi')
-        warning('NOT IMPLEMENTED');
-        for ri = 1:length(rois)
-            cbeta = sprintf('beta_control_%s_conw',rois{ri});
-            mbeta = sprintf('beta_control_%s_cohw',rois{ri});
-            initparams.(cbeta) = rand;
-            initparams.(mbeta) = rand;
-        end
-    else
-        initparams.beta_control_con_conw = 1;
-        initparams.beta_control_con_cohw = 0;%[0 -1 1];
-        initparams.beta_control_coh_cohw = 1;
-        initparams.beta_control_coh_conw = 0;%[0 -1 1];
-    end
-    initparams.bias = 0;%;[0 -1 1];
-    initparams.sigma = [0.1 eps 1];
-    initparams.poissonNoise = 0;
-    initparams.lapse = lapserate;
-    [~, fit] = fitModel(initparams,adata,-1);
-    return
+    disp('fail fail fail fail fail'); keyboard; return;
+%     initparams.conmodel = 4;
+%     initparams.cohmodel = 4;
+%     if strfind(model,'roi')
+%         warning('NOT IMPLEMENTED');
+%         for ri = 1:length(rois)
+%             cbeta = sprintf('beta_control_%s_conw',rois{ri});
+%             mbeta = sprintf('beta_control_%s_cohw',rois{ri});
+%             initparams.(cbeta) = rand;
+%             initparams.(mbeta) = rand;
+%         end
+%     else
+%         initparams.beta_control_con_conw = 1;
+%         initparams.beta_control_con_cohw = 0;%[0 -1 1];
+%         initparams.beta_control_coh_cohw = 1;
+%         initparams.beta_control_coh_conw = 0;%[0 -1 1];
+%     end
+%     initparams.bias = 0;%;[0 -1 1];
+%     initparams.sigma = [0.1 eps 1];
+%     initparams.poissonNoise = 0;
+%     initparams.lapse = lapserate;
+%     [~, fit] = fitModel(initparams,adata,-1);
+%     return
 elseif strfind(model,'sigma')
 %     disp('Fitting sigma...');
     % SPECIAL CONDITION: Fitting sigma parameter
@@ -228,6 +222,7 @@ elseif strfind(model,'sigma')
                 initparams.(beta) = [rand -inf inf];
             end
         else
+            fixedParams.onebeta = 0;
             for ri = 1:length(rois)
                 cbeta = sprintf('beta_control_%s_conw',rois{ri});
                 mbeta = sprintf('beta_control_%s_cohw',rois{ri});
@@ -383,7 +378,11 @@ if fixedParams.roi
             % index response by whether attention is directed to contrast
             % or coherence
             for i = 1:size(adata,1)
-                fixedParams.con = fixedParams.roifit.(fixedParams.rois{ri}).confit(adata(i,1),:);
+                try
+                    fixedParams.con = fixedParams.roifit.(fixedParams.rois{ri}).confit(adata(i,1),:);
+                catch
+                    stop = 1;
+                end
                 fixedParams.coh = fixedParams.roifit.(fixedParams.rois{ri}).cohfit(adata(i,1),:);
                 
                 conEffL = (conModel(adata(i,4),params)-conModel(adata(i,2),params));

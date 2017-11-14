@@ -122,6 +122,7 @@ for ni = 1:(length(breaks)-1)
     bend = breaks(ni+1)-1;
     
     parfor ii = bstart:bend
+        
         copt = attopts(ii,:);
         
         subj = copt(1);
