@@ -76,7 +76,7 @@ count = 1;
 
 % build options 
 
-ropts = {[1:8]};
+ropts = {[1 8]};
 % rconopts = {1, [1 2 3 4], 1:8};
 % rcohopts = {8, [5 8], 1:8};
 
@@ -156,7 +156,7 @@ for ni = 1:(length(breaks)-1)
 end
 % disppercent(inf);
 
-save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
+save(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'),'attfits');
 % save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
 %     save(fullfile(datafolder,sprintf('avg_indiv_fits_%02.0f.mat',100*sigmaopts(si))),'afits');
 %     disp('************************************');
@@ -165,34 +165,63 @@ save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
 % end
 % disppercent(inf);
 
-%%
+%% Restructure attfits
+load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
+attfits_ = attfits; clear attfits
+for ai = 1:21
+    for mi = 1:2
+        attfits_2{ai,mi} = attfits_{(ai-1)*2+mi};
+    end
+end
 load(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'));
-
+attfits_ = attfits; clear attfits
+for ai = 1:21
+    for mi = 1:2
+        attfits{ai,mi} = attfits_{(ai-1)*2+mi};
+    end
+end
 %% Compare afits and attfits
 restructure_afits;
 
 for i = 1:21
+    like(i) = -sum(afits{i}{1}.cv.like);
     cd(i) = afits{i}{1}.cv.cd;
 end
 
-load(fullfile(datafolder,'avg_indiv_fits_att.mat'));
 for i = 1:21
-    cd_att(i) = attfits{i}.cv.cd;
+    for mi = 1:2
+        cd_like(i,mi) = -sum(attfits{i,mi}.cv.like);
+        cd_att(i,mi) = attfits{i,mi}.cv.cd;
+    end
 end
 
-load(fullfile(datafolder,'avg_indiv_fits_onebeta_att.mat'));
-for i = 1:21
-    cd_one(i) = attfits{i}.cv.cd;
-end
+%% Plot likelihood and r2
+h = figure;
+subplot(211);
+[b,x] = hist(cd_like(:,1)-cd_like(:,2));
+bar(x,b,'FaceColor',[0.8 0.8 0.8]);
+xlabel('Likelihood (Multiple - Single readout)');
+drawPublishAxis('figSize=[4.5,4.5]');
 
-load(fullfile(datafolder,'avg_indiv_fits_onebeta_att_2.mat'));
-for i = 1:21
-    cd_one2(i) = attfits{i}.cv.cd;
-end
+subplot(212); hold on
+plot(cd_att(:,1),cd_att(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
+x = [min(cd_att(:,1)) max(cd_att(:,1))];
+plot(x,x,'--r');
+xlabel('Multiple readouts');
+ylabel('Single readout');
+title('Variance explained (R^2)');
+axis([0.15 0.4 0.15 0.4]);
+drawPublishAxis('figSize=[4.5,4.5]');
+
+savepdf(h,fullfile(datafolder,'avg_models','onebeta_comparison.pdf'));
 
 %% Plot
 
+rois = {'V1','MT'};
+% fitdata = attfits(:,1);
 plot_rightchoice_model_att;
+plot_rightchoice_model_att_onebeta;
+% fitdata = attfits(:,2);
 
 %% Compare weight parameters
 restructure_afits;
