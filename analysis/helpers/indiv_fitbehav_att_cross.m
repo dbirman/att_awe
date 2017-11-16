@@ -20,7 +20,7 @@ respcon = zeros(11,8,2,length(x));
 respcoh = zeros(11,8,2,length(x));
 
 for si = 1:10
-    fit = afits{si}{1}; % 4 refers to resp-25, which is our standard model
+    fit = attfits{si}{1}; % 4 refers to resp-25, which is our standard model
 
     for ri = 1:8
         respcon(si,ri,1,:) = fit.roifit{ri}.conresp_coh;
@@ -30,16 +30,20 @@ for si = 1:10
     end
 end
 
-respcon_ = squeeze(median(bootci(10000,@mean,respcon)));
-respcoh_ = squeeze(median(bootci(10000,@mean,respcoh)));
+respcon_ = squeeze(mean(bootci(10000,@mean,respcon)));
+respcoh_ = squeeze(mean(bootci(10000,@mean,respcoh)));
 
 %% Check that responses look right
 figure; hold on
-for mi = 1
+ro = [1 8];
+cmap = brewermap(7,'PuOr');
+for rii = 1:2
+    subplot(2,1,rii); hold on
+    ri = ro(rii);
 %     plot(squeeze(mean(respcon_([1 2 3 4],1,:),1)),'--r');
 %     plot(squeeze(mean(respcoh_([5 8],1,:),1)),'--');
-    plot(squeeze(mean(respcon_([1 2 3 4],2,:),1)),'-r');
-    plot(squeeze(mean(respcoh_([5 8],2,:),1)),'-b');
+    plot(squeeze(mean(respcon_(ri,1,:),1)),'-','Color',cmap(2,:));
+    plot(squeeze(mean(respcoh_(ri,1,:),1)),'-','Color',cmap(6,:));
 end
 
 %% Lapse rate calculation
@@ -167,7 +171,7 @@ save(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'),'attfits');
 
 %% Restructure attfits
 load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
-attfits_ = attfits; clear attfits
+attfits_ = attfits; clear attfits_2
 for ai = 1:21
     for mi = 1:2
         attfits_2{ai,mi} = attfits_{(ai-1)*2+mi};
@@ -195,33 +199,65 @@ for i = 1:21
     end
 end
 
-%% Plot likelihood and r2
+rois = {'V1','MT'};
+for i = 1:21
+    for ri = 1:2
+        w(i,ri,1) = attfits_2{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+        w(i,ri,2) = attfits_2{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
+        w1(i,ri) = attfits_2{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
+    end
+end
+
+%% Get mean weights
+w_ci = bootci(10000,@mean,w);
+w_ = squeeze(mean(w));
+
+%% Plot likelihood and weights
 h = figure;
 subplot(211);
 [b,x] = hist(cd_like(:,1)-cd_like(:,2));
 bar(x,b,'FaceColor',[0.8 0.8 0.8]);
 xlabel('Likelihood (Multiple - Single readout)');
-drawPublishAxis('figSize=[4.5,4.5]');
+set(gca,'XTick',[0 25 50]);
+drawPublishAxis('figSize=[3.5,4.5]');
 
+cmap = brewermap(7,'PuOr');
 subplot(212); hold on
-plot(cd_att(:,1),cd_att(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
-x = [min(cd_att(:,1)) max(cd_att(:,1))];
-plot(x,x,'--r');
-xlabel('Multiple readouts');
-ylabel('Single readout');
-title('Variance explained (R^2)');
-axis([0.15 0.4 0.15 0.4]);
-drawPublishAxis('figSize=[4.5,4.5]');
+plot(w_(1,2),w_(1,1),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w');
+text(w_(1,2),w_(1,1),'V1');
+plot(w_(2,2),w_(2,1),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w');
+text(w_(2,2),w_(2,1),'MT');
+v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
+v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
+v = hline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
+v = hline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
+v = vline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
+v = vline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
+axis([-15 25 -10 40]);
+set(gca,'XTick',[-10 0 10 20]);
+set(gca,'YTick',[-10 0 10 20]);
+xlabel('Contrast discrimination');
+ylabel('Coherence discrimination');
+drawPublishAxis('figSize=[3.5,4.5]');
+
+% plot(cd_att(:,1),cd_att(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
+% x = [min(cd_att(:,1)) max(cd_att(:,1))];
+% plot(x,x,'--r');
+% xlabel('Multiple readouts');
+% ylabel('Single readout');
+% title('Variance explained (R^2)');
+% axis([0.15 0.4 0.15 0.4]);
+% set(gca,'XTick',[0.15 0.25 0.35],'XTickLabel',{'15%','25%','35%'});
+% set(gca,'YTick',[0.15 0.25 0.35],'YTickLabel',{'15%','25%','35%'});
+
 
 savepdf(h,fullfile(datafolder,'avg_models','onebeta_comparison.pdf'));
 
 %% Plot
 
 rois = {'V1','MT'};
-% fitdata = attfits(:,1);
-plot_rightchoice_model_att;
-plot_rightchoice_model_att_onebeta;
-% fitdata = attfits(:,2);
+plot_rightchoice_model_att(attfits_2(:,1),respcon_([1 8],:,:),respcoh_([1 8],:,:),aSIDs,bmodels(1),rois);
+plot_rightchoice_model_att_onebeta(attfits_2(:,2),respcon_([1 8],:,:),respcoh_([1 8],:,:),aSIDs,bmodels(1),rois);
 
 %% Compare weight parameters
 restructure_afits;
