@@ -80,7 +80,7 @@ count = 1;
 
 % build options 
 
-ropts = {[1 8]};
+ropts = {[1:8]};
 % rconopts = {1, [1 2 3 4], 1:8};
 % rcohopts = {8, [5 8], 1:8};
 
@@ -160,7 +160,7 @@ for ni = 1:(length(breaks)-1)
 end
 % disppercent(inf);
 
-save(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'),'attfits');
+save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
 % save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
 %     save(fullfile(datafolder,sprintf('avg_indiv_fits_%02.0f.mat',100*sigmaopts(si))),'afits');
 %     disp('************************************');
@@ -194,17 +194,25 @@ end
 
 for i = 1:21
     for mi = 1:2
-        cd_like(i,mi) = -sum(attfits{i,mi}.cv.like);
-        cd_att(i,mi) = attfits{i,mi}.cv.cd;
+        cd_like_8(i,mi) = -sum(attfits{i,mi}.cv.like);
+        cd_att_8(i,mi) = attfits{i,mi}.cv.cd;
+        cd_like(i,mi) = -sum(attfits_2{i,mi}.cv.like);
+        cd_att(i,mi) = attfits_2{i,mi}.cv.cd;
     end
 end
 
-rois = {'V1','MT'};
 for i = 1:21
+    rois = {'V1','MT'};
     for ri = 1:2
         w(i,ri,1) = attfits_2{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
         w(i,ri,2) = attfits_2{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
         w1(i,ri) = attfits_2{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
+    end
+    rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+    for ri = 1:8
+        w_8(i,ri,1) = attfits{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+        w_8(i,ri,2) = attfits{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
+        w1_8(i,ri) = attfits{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
     end
 end
 
@@ -256,84 +264,14 @@ savepdf(h,fullfile(datafolder,'avg_models','onebeta_comparison.pdf'));
 %% Plot
 
 rois = {'V1','MT'};
+
+% bmodels = {'roi2'};
 plot_rightchoice_model_att(attfits_2(:,1),respcon_([1 8],:,:),respcoh_([1 8],:,:),aSIDs,bmodels(1),rois);
-plot_rightchoice_model_att_onebeta(attfits_2(:,2),respcon_([1 8],:,:),respcoh_([1 8],:,:),aSIDs,bmodels(1),rois);
+plot_rightchoice_model_att_onebeta(attfits_2(:,2),respcon_([1 8],:,:),respcoh_([1 8],:,:),aSIDs,bmodels(2),rois);
 
-%% Compare weight parameters
-restructure_afits;
-rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-cons = {'cohw','conw'};
-for ai = 1:21
-    for ri = 1:8
-        for ci = 1:2
-            % original
-            w(ai,ri,1,ci) = afits{ai}{1}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
-            w(ai,ri,2,ci) = attfits{ai}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
-        end
-    end
-end
+    rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+% bmodels = {'roi8'};
+plot_rightchoice_model_att(attfits(:,1),respcon_,respcoh_,aSIDs,bmodels(1),rois);
+plot_rightchoice_model_att_onebeta(attfits(:,2),respcon_,respcoh_,aSIDs,bmodels(2),rois);
 
-w = squeeze(median(w));
 
-%% Compare weight2 parameters
-restructure_afits_2;
-rois = {'V1','MT'};
-cons = {'cohw','conw'};
-clear w
-for ai = 1:21
-    for ri = 1:2
-        for ci = 1:2
-            % original
-            w(ai,ri,1,ci) = afits{ai}{1}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
-            w(ai,ri,2,ci) = attfits{ai}.params.(sprintf('beta_control_%s_%s',rois{ri},cons{ci}));
-        end
-    end
-end
-
-w = squeeze(median(w));
-
-wcon = wcon([1 8],:);
-wcoh = wcoh([1 8],:);
-
-%% Compare weight_onebeta parameters
-
-rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-clear w
-for ai = 1:21
-    for ri = 1:8
-        w(ai,ri) = attfits{ai}.params.(sprintf('beta_control_%s_w',rois{ri}));
-    end
-end
-
-%% Correlation
-wcon = squeeze(w(:,2,:));
-wcoh = squeeze(w(:,1,:));
-[rp,pp] = corr(wcon(:,1),wcoh(:,1));
-[ra,pa] = corr(wcon(:,2),wcoh(:,2));
-%% Plot
-h = figure;
-
-wcon = squeeze(w(:,2,:));
-wcon = wcon / wcon(1,2);
-wcoh = squeeze(w(:,1,:));
-wcoh = wcoh / wcoh(1,2);
-
-cmap = brewermap(7,'PuOr');
-
-subplot(211);
-title('Passive viewing');
-b = bar(wcoh);
-b(1).FaceColor = cmap(6,:); b(2).FaceColor = cmap(2,:);
-mylegend({'Coherence weight','Contrast weight'},{{'s' cmap(6,:)},{'s' cmap(2,:)}});
-set(gca,'XTick',1:2,'XTickLabel',rois);
-a = axis;
-axis([a(1) a(2) -2 4]);
-drawPublishAxis;
-subplot(212);
-title('Active viewing');
-b = bar(wcon);
-b(1).FaceColor = cmap(6,:); b(2).FaceColor = cmap(2,:);
-set(gca,'XTick',1:2,'XTickLabel',rois);
-a = axis;
-axis([a(1) a(2) -2 4]);
-drawPublishAxis;
