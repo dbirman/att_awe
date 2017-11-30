@@ -300,8 +300,8 @@ function [bestparams,fit] = fitModel(params,adata,f)
 
 [initparams, minparams, maxparams] = initParams(params);
 
-warning('Tolerance is set to 5!!');
-options = optimoptions('fmincon','Algorithm','active-set','TolFun',5,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
+% warning('Tolerance is set to 5!!');
+options = optimoptions('fmincon','Algorithm','active-set','TolFun',0.1,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
 
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 

@@ -36,14 +36,44 @@ respcoh_ = squeeze(mean(bootci(10000,@mean,respcoh)));
 %% Check that responses look right
 figure; hold on
 ro = [1 8];
+di = 1;
+cons = {'attend coherence','attend contrast'};
 cmap = brewermap(7,'PuOr');
 for rii = 1:2
     subplot(2,1,rii); hold on
     ri = ro(rii);
+    title(sprintf('%s: %s',rois{ri},cons{di}));
 %     plot(squeeze(mean(respcon_([1 2 3 4],1,:),1)),'--r');
 %     plot(squeeze(mean(respcoh_([5 8],1,:),1)),'--');
-    plot(squeeze(mean(respcon_(ri,1,:),1)),'-','Color',cmap(2,:));
-    plot(squeeze(mean(respcoh_(ri,1,:),1)),'-','Color',cmap(6,:));
+    plot(x,squeeze(mean(respcon_(ri,di,:),1)),'-','Color',cmap(2,:));
+    plot(x,squeeze(mean(respcoh_(ri,di,:),1)),'-','Color',cmap(6,:));
+    axis([0 1 0 1.9]);
+end
+
+%% Across ROIs
+h = figure; hold on
+ro = [1 2 3 6 7 8];
+for rii = 1:length(ro)
+    ri = ro(rii);
+    subplot(2,1,1); hold on
+    rc = squeeze(respcon_(ri,1,:));
+    plot(x,rc-rc(1),'Color',cmap(2,:));
+    subplot(2,1,2); hold on
+    rm = squeeze(respcoh_(ri,1,:));
+    plot(x,rm-rm(1),'Color',cmap(6,:));
+end
+
+h = figure; hold on
+ro = [1 2 3 6 7 8];
+for rii = 1:length(ro)
+    ri = ro(rii);
+    subplot(6,1,rii); hold on
+%     subplot(2,1,1); hold on
+    rc = squeeze(respcon_(ri,1,:));
+    plot(x,rc-rc(1),'Color',cmap(2,:));
+%     subplot(2,1,2); hold on
+    rm = squeeze(respcoh_(ri,1,:));
+    plot(x,rm-rm(1),'Color',cmap(6,:));
 end
 
 %% Lapse rate calculation
@@ -125,7 +155,7 @@ for ni = 1:(length(breaks)-1)
     bstart = breaks(ni);
     bend = breaks(ni+1)-1;
     
-    parfor ii = bstart:bend
+    for ii = bstart:bend
         
         copt = attopts(ii,:);
         
@@ -160,14 +190,7 @@ for ni = 1:(length(breaks)-1)
 end
 % disppercent(inf);
 
-save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
-% save(fullfile(datafolder,'avg_within_fits.mat'),'wfits');
-%     save(fullfile(datafolder,sprintf('avg_indiv_fits_%02.0f.mat',100*sigmaopts(si))),'afits');
-%     disp('************************************');
-%     disppercent(si/length(sigmaopts));
-%     disp('************************************');
-% end
-% disppercent(inf);
+% save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
 
 %% Restructure attfits
 load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
@@ -275,3 +298,46 @@ plot_rightchoice_model_att(attfits(:,1),respcon_,respcoh_,aSIDs,bmodels(1),rois)
 plot_rightchoice_model_att_onebeta(attfits(:,2),respcon_,respcoh_,aSIDs,bmodels(2),rois);
 
 
+%% Example plots for justin: Readout space
+cmap = brewermap(7,'PuOr');
+% Compute the readout space under attention for one beta (8 ROIs)
+% FEATURE | ATTENTION
+clear readout
+features = {'respcoh_','respcon_'};
+for ci = 1:2
+    for di = 1:2
+        feat = eval(features{ci});
+        readout(ci,di,:) = squeeze(feat(:,di,:))' * squeeze(mean(w1_8))';
+    end
+end
+
+h = figure; hold on
+color = [6 2];
+type = {'-','--','--','-'};
+for ci = 1:2
+    for di = 1:2
+        plot(x,squeeze(readout(ci,di,:)),type{(ci-1)*2+di},'Color',cmap(color(ci),:));
+    end
+end
+
+% Compute the readout space under attention for multiple (8
+% ROIs)
+clear readout
+features = {'respcoh_','respcon_'};
+for ci = 1:2
+    for di = 1:2
+        feat = eval(features{ci});
+        readout(ci,di,:) = squeeze(feat(:,di,:))' * squeeze(mean(w_8(:,:,di)))';
+    end
+end
+
+h = figure; hold on
+color = [6 2];
+type = {'-','--','--','-'};
+for ci = 1:2
+    for di = 1:2
+        plot(x,squeeze(readout(ci,di,:)),type{(ci-1)*2+di},'Color',cmap(color(ci),:));
+    end
+end
+
+% Compute the readout space response for the passive responses (8 ROIs)
