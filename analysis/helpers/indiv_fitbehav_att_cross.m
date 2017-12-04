@@ -33,10 +33,22 @@ end
 respcon_ = squeeze(mean(bootci(10000,@mean,respcon)));
 respcoh_ = squeeze(mean(bootci(10000,@mean,respcoh)));
 
+%% Linear functions
+respcon_ = respcon_ - repmat(respcon_(:,:,1),1,1,1001);
+respcoh_ = respcoh_ - repmat(respcoh_(:,:,1),1,1,1001);
+% get linear fits
+clear respcon_l respcoh_l
+for ri = 1:8
+    for ci = 1:2
+        respcon_l(ri,ci,:) = x*(x'\squeeze(respcon_(ri,ci,:)));
+        respcoh_l(ri,ci,:) = x*(x'\squeeze(respcoh_(ri,ci,:)));
+    end
+end
+
 %% Check that responses look right
 figure; hold on
 ro = [1 8];
-di = 1;
+di = 2;
 cons = {'attend coherence','attend contrast'};
 cmap = brewermap(7,'PuOr');
 for rii = 1:2
@@ -101,16 +113,17 @@ end
 
 models = {'exp'};
 % 'sigma','sigma,poisson',
-bmodels = {'sigma,roi,att','sigma,roi,att,onebeta'};%,'doublesigma','doublesigma,poisson'};
+bmodels = {'sigma,roi,att'};%,'sigma,roi,att,onebeta'};
 % bmodels = {'sigma,roi'};
 
 % options list
 attopts = zeros(10000,5);
 count = 1;
+mopts = 1;
 
 % build options 
 
-ropts = {[1:8]};
+ropts = {[1 2 8]};
 % rconopts = {1, [1 2 3 4], 1:8};
 % rcohopts = {8, [5 8], 1:8};
 
@@ -155,7 +168,7 @@ for ni = 1:(length(breaks)-1)
     bstart = breaks(ni);
     bend = breaks(ni+1)-1;
     
-    for ii = bstart:bend
+    parfor ii = bstart:bend
         
         copt = attopts(ii,:);
         
@@ -172,8 +185,8 @@ for ni = 1:(length(breaks)-1)
         info.model = bmodels{noise};
         info.rois = ropt;
         info.lapse = lapses(subj);
-        info.respcon = respcon_;
-        info.respcoh = respcoh_;
+        info.respcon = respcon_l;
+        info.respcoh = respcoh_l;
         
 %         temps = cell{1,4};
 %         parfor iii=1:4
@@ -190,7 +203,7 @@ for ni = 1:(length(breaks)-1)
 end
 % disppercent(inf);
 
-% save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
+save(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'),'attfits');
 
 %% Restructure attfits
 load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
@@ -198,6 +211,28 @@ attfits_ = attfits; clear attfits_2
 for ai = 1:21
     for mi = 1:2
         attfits_2{ai,mi} = attfits_{(ai-1)*2+mi};
+    end
+end
+load(fullfile(datafolder,'avg_indiv_fits_att_cross_68.mat'));
+attfits_ = attfits; 
+count = 1;
+for ai = 1:21
+    for mi = 1:2
+%         for ropt = 1:2
+            attfits_68{ai,mi} = attfits_{count};
+            count = count+1;
+%         end
+    end
+end
+load(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'));
+attfits_ = attfits; 
+count = 1;
+for ai = 1:21
+    for mi = 1:2
+%         for ropt = 1:2
+            attfits_l{ai,mi} = attfits_{count};
+            count = count+1;
+%         end
     end
 end
 load(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'));
@@ -221,6 +256,8 @@ for i = 1:21
         cd_att_8(i,mi) = attfits{i,mi}.cv.cd;
         cd_like(i,mi) = -sum(attfits_2{i,mi}.cv.like);
         cd_att(i,mi) = attfits_2{i,mi}.cv.cd;
+        cd_like_68(i,mi) = -sum(attfits_68{i,mi}.cv.like);
+        cd_att_68(i,mi) = attfits_68{i,mi}.cv.cd;
     end
 end
 
@@ -230,6 +267,12 @@ for i = 1:21
         w(i,ri,1) = attfits_2{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
         w(i,ri,2) = attfits_2{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
         w1(i,ri) = attfits_2{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
+    end
+    rois = {'V1','V2','MT'};
+    for ri = 1:3
+        w_68(i,ri,1) = attfits_68{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+        w_68(i,ri,2) = attfits_68{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
+        w1_68(i,ri) = attfits_68{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
     end
     rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
     for ri = 1:8
@@ -297,7 +340,13 @@ plot_rightchoice_model_att_onebeta(attfits_2(:,2),respcon_([1 8],:,:),respcoh_([
 plot_rightchoice_model_att(attfits(:,1),respcon_,respcoh_,aSIDs,bmodels(1),rois);
 plot_rightchoice_model_att_onebeta(attfits(:,2),respcon_,respcoh_,aSIDs,bmodels(2),rois);
 
+rois = {'V1','V2','MT'};
+plot_rightchoice_model_att(attfits_68(:,1),respcon_([1 2 8],:,:),respcoh_([1 2 8],:,:),aSIDs,bmodels(1),rois);
+plot_rightchoice_model_att_onebeta(attfits_68(:,2),respcon_([1 2 8],:,:),respcon_([1 2 8],:,:),aSIDs,bmodels(2),rois);
 
+rois = {'V1','V2','MT'};
+plot_rightchoice_model_att(attfits_l(:,1),respcon_([1 2 8],:,:),respcoh_([1 2 8],:,:),aSIDs,bmodels(1),rois);
+plot_rightchoice_model_att_onebeta(attfits_l(:,2),respcon_([1 2 8],:,:),respcon_([1 2 8],:,:),aSIDs,bmodels(2),rois);
 %% Example plots for justin: Readout space
 cmap = brewermap(7,'PuOr');
 % Compute the readout space under attention for one beta (8 ROIs)
@@ -341,3 +390,128 @@ for ci = 1:2
 end
 
 % Compute the readout space response for the passive responses (8 ROIs)
+
+%% Show ideal vs. actual
+goalb2 = squeeze(mean(w));
+rc = squeeze(respcon_([1 8],2,:));
+rm = squeeze(respcoh_([1 8],2,:));
+rc = rc - repmat(rc(:,1),1,1001);
+rm = rm - repmat(rm(:,1),1,1001);
+c2 = rc'*goalb2(:,2);
+m2 = rm'*goalb2(:,1);
+actualb3 = squeeze(mean(w_68));
+rc = squeeze(respcon_([1 2 8],2,:));
+rm = squeeze(respcoh_([1 2 8],2,:));
+rc = rc - repmat(rc(:,1),1,1001);
+rm = rm - repmat(rm(:,1),1,1001);
+c3 = rc'*actualb3(:,2);
+m3 = rm'*actualb3(:,1);
+
+h = figure;
+subplot(211); title('Coherence (attended)'); hold on
+plot(x,m2,'-k');
+plot(x,m3,'Color',cmap(6,:));
+am = axis;
+subplot(212); title('Contrast (attended)'); hold on
+plot(x,c2,'-k');
+plot(x,c3,'Color',cmap(2,:));
+ac = axis;
+
+c3 = rc'*actualb3(:,1);
+m3 = rm'*actualb3(:,2);
+h = figure;
+subplot(211); title('Coherence (unatt)'); hold on
+hline(0,'-k');
+plot(x,m3,'Color',cmap(6,:));
+axis([am(1) am(2) min(-1,am(3)) am(4)]);
+subplot(212); title('Contrast (unatt)'); hold on
+hline(0,'-k');
+plot(x,c3,'Color',cmap(2,:));
+axis([ac(1) ac(2) min(-1,ac(3)) ac(4)]);
+%% Test different beta values (V1/MT)
+% just take attend contrast
+goalb = squeeze(mean(w));
+rc = squeeze(respcon_([1 8],2,:));
+rm = squeeze(respcoh_([1 8],2,:));
+rc = rc - repmat(rc(:,1),1,1001);
+rm = rm - repmat(rm(:,1),1,1001);
+gc = rc; gm = rm;
+
+rc = squeeze(respcon_([1 2 8],2,:));
+rm = squeeze(respcoh_([1 2 8],2,:));
+rc = rc - repmat(rc(:,1),1,1001);
+rm = rm - repmat(rm(:,1),1,1001);
+cmap = brewermap(7,'PuOr');
+bs = -32:8:32;
+
+x = 0:.001:1;
+for b3i = 1:length(bs)
+    h = figure;
+    for b1i = 1:length(bs) % v1 weight
+        for b2i = 1:length(bs) % mt weight 
+            b1 = bs(b1i);
+            b2 = bs(b2i);
+            b3 = bs(b3i);
+            beta = [b1 b2 b3]';
+            subplot(length(bs),length(bs),(b1i-1)*length(bs)+b2i);
+            rc_ = rc'*beta;
+            rm_ = rm'*beta;
+            title(sprintf('V1 %i MT %i R %02.2f',b1,b2,rm_\rc_));
+            hold on
+            % plot goals
+            plot(x,gc'*goalb(:,2),'-k');
+            plot(x,gm'*goalb(:,1),'-k');
+            % plot actuals
+            plot(x,rc_,'Color',cmap(2,:));
+            plot(x,rm_,'Color',cmap(6,:));
+            set(gca,'XTick',[],'YTick',[]);
+        end
+    end
+end
+
+%% Testing specific values of functions
+goalb2 = squeeze(mean(w));
+rc = squeeze(respcon_([1 8],2,:));
+rm = squeeze(respcoh_([1 8],2,:));
+rc = rc - repmat(rc(:,1),1,1001);
+rm = rm - repmat(rm(:,1),1,1001);
+c2 = rc'*goalb2(:,2);
+m2 = rm'*goalb2(:,1);
+
+b_con = [17 0 -2];
+b_coh = [-7 0 30];
+
+
+b_con = [19 0 -7];
+b_coh = [-5.5 12.5 20.9];
+
+rc = squeeze(respcon_([1 2 8],2,:));
+rm = squeeze(respcoh_([1 2 8],1,:));
+rc = rc - repmat(rc(:,1),1,1001);
+rm = rm - repmat(rm(:,1),1,1001);
+c3 = rc'*b_con';
+m3 = rm'*b_coh';
+
+rc = squeeze(respcon_([1 2 8],1,:));
+rm = squeeze(respcoh_([1 2 8],2,:));
+rc = rc - repmat(rc(:,1),1,1001);
+rm = rm - repmat(rm(:,1),1,1001);
+
+h = figure;
+subplot(2,2,1); title('Coherence (attended)'); hold on
+plot(x,m2,'-k');
+plot(x,m3,'Color',cmap(6,:));
+am = axis;
+axis([am(1) am(2) min(-4,am(3)) am(4)]);
+subplot(2,2,2); title('Coherence (unatteded)'); hold on
+hline(0,'-k');
+plot(x,rm'*b_con','Color',cmap(6,:));
+axis([am(1) am(2) min(-4,am(3)) am(4)]);
+subplot(2,2,3); title('Contrast (attended)'); hold on
+plot(x,c2,'-k');
+plot(x,c3,'Color',cmap(2,:));
+axis([ac(1) ac(2) min(-4,ac(3)) ac(4)]);
+subplot(2,2,4); title('Contrast (unatt)'); hold on
+hline(0,'-k');
+plot(x,rc'*b_coh','Color',cmap(2,:));
+axis([ac(1) ac(2) min(-4,ac(3)) ac(4)]);
