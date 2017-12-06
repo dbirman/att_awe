@@ -206,26 +206,47 @@ cmap = brewermap(7,'PuOr');
 rois = {'V1','V2','V3','V3a','V3b','V4','V7','MT'};
 
 %%%%%%%%%%%%%%%%%%%%%
-subplot(321); hold on
+subplot(211); hold on
 bar(1:8,rc_p,'FaceColor',cmap(2,:),'EdgeColor','w');
 errbar(1:8,rc_p,abs(rc_p_ci(2,:)-rc_p),'-','Color',[0 0 0]);
 a = axis; a(2) = 9;
 axis([a(1) a(2) 0 2]);
 set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 1 2]);
-title('Passive viewing');
-ylabel('Contrast sensitivity');
+title('Sensitivity during passive viewing');
+ylabel('Contrast');
 drawPublishAxis;
 
 %%%%%%%%%%%%%%%%%%%%%
-subplot(322); hold on
+subplot(212); hold on
 bar(1:8,rm_p,'FaceColor',cmap(6,:),'EdgeColor','w');
 errbar(1:8,rm_p,abs(rm_p_ci(2,:)-rm_p),'-','Color',[0 0 0]);
 axis([a(1) a(2) 0 1]);
 set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 1]);
-ylabel('Coherence sensitivity');
+ylabel('Coherence');
+drawPublishAxis('figSize=[4.5,4.5]');
+
+savepdf(h,fullfile(datafolder,'avg_fitatt','passive_sensitivity_bar.pdf'));
+%%
+
+h = figure;
+subplot(3,3,[1 2]); hold on
+bar(1:8,rc_c,'FaceColor',cmap(2,:),'EdgeColor','w');
+errbar(1:8,rc_c,abs(rc_c_ci(2,:)-rc_c),'-','Color',[0 0 0]);
+a = axis; a(2) = 9;
+axis([a(1) a(2) 0 2]);
+set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 1 2]);
 drawPublishAxis;
 
-subplot(3,2,[3 5]); hold on
+subplot(3,3,[6 9]); hold on
+
+barh(1:8,fliplr(rc_m),'FaceColor',cmap(2,:),'EdgeColor','w');
+errbar(fliplr(rc_m),1:8,fliplr(abs(rc_m_ci(2,:)-rc_m)),'-','Color',[0 0 0],'horiz');
+% a = axis; a(2) = 9;
+% axis([a(1) a(2) 0 2]);
+set(gca,'YTick',[1 8],'YTickLabel',fliplr(rois([1 8])),'XTick',[0 1 2]);
+drawPublishAxis;
+
+subplot(3,3,[4 5 7 8]); hold on
 
 title('Contrast sensitivity');
 
@@ -253,37 +274,68 @@ set(gca,'Xtick',[0 1],'YTick',[0 1]);
 % compute and plot correlation
 
 
+drawPublishAxis('figSize=[4.5,4.5]');
+
+savepdf(h,fullfile(datafolder,'avg_fitatt','contrast_sensitivity_marginals.pdf'));
+
+
+%%
+
+h = figure;
+subplot(3,3,[1 2]); hold on
+bar(1:8,rm_c,'FaceColor',cmap(6,:),'EdgeColor','w');
+errbar(1:8,rm_c,abs(rm_c_ci(2,:)-rm_c),'-','Color',[0 0 0]);
+a = axis; a(2) = 9;
+axis([a(1) a(2) 0 2]);
+set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 1]);
 drawPublishAxis;
 
+subplot(3,3,[6 9]); hold on
 
-subplot(3,2,[4 6]); hold on
-title('Coherence sensitivity');
+barh(1:8,fliplr(rm_m),'FaceColor',cmap(6,:),'EdgeColor','w');
+errbar(fliplr(rm_m),1:8,fliplr(abs(rm_m_ci(2,:)-rm_m)),'-','Color',[0 0 0],'horiz');
+% a = axis; a(2) = 9;
+% axis([a(1) a(2) 0 2]);
+set(gca,'YTick',[1 8],'YTickLabel',fliplr(rois([1 8])),'XTick',[0 1]);
+drawPublishAxis;
+
+subplot(3,3,[4 5 7 8]); hold on
+
+title('Contrast sensitivity');
+
 plot([0 1],[0 1],'--k');
+% error bars
 for ri = 1:8
     plot([rm_c(ri) rm_c(ri)],rm_m_ci(:,ri),'-','Color',cmap(6,:));
     plot(rm_c_ci(:,ri),[rm_m(ri) rm_m(ri)],'-','Color',cmap(6,:));
 end
-
 % markers
 plot(rm_c,rm_m,'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',3);
+
 % lsline
 b = [ones(size(rm_c))' rm_c']\rm_m';
 x = [min(rm_c) max(rm_c)];
 y = b(1) + b(2)*x;
 plot(x,y,'-r');
 
-
 xlabel('Discriminating contrast');
 ylabel('Discriminating coherence');
 axis equal
-axis([0 1 0 1]);
+axis([0 2 0 1.5]);
 set(gca,'Xtick',[0 1],'YTick',[0 1]);
 
+% compute and plot correlation
 
 
-drawPublishAxis('figSize=[4.5 4.5]');
+drawPublishAxis('figSize=[4.5,4.5]');
 
-savepdf(h,fullfile(datafolder,'avg_fitatt','roi_sensitivity_bar.pdf'));
+savepdf(h,fullfile(datafolder,'avg_fitatt','coherence_sensitivity_marginals.pdf'));
+
+
+
+%%%%%%%%%%%%%%
+%% OLD CODE %%
+%%%%%%%%%%%%%%
 
 %% Plot average sensitivity across ROIs
 cmap = brewermap(7,'PuOr');

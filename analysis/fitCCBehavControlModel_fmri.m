@@ -124,23 +124,29 @@ end
 if isfield(info,'fitmodel') && isstruct(info.fitmodel)
     fit = struct;
     
+    fit.null = struct;
+    fit.null.likelihood = 0;
+    fit.null.wasfit = 'WAS NOT FIT';
     if strfind(model,'onebeta')
-        fit.null = struct;
-        fit.null.likelihood = 0;
-    else
-        % setup null model
-        nullinfo = info;
-        nullinfo.fitmodel = [];
-        nullinfo.model = strcat(model,',null');
-        nullinfo.lapse = 0;
-        % fit
-        fit.null = fitCCBehavControlModel_fmri(adata,nullinfo,0);
+        fixedParams.onebeta = 1;
     end
+%     if strfind(model,'onebeta')
+%         fit.null = struct;
+%         fit.null.likelihood = 0;
+%     else
+%         % setup null model
+%         nullinfo = info;
+%         nullinfo.fitmodel = [];
+%         nullinfo.model = strcat(model,',null');
+%         nullinfo.lapse = 0;
+%         % fit
+%         fit.null = fitCCBehavControlModel_fmri(adata,nullinfo,0);
+%     end
     [fit.likelihood,fitted] = fitBehavModel(info.fitmodel.params,adata,-1);
     probs = fitted.probs;
     fit.adata = fitted.adata;
-    fit.BIC = 2*fit.likelihood + info.fitmodel.numParams * log(size(adata,1));
-    fit.AIC = 2*fit.likelihood + info.fitmodel.numParams * 2;
+%     fit.BIC = 2*fit.likelihood + info.fitmodel.numParams * log(size(adata,1));
+%     fit.AIC = 2*fit.likelihood + info.fitmodel.numParams * 2;
     fit.params = info.fitmodel.params;
     fit.probs = probs;
     fit.resp = adata(:,8);

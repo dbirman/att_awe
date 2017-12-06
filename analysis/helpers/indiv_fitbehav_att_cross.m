@@ -188,13 +188,6 @@ for ni = 1:(length(breaks)-1)
         info.respcon = respcon_l;
         info.respcoh = respcoh_l;
         
-%         temps = cell{1,4};
-%         parfor iii=1:4
-%             
-%             tinfo = info;
-%             tinfo.model = bmodels{iii};
-%             temps{iii} = fitCCBehavControlModel_fmri(adata,tinfo,1);
-%         end
         attfits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
         disp(sprintf('Done with %i',subj));
    end
@@ -274,6 +267,12 @@ for i = 1:21
         w_68(i,ri,2) = attfits_68{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
         w1_68(i,ri) = attfits_68{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
     end
+    rois = {'V1','V2','MT'};
+    for ri = 1:3
+        w_l(i,ri,1) = attfits_l{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+        w_l(i,ri,2) = attfits_l{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
+        w1_l(i,ri) = attfits_l{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
+    end
     rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
     for ri = 1:8
         w_8(i,ri,1) = attfits{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
@@ -345,8 +344,8 @@ plot_rightchoice_model_att(attfits_68(:,1),respcon_([1 2 8],:,:),respcoh_([1 2 8
 plot_rightchoice_model_att_onebeta(attfits_68(:,2),respcon_([1 2 8],:,:),respcon_([1 2 8],:,:),aSIDs,bmodels(2),rois);
 
 rois = {'V1','V2','MT'};
-plot_rightchoice_model_att(attfits_l(:,1),respcon_([1 2 8],:,:),respcoh_([1 2 8],:,:),aSIDs,bmodels(1),rois);
-plot_rightchoice_model_att_onebeta(attfits_l(:,2),respcon_([1 2 8],:,:),respcon_([1 2 8],:,:),aSIDs,bmodels(2),rois);
+plot_rightchoice_model_att(attfits_l(:,1),respcon_l([1 2 8],:,:),respcoh_l([1 2 8],:,:),aSIDs,bmodels(1),rois);
+plot_rightchoice_model_att_onebeta(attfits_l(:,2),respcon_l([1 2 8],:,:),respcon_l([1 2 8],:,:),aSIDs,bmodels(2),rois);
 %% Example plots for justin: Readout space
 cmap = brewermap(7,'PuOr');
 % Compute the readout space under attention for one beta (8 ROIs)
@@ -515,3 +514,114 @@ subplot(2,2,4); title('Contrast (unatt)'); hold on
 hline(0,'-k');
 plot(x,rc'*b_coh','Color',cmap(2,:));
 axis([ac(1) ac(2) min(-4,ac(3)) ac(4)]);
+
+%% Linear
+% solve the linear system in one move
+rc = respcon_;
+rm = respcoh_;
+areas = 1:8;
+
+% find [a b c] such that [respcon_l ; respcoh_l] * [abc abc] = [ 1 0];
+data1 = [squeeze(rc(areas,2,:))' ; squeeze(rm(areas,2,:))'];
+out1 = [25*x' ; -.1*x'];
+
+cb = data1\out1;
+
+figure;
+subplot(211)
+plot(data1*cb);
+
+data2 = [squeeze(rc(areas,1,:))' ; squeeze(rm(areas,1,:))'];
+out2 = [6*x' ; .2*x'];
+
+mb = data2\out2;
+subplot(212)
+plot(data2*mb);
+
+% stack both
+data = [data1;data2];
+out = [out1;out2];
+
+ab = data\out;
+figure;
+hold on;
+plot(out,'-k');
+plot(data*ab,'-r');
+axis([0 4000 -5 25]);
+
+%%
+afl = attfits_2(:,1);
+rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+rois = rois(areas);
+cons = {'cohw','conw'};
+for ai = 1:21
+    for ri = areas
+        afl{ai}.params.(sprintf('beta_control_%s_conw',rois{ri})) = cb(ri);
+        afl{ai}.params.(sprintf('beta_control_%s_cohw',rois{ri})) = mb(ri);
+    end
+    afl{ai}.params.bias = 0;
+    
+end
+afl_multi = afl;
+
+plot_rightchoice_model_att(afl,rc(areas,:,:),rm(areas,:,:),aSIDs,bmodels(1),rois);
+
+afl = attfits_2(:,2);
+for ai = 1:21
+    for ri = areas
+        afl{ai}.params.(sprintf('beta_control_%s_w',rois{ri})) = ab(ri);
+    end
+    afl{ai}.params.bias = 0;
+    
+end
+
+plot_rightchoice_model_att_onebeta(afl,rc(areas,:,:),rm(areas,:,:),aSIDs,bmodels(1),rois);
+
+%% Get the likelihood for each model
+
+info = struct;
+info.sigma = sigma;
+info.model = bmodels{1};
+info.rois = 1:8;
+info.respcon = respcon_;
+info.respcoh = respcoh_;
+parfor ai = 1:21
+    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
+    cinfo = info;
+    cinfo.lapse = lapses(ai);
+    cinfo.fitmodel = afl_multi{ai};
+    cinfo.fitmodel.numParams = 16;
+    lfit{ai} = fitCCBehavControlModel_fmri(adata,cinfo,1);
+end
+
+%%
+parfor ai = 1:21
+    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
+    cinfo = info;
+    cinfo.lapse = lapses(ai);
+    cinfo.model = strcat(cinfo.model,',onebeta');
+    cinfo.fitmodel = afl{ai};
+    lfit_a{ai} = fitCCBehavControlModel_fmri(adata,cinfo,1);
+end
+
+%% compare
+for ai = 1:21
+    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
+    n(ai) = size(adata,1);
+    l_lin(ai,1) = -lfit{ai}.likelihood;
+    bic(ai,1) =  -2*l_lin(ai,1) + 16 * log(size(adata,1));
+    l_lin(ai,2) = -lfit_a{ai}.likelihood;
+    bic(ai,2) =  -2*l_lin(ai,2) + 8 * log(size(adata,1));
+    
+    cd(ai,1) = lfit{ai}.cd;
+    cd(ai,2) = lfit_a{ai}.cd;
+end
+d = l_lin(:,1)-l_lin(:,2);
+dcd = bic(:,1)-bic(:,2);
+
+dci = bootci(10000,@mean,d);
+
+disp(sprintf('Mean difference %02.2f, 95%% CI [%02.2f %02.2f]',mean(dci),dci(1),dci(2)));
+dci = bootci(10000,@mean,dcd);
+
+disp(sprintf('Mean difference %02.2f, 95%% CI [%02.2f %02.2f]',mean(dci),dci(1),dci(2)));
