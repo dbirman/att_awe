@@ -1,4 +1,4 @@
-function deconCohCon( data, roiname ,subj)
+function rr2 = deconCohCon( data, roiname ,subj)
 %DECONCOHCON Deconvolve the cohxcon experiment
 
 % 6/17 update: adding cross-validation. 
@@ -134,6 +134,9 @@ for ti = 1:length(tsOpts)
     decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
     decon = rmfield(decon,'scm');
     decon = rmfield(decon,'covar');
+    if ti==4
+        rr2(1) = decon.r2;
+    end
     decondata.(roiname).cc.(saveNames{ti}) = decon.ehdr;
 end
 % curd = constructD(mtSeries/100+1,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
@@ -142,9 +145,10 @@ end
 % model = rmfield(model,'covar');
 
 %% Save cohxcon data
-decondata.(roiname).cc.conidxs = conidx;
-decondata.(roiname).cc.cohidxs = cohidx;
-save(fname,'decondata');
+disp('not saving');
+% decondata.(roiname).cc.conidxs = conidx;
+% decondata.(roiname).cc.cohidxs = cohidx;
+% save(fname,'decondata');
 
 %% Return if no timing required
 % if ~isempty(strfind(mode,'droptiming'))
@@ -187,11 +191,15 @@ for ti = 1:length(tsOpts)
     decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
     decon = rmfield(decon,'scm');
     decon = rmfield(decon,'covar');
+    if ti==4
+        rr2(2) = decon.r2;
+    end
     decondata.(roiname).time.(saveNames{ti}) = decon.ehdr;
 end
 
 %% Save timing data
-decondata.(roiname).time.conidxs = conidxs;
-decondata.(roiname).time.cohidxs = cohidxs;
-decondata.(roiname).time.timidxs = timidxs;
-save(fname,'decondata');
+disp('not saving');
+% decondata.(roiname).time.conidxs = conidxs;
+% decondata.(roiname).time.cohidxs = cohidxs;
+% decondata.(roiname).time.timidxs = timidxs;
+% save(fname,'decondata');

@@ -14,10 +14,20 @@ global fixedParams params
 fixedParams = struct;
 fixedParams.ROIs = data.ROIs;
 
+
 %% Set data
 if ~isempty(dataopt)
     data.cc.cresp = data.cc.(dataopt);
     data.time.cresp = data.time.(dataopt);
+end
+
+%% Permutation
+if strfind(mode,'permute')
+    % permute data
+    perm = randperm(size(data.cc.cresp,2));
+    data.cc.cresp = data.cc.cresp(:,perm,:);
+    perm = randperm(size(data.time.cresp,2));
+    data.time.cresp = data.time.cresp(:,perm,:);
 end
 
 %% Cross-validation
