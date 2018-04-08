@@ -19,7 +19,7 @@ data.cc.cresp = data.cc.(dataopt);
 data.time.cresp = data.time.(dataopt);
 
 for ri = 1:length(data.ROIs)
-    if ~isempty(strfind(mode,data.ROIs{ri}))
+    if strcmp(mode,data.ROIs{ri})
         data.cc.cresp = data.cc.cresp(ri,:,:);
         data.time.cresp = data.time.cresp(ri,:,:);
         fixedParams.ROIs = fixedParams.ROIs(ri);
