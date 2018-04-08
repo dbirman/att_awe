@@ -1,7 +1,7 @@
 
 %%
 function out = cc_gamma(time,params)
-
+% Use cc_gamma(time,params)
 n = params.exponent;
 tau1 = params.tau1;
 amp1 = params.amp1;

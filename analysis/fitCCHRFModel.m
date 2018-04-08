@@ -172,6 +172,11 @@ if strfind(mode,'predict')
     fixedParams.spkdec = 0;
     fixedParams.fitexp = 0;
     fixedParams.regularize = 0;
+    if isfield(data.params,'cohalpha_0')
+        fixedParams.intzero = 1;
+    else
+        fixedParams.intzero=0;
+    end
     
     hrfparams.spkexp = 0;
     hrfparams.hrfexp = -0.451916488002049;
@@ -265,6 +270,23 @@ if strfind(mode,'interaction')
     roiparams.inbeta = [0.1 -inf inf];
 else
     roiparams.inbeta = 0;
+end
+
+if strfind(mode,'intzero')
+    % Define two separate sets of paramters for the conditions with zero
+    % change in one feature and change in the other feature and vice versa
+    
+    % Add the alpha/kappa parameters for the no contrast condition
+    roiparams.cohalpha_0 = roiparams.cohalpha;
+    roiparams.cohkappa_0 = roiparams.cohkappa;
+    
+    % Add the Rmax and c50 parameters for the no coherence condition
+    roiparams.conRmax_0 = roiparams.conRmax;
+    roiparams.conc50_0 = roiparams.conc50;
+    
+    fixedParams.intzero = 1;
+else
+    fixedParams.intzero = 0;
 end
 
 fixedParams.regularize=0;
@@ -372,14 +394,32 @@ res = zeros(1,length(data.cc.cresp_)+length(data.time.cresp_));
 baseConResp = conModel(data.basecon,roiparams);
 baseCohResp = cohModel(data.basecoh,roiparams);
 
+if fixedParams.intzero
+    roiparams_0 = roiparams;
+    roiparams_0.conc50 = roiparams_0.conc50_0;
+    roiparams_0.conRmax = roiparams_0.conRmax_0;
+    roiparams_0.cohkappa = roiparams_0.cohkappa_0;
+    roiparams_0.cohalpha = roiparams_0.cohalpha_0;
+    baseConResp_0 = conModel(data.basecon,roiparams_0);
+    baseCohResp_0 = cohModel(data.basecoh,roiparams_0);
+end
+
 cc_model = zeros(size(data.cc.cresp));
 
 for i = 1:length(data.cc.cresp_)
     ccon = data.cc.con(i);
     ccoh = data.cc.coh(i);
     
-    conEff = conModel(ccon,roiparams)-baseConResp;
-    cohEff = cohModel(ccoh,roiparams)-baseCohResp;
+    if fixedParams.intzero && (ccoh==0)
+        conEff = conModel(ccon,roiparams_0)-baseConResp_0;
+    else
+        conEff = conModel(ccon,roiparams)-baseConResp;
+    end
+    if fixedParams.intzero && (ccon==0)
+        cohEff = cohModel(ccoh,roiparams_0)-baseCohResp_0;
+    else
+        cohEff = cohModel(ccoh,roiparams)-baseCohResp;
+    end
     inEff = roiparams.inbeta*conEff*cohEff;
     
     if conEff==0 && cohEff==0 && ~isfield(roiparams,'nulloffset') % no change! res=0
@@ -416,8 +456,16 @@ for i = 1:length(data.time.cresp_)
     ccon = data.time.con(i);
     ccoh = data.time.coh(i);
     
-    conEff = conModel(ccon,roiparams)-baseConResp;
-    cohEff = cohModel(ccoh,roiparams)-baseCohResp;
+    if fixedParams.intzero && (ccoh==0)
+        conEff = conModel(ccon,roiparams_0)-baseConResp_0;
+    else
+        conEff = conModel(ccon,roiparams)-baseConResp;
+    end
+    if fixedParams.intzero && (ccon==0)
+        cohEff = cohModel(ccoh,roiparams_0)-baseCohResp_0;
+    else
+        cohEff = cohModel(ccoh,roiparams)-baseCohResp;
+    end
     
     if conEff==0 && cohEff==0 && ~isfield(roiparams,'nulloffset') % no change! res=0
         res(length(data.time.cresp_)+i) = 0;

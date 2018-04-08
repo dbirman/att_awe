@@ -18,6 +18,16 @@ fixedParams.ROIs = data.ROIs;
 data.cc.cresp = data.cc.(dataopt);
 data.time.cresp = data.time.(dataopt);
 
+for ri = 1:length(data.ROIs)
+    if ~isempty(strfind(mode,data.ROIs{ri}))
+        data.cc.cresp = data.cc.cresp(ri,:,:);
+        data.time.cresp = data.time.cresp(ri,:,:);
+        fixedParams.ROIs = fixedParams.ROIs(ri);
+        data.ROIs = data.ROIs(ri);
+        break
+    end
+end
+
 %% parse mode:
 hrfparams = struct;
 roiparams = struct;
@@ -129,7 +139,7 @@ res = zeros(1,size(data.canonical,2)*8*40);
 cc_model = zeros(size(data.cc.cresp));
 cc_res = zeros(size(data.cc.cresp));
 
-for ri = 1:8
+for ri = 1:size(data.cc.cresp,1)
     for gi = 1:size(cc_model,2)
         beta = params.(sprintf('betas%i',(ri-1)*20+gi));
         sidx = ((ri-1)*20+gi-1)*81+1;
@@ -141,7 +151,7 @@ end
 time_model = zeros(size(data.time.cresp));
 time_res = zeros(size(data.time.cresp));
 
-for ri = 1:8
+for ri = 1:size(data.time.cresp,1)
     for gi = 1:size(time_model,2)
         beta = params.(sprintf('betas%i',(ri-1)*size(time_model,2)+gi));
         sidx = ((ri-1)*(size(time_model,2))+gi-1)*81+1;
