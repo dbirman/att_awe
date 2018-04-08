@@ -179,7 +179,8 @@ if strfind(mode,'predict')
     end
     
     hrfparams.spkexp = 0;
-    hrfparams.hrfexp = -0.451916488002049;
+    hrfparams.hrfexp = -0.564151624385632;
+    warning('Consider changing hrf exponent to not be fixed');
     
     fds = fields(data.params);
     for fi = 1:length(fds)
@@ -203,16 +204,16 @@ fixedParams.fitexp = 0;
 
 if strfind(mode,'spkdec')
     % Spike rate decay
-    hrfparams.spkexp = -0.451916488002049;%[-0.5 -inf 0];
+    hrfparams.spkexp = -0.564151624385632;%[-0.5 -inf 0];
     hrfparams.hrfexp = 0;
     fixedParams.spkdec = 1;
 elseif strfind(mode,'spkhrfdec')
-    hrfparams.spkexp = -0.451916488002049;
-    hrfparams.hrfexp = -0.451916488002049;
+    hrfparams.spkexp = -0.564151624385632;
+    hrfparams.hrfexp = -0.564151624385632;
 else
     % HRF response decay
     hrfparams.spkexp = 0;
-    hrfparams.hrfexp = -0.451916488002049; % adaptation exponent (for time)
+    hrfparams.hrfexp = -0.564151624385632; % adaptation exponent (for time)
 end
 
 fixedParams.numparams = 0;
