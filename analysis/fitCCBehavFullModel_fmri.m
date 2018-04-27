@@ -11,6 +11,8 @@ global fixedParams origfits
 if ~isempty(strfind(info.model,'pfit')) && crossval==1
     % load the prefitted weights
     info.ofit = origfits{info.subj}{1};
+else
+    
 end
 
 adata = adata(~any(isnan(adata),2),:);

@@ -34,6 +34,7 @@ if strfind(info.model,'roi')
                 roifit.(rois{ri}).cohfit(ai,:) = info.respcoh(info.rois(ri),ai,:);
             end
         else
+            fixedParams.att = 0;
             roifit.(rois{ri}).confit = info.respcon(info.rois(ri),:);
             roifit.(rois{ri}).cohfit = info.respcoh(info.rois(ri),:);
         end
