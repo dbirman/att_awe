@@ -29,10 +29,34 @@ if any(nocatch(:)>10)
     warning('removing stairs >10');
     nocatch(nocatch>10) = 0;
 end
+%% Main + Catch
+main = zeros(2,1);
+mains = zeros(2,1);
+catch_ = zeros(2,1);
+catch_s = zeros(2,1);
+
+for task = 1:2
+    try
+        out = doStaircase('threshold',stimulus.staircases.main{task},'type','weibull','dispFig=0');
+%             out = doStaircase('threshold',stimulus.staircases.main{task});
+        main(task) = out.threshold;
+        mains(task) = out.thresholdSTE;
+    catch % missing a staircase
+    end
+    try 
+        out = doStaircase('threshold',stimulus.staircases.catch{task},'type','weibull','dispFig=0');
+%             out = doStaircase('threshold',stimulus.staircases.catch{task});
+        catch_(task) = out.threshold;
+        catch_s(task) = out.thresholdSTE;
+    catch
+    end
+end
 
 %% Save data
 fname = fullfile(datafolder,sprintf('%s_data.mat',subj));
 if exist(fname)==2, load(fname); end
 data.control = nocatch;
+data.attend = main;
+data.unattend = catch_;
 data.params = params;
 save(fname,'data');

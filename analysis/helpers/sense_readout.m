@@ -13,7 +13,7 @@ respcon = zeros(11,8,length(x));
 respcoh = zeros(11,8,length(x));
 
 for si = 1:11
-    fit = sfits{si}{4}; % 4 refers to resp-25, which is our standard model
+    fit = sfits{si}{1,4}; % 4 refers to resp-25, which is our standard model
 
     for ri = 1:8
         respcon(si,ri,:) = conModel(x,fit.roifit{ri}.params)+fit.roifit{ri}.params.offset;
@@ -95,7 +95,7 @@ for bi = 1:2
     for ai = 1:length(aSIDs)
         for ri = 1:8
             for ci = 1:2
-                weights_passive(bi,ai,ri,ci) = afits{ai}{bi}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
+                weights_passive(bi,ai,ri,ci) = afits{ai}{bi,2}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
             end
         end
     end
@@ -107,7 +107,7 @@ w_addpass = squeeze(mean(bootci(10000,@mean,weights_passive)));
 %% Load: weights 2
 
 % Load the readout weights from the linking model
-restructure_afits_2;
+restructure_afits;
 
 weights_passive = zeros(2,length(aSIDs),2,2);
 ROIs = {'V1','MT'};
@@ -116,7 +116,7 @@ for bi = 1:2
     for ai = 1:length(aSIDs)
         for ri = 1:2
             for ci = 1:2
-                weights_passive(bi,ai,ri,ci) = afits{ai}{bi}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
+                weights_passive(bi,ai,ri,ci) = afits{ai}{bi,1}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
             end
         end
     end
@@ -199,6 +199,61 @@ for gi = 1:2
     end
 end
 
+%% New plot: dashed line surrounding 
+h = figure;  hold on
+cmap = brewermap(7,'PuOr');
+rois = {'V1','V2','V3','V3a','V3b','V4','V7','MT'};
+
+for ri = 1:8
+    p(1) = bar(ri-0.1,rc_c(ri),0.2,'FaceColor',cmap(2,:),'EdgeColor','w');
+    p(2) = bar(ri+0.1,rc_m(ri),0.2,'FaceColor',cmap(6,:),'EdgeColor','w');
+end
+% add error bars
+errbar((1:8)-0.1,rc_c,rc_c_ci(2,:)-rc_c,'-k');
+errbar((1:8)+0.1,rc_m,rc_m_ci(2,:)-rc_m,'-k');
+
+% add the dashed passive conditions
+for ri = 1:8
+    plot(ri+[-.2 -.2],rc_p(ri)*[0 1],'--k');
+    plot(ri+[.2 .2],rc_p(ri)*[0 1],'--k');
+    plot(ri+[-.2 .2],rc_p(ri)*[1 1],'--k');
+end
+set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 0.5 1]);
+ylabel('Contrast sensitivity');
+legend(p,{'Discriminating contrast','Discriminating coherence'});
+drawPublishAxis('figSize=[8.5, 4.5]');
+
+savepdf(h,fullfile(datafolder,'avg_fitatt','contrast_sensitivity_dashed.pdf'));
+
+h = figure;  hold on
+cmap = brewermap(7,'PuOr');
+rois = {'V1','V2','V3','V3a','V3b','V4','V7','MT'};
+
+for ri = 1:8
+    p(1) = bar(ri-0.1,rm_c(ri),0.2,'FaceColor',cmap(2,:),'EdgeColor','w');
+    p(2) = bar(ri+0.1,rm_m(ri),0.2,'FaceColor',cmap(6,:),'EdgeColor','w');
+end
+% add error bars
+errbar((1:8)-0.1,rm_c,rm_c_ci(2,:)-rm_c,'-k');
+errbar((1:8)+0.1,rm_m,rm_m_ci(2,:)-rm_m,'-k');
+
+% add the dashed passive conditions
+
+for ri = 1:8
+    plot(ri+[-.2 -.2],rm_p(ri)*[0 1],'--k');
+    plot(ri+[.2 .2],rm_p(ri)*[0 1],'--k');
+    plot(ri+[-.2 .2],rm_p(ri)*[1 1],'--k');
+end
+a = axis;
+axis([a(1) a(2) a(3) max(a(4),0.5)]);
+set(gca,'XTick',[1 8],'XTickLabel',rois([1 8]),'YTick',[0 0.5]);
+ylabel('Coherence sensitivity');
+% legend(p,{'Discriminating contrast','Discriminating coherence'});
+drawPublishAxis('figSize=[8.5, 4.5]');
+
+savepdf(h,fullfile(datafolder,'avg_fitatt','coherence_sensitivity_dashed.pdf'));
+
+%% OLD PLOTS
 
 %% Bar plot comparisons
 h = figure;
@@ -239,7 +294,7 @@ drawPublishAxis;
 
 subplot(3,3,[6 9]); hold on
 
-barh(1:8,fliplr(rc_m),'FaceColor',cmap(2,:),'EdgeColor','w');
+barh(1:8,fliplr(rc_m),'FaceColor',cmap(6,:),'EdgeColor','w');
 errbar(fliplr(rc_m),1:8,fliplr(abs(rc_m_ci(2,:)-rc_m)),'-','Color',[0 0 0],'horiz');
 % a = axis; a(2) = 9;
 % axis([a(1) a(2) 0 2]);
@@ -283,7 +338,7 @@ savepdf(h,fullfile(datafolder,'avg_fitatt','contrast_sensitivity_marginals.pdf')
 
 h = figure;
 subplot(3,3,[1 2]); hold on
-bar(1:8,rm_c,'FaceColor',cmap(6,:),'EdgeColor','w');
+bar(1:8,rm_c,'FaceColor',cmap(2,:),'EdgeColor','w');
 errbar(1:8,rm_c,abs(rm_c_ci(2,:)-rm_c),'-','Color',[0 0 0]);
 a = axis; a(2) = 9;
 axis([a(1) a(2) 0 2]);
