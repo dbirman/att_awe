@@ -213,11 +213,11 @@ errbar((1:8)-0.1,rc_c,rc_c_ci(2,:)-rc_c,'-k');
 errbar((1:8)+0.1,rc_m,rc_m_ci(2,:)-rc_m,'-k');
 
 % add the dashed passive conditions
-for ri = 1:8
-    plot(ri+[-.2 -.2],rc_p(ri)*[0 1],'--k');
-    plot(ri+[.2 .2],rc_p(ri)*[0 1],'--k');
-    plot(ri+[-.2 .2],rc_p(ri)*[1 1],'--k');
-end
+% for ri = 1:8
+%     plot(ri+[-.2 -.2],rc_p(ri)*[0 1],'--k');
+%     plot(ri+[.2 .2],rc_p(ri)*[0 1],'--k');
+%     plot(ri+[-.2 .2],rc_p(ri)*[1 1],'--k');
+% end
 set(gca,'XTick',[1:8],'XTickLabel',rois([1:8]),'YTick',[0 0.5]);
 ylabel('Contrast sensitivity');
 % legend(p,{'Discriminating contrast','Discriminating coherence'});
@@ -239,11 +239,11 @@ errbar((1:8)+0.1,rm_m,rm_m_ci(2,:)-rm_m,'-k');
 
 % add the dashed passive conditions
 
-for ri = 1:8
-    plot(ri+[-.2 -.2],rm_p(ri)*[0 1],'--k');
-    plot(ri+[.2 .2],rm_p(ri)*[0 1],'--k');
-    plot(ri+[-.2 .2],rm_p(ri)*[1 1],'--k');
-end
+% for ri = 1:8
+%     plot(ri+[-.2 -.2],rm_p(ri)*[0 1],'--k');
+%     plot(ri+[.2 .2],rm_p(ri)*[0 1],'--k');
+%     plot(ri+[-.2 .2],rm_p(ri)*[1 1],'--k');
+% end
 a = axis;
 axis([a(1) a(2) a(3) max(a(4),0.5)]);
 set(gca,'XTick',[1:8],'XTickLabel',rois([1:8]),'YTick',[0 0.5]);
@@ -304,16 +304,16 @@ h = figure;
 % subplot(3,3,[4 5 7 8]); hold on
 hold on
 
-title('Contrast sensitivity');
+% title('Contrast sensitivity');
 
 plot([0 1],[0 1],'--k');
 % error bars
 for ri = 1:8
-    plot([rc_c(ri) rc_c(ri)],rc_m_ci(:,ri),'-','Color',cmap(2,:));
-    plot(rc_c_ci(:,ri),[rc_m(ri) rc_m(ri)],'-','Color',cmap(2,:));
+    plot([rc_c(ri) rc_c(ri)],rc_m_ci(:,ri),'-k');%,'Color',cmap(2,:));
+    plot(rc_c_ci(:,ri),[rc_m(ri) rc_m(ri)],'-k');%,'Color',cmap(2,:));
 end
 % markers
-plot(rc_c,rc_m,'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',3);
+plot(rc_c,rc_m,'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',3);
 
 % lsline
 b = [ones(size(rc_c))' rc_c']\rc_m';
@@ -324,7 +324,7 @@ plot(x,y,'-r');
 xlabel('Discriminating contrast');
 ylabel('Discriminating coherence');
 axis equal
-axis([0 2 0 1.5]);
+axis([0 1 0 1.5]);
 set(gca,'Xtick',[0 1],'YTick',[0 1]);
 
 % compute and plot correlation
@@ -360,16 +360,16 @@ h = figure;
 
 hold on
 
-title('Contrast sensitivity');
+% title('Contrast sensitivity');
 
 plot([0 1],[0 1],'--k');
 % error bars
 for ri = 1:8
-    plot([rm_c(ri) rm_c(ri)],rm_m_ci(:,ri),'-','Color',cmap(6,:));
-    plot(rm_c_ci(:,ri),[rm_m(ri) rm_m(ri)],'-','Color',cmap(6,:));
+    plot([rm_c(ri) rm_c(ri)],rm_m_ci(:,ri),'-k');%,'Color',cmap(6,:));
+    plot(rm_c_ci(:,ri),[rm_m(ri) rm_m(ri)],'-k');%,'Color',cmap(6,:));
 end
 % markers
-plot(rm_c,rm_m,'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',3);
+plot(rm_c,rm_m,'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',3);
 
 % lsline
 b = [ones(size(rm_c))' rm_c']\rm_m';
@@ -380,7 +380,7 @@ plot(x,y,'-r');
 xlabel('Discriminating contrast');
 ylabel('Discriminating coherence');
 axis equal
-axis([0 2 0 1.5]);
+axis([0 1 0 1]);
 set(gca,'Xtick',[0 1],'YTick',[0 1]);
 
 % compute and plot correlation
