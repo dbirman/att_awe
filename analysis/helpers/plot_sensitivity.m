@@ -12,6 +12,7 @@ for si = 1:length(nSIDs)
         conRmax(si,ri) = sfits{si}{1,4}.roifit{ri}.params.conRmax;
         conc50(si,ri) = sfits{si}{1,4}.roifit{ri}.params.conc50; 
         lincoh(si,ri) = x'\cohModel(x,sfits{si}{1,4}.roifit{ri}.params)';
+        onset(si,ri) = sfits{si}{1,4}.roifit{ri}.params.offset;
     end
 end
 
@@ -58,6 +59,7 @@ drawPublishAxis('figSize=[8.9,2.25]');
 % savepdf(h,fullfile(datafolder,'avg_fmri','delta_sensitivity.pdf'));
 
 %% Compute statistics for the deltas
+clear ci
 for ri = 1:8
     ci(:,ri) = bootci(10000,@mean,d(:,ri));
     disp(sprintf('%s %1.0f%%, 95%% CI [%1.2f, %1.2f]',rois{ri},mean(ci(:,ri))*100,ci(1,ri)*100,ci(2,ri)*100));
@@ -93,7 +95,7 @@ end
 set(gca,'XTick',1:8,'XTickLabel',rois,'YTick',[0 0.25 0.5 1]);
 ylabel('Sensitivity');
 axis([1 8 0 1]);
-drawPublishAxis('figSize=[8.9,2.25]');
+drawPublishAxis('figSize=[8.9,2]');
 
 savepdf(h,fullfile(datafolder,'avg_fmri','conc50_sensitivity.pdf'));
 
@@ -112,3 +114,18 @@ axis([1 8 0 0.75]);
 drawPublishAxis('figSize=[8.9,2.25]');
 
 savepdf(h,fullfile(datafolder,'avg_fmri','coh_sensitivity.pdf'));
+
+h = figure; hold on
+
+% Generate bar graph style for the parameter estimates
+for ri = 1:8
+    plot(repmat(ri,1,size(onset,1)),onset(:,ri),'o','MarkerFaceColor',[0.8 0.8 0.8],'MarkerEdgeColor',[0.8 0.8 0.8],'MarkerSize',2);
+    mcoh = squeeze(mean(bootci(1000,@mean,onset(:,ri))));
+    plot(ri,mcoh,'o','MarkerFaceColor',[0 0 0],'MarkerEdgeColor',[0 0 0],'MarkerSize',5);
+end
+set(gca,'XTick',1:8,'XTickLabel',rois,'YTick',[0 0.25 0.5]);
+ylabel('Onset parameter');
+axis([1 8 0 0.75]);
+drawPublishAxis('figSize=[8.9,2]');
+
+savepdf(h,fullfile(datafolder,'avg_fmri','onset_sensitivity.pdf'));
