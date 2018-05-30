@@ -1,4 +1,4 @@
-function rr2 = deconCohCon( data, roiname ,subj)
+function [rr2, sd] = deconCohCon( data, roiname ,subj)
 %DECONCOHCON Deconvolve the cohxcon experiment
 
 % 6/17 update: adding cross-validation. 
@@ -134,6 +134,8 @@ for ti = 1:length(tsOpts)
     decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
     decon = rmfield(decon,'scm');
     decon = rmfield(decon,'covar');
+    temp = std(decon.resid{1,1});
+    sd(ti,1) = temp(1);
     if ti==4
         rr2(1) = decon.r2;
     end
@@ -191,6 +193,8 @@ for ti = 1:length(tsOpts)
     decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
     decon = rmfield(decon,'scm');
     decon = rmfield(decon,'covar');
+    temp = std(decon.resid{1,1});
+    sd(ti,2) = temp(1);
     if ti==4
         rr2(2) = decon.r2;
     end
