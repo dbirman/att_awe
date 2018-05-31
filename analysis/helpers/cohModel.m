@@ -18,10 +18,7 @@ if isfield(params,'cohmodel')
         else
             lcoh = fixedParams.coh;
         end
-        out = zeros(size(coh));
-        for ci = 1:length(coh)
-            out(ci) = lcoh(find(fixedParams.x>=coh(ci),1));
-        end
+        out = interp1(fixedParams.x,lcoh,coh);
         return
     elseif params.cohmodel==5
         out = params.cohalpha .* tanh(coh*params.cohkappa);

@@ -136,9 +136,9 @@ for ti = 1:length(tsOpts)
     decon = rmfield(decon,'covar');
     temp = std(decon.resid{1,1});
     sd(ti,1) = temp(1);
-    if ti==4
-        rr2(1) = decon.r2;
-    end
+%     if ti==4
+        rr2(ti,1) = decon.r2;
+%     end
     decondata.(roiname).cc.(saveNames{ti}) = decon.ehdr;
 end
 % curd = constructD(mtSeries/100+1,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
@@ -195,9 +195,9 @@ for ti = 1:length(tsOpts)
     decon = rmfield(decon,'covar');
     temp = std(decon.resid{1,1});
     sd(ti,2) = temp(1);
-    if ti==4
-        rr2(2) = decon.r2;
-    end
+%     if ti==4
+        rr2(ti,2) = decon.r2;
+%     end
     decondata.(roiname).time.(saveNames{ti}) = decon.ehdr;
 end
 

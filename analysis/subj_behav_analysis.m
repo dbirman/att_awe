@@ -17,43 +17,6 @@ conidxs = logical((tdata(:,1)==2) .* (tdata(:,13)>conbins));
 cohidxs = logical((tdata(:,1)==1) .* (tdata(:,14)>cohbins));
 lapse = 1-mean([tdata(conidxs,12) ; tdata(cohidxs,12)]);
 
-%% TEMP CODE
-%% load original models
-% load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
-% fits = data.fits;
-% BICs = data.BICs;
-
-%% OLD CODE: Fit Behavioral Models without the fMRI Data
-% % if strfind(modes,'refit')
-% %     %% Fit Contrast/Coherence response models (just to control condition)
-% %     strs = {'con-exp,coh-exp','con-exp,coh-exp,poisson','con-linear,coh-linear','con-linear,coh-linear,poisson','con-naka,coh-naka','con-naka,coh-naka,poisson','con-explin,coh-explin','con-explin,coh-explin,poisson'}; %
-% %     %fits = cell(1,length(strs));
-% % %     BICs = zeros(size(fits));
-% %     minl = inf;
-% %     for si = 1:length(strs)
-% %         fits{si} = fitCCBehavControlModel(adata,1,strs{si},[],[],lapse);
-% %         BICs(si) = fits{si}.BIC;
-% %         if fits{si}.BIC < (minl-5)
-% %             minl = fits{si}.BIC;
-% %             fit = fits{si};
-% %         end
-% %     end
-% % end
-% % %% Save data
-% % if exist(fullfile(datafolder,sprintf('%s_data.mat',subj)))==2
-% %     load(fullfile(datafolder,sprintf('%s_data.mat',subj)));
-% % end
-% % if strfind(modes,'refit')
-% %     data.fit = fit;
-% %     data.fits = fits;
-% %     data.BICs = BICs;
-% %     data.strs = strs;
-% % else
-% %     fit = data.fit;
-% % end
-% % save(fullfile(datafolder,sprintf('%s_data.mat',subj)),'data');
-% 
-
 %%
 if strfind(modes,'thresholds')
     %% dispInfo

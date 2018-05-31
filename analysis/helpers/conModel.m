@@ -19,10 +19,7 @@ if isfield(params,'conmodel')
         else
             lcon = fixedParams.con;
         end
-        out = zeros(size(con));
-        for ci = 1:length(con)
-            out(ci) = lcon(find(fixedParams.x>=con(ci),1));
-        end
+        out = interp1(fixedParams.x,lcon,con);
         return
     elseif params.conmodel==5
         out = params.conalpha .* tanh(con*params.conkappa);
