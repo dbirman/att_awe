@@ -152,6 +152,7 @@ if length(data.ROIs)>1
         end
         % run model
         fit.roifit{ri} = fitCCHRFModel(ndata,mode,pfit,'',cvflag);
+        disp(sprintf('(fitCCHRFModel) ROI %s complete.',data.ROIs{ri}));
         % copy fit parameters
         fit.y{ri} = fit.roifit{ri}.y;
         fit.y_{ri} = fit.roifit{ri}.y_;
@@ -180,7 +181,7 @@ if strfind(mode,'predict')
     
     hrfparams.spkexp = 0;
     hrfparams.hrfexp = -0.564151624385632;
-    warning('Consider changing hrf exponent to not be fixed');
+%     warning('Consider changing hrf exponent to not be fixed');
     
     fds = fields(data.params);
     for fi = 1:length(fds)
@@ -246,7 +247,7 @@ elseif strfind(mode,'fitroi')
         roiparams.offset = [0 -inf inf];
     end
     
-    if strfind(mode,'linear')
+    if strfind(mode,'cohlinear')
         roiparams.cohslope = [1 -inf inf];
         roiparams.cohmodel = 1;
     elseif strfind(mode,'naka')
@@ -255,13 +256,10 @@ elseif strfind(mode,'fitroi')
         roiparams.cohq = 2;
         roiparams.cohc50 = [0.5 eps 1-eps];
         roiparams.cohmodel = 2;
-    elseif strfind(mode,'exp')
+    else
         roiparams.cohalpha = [2 -inf inf];
         roiparams.cohkappa = [1 -inf inf];
         roiparams.cohmodel = 3;
-    else
-        disp('No model specified');
-        keyboard
     end
     % run type
     fixedParams.fitroi = 1;
@@ -560,7 +558,7 @@ for i = 1:length(fixedParams.strs)
         fixed(end+1) = 0;
         indexes{end+1} = count; count = count+1;
     elseif length(cvals)==2 || length(cvals)>3
-        warning('Failure');
+        disp('Failure');
         keyboard
         % optimizer
         fixedParams.(fixedParams.strs{i}) = cvals;

@@ -305,6 +305,8 @@ end
 
 function [bestparams,fit] = fitModel(params,adata,f)
 
+global fixedParams
+
 [initparams, minparams, maxparams] = initParams(params);
 
 % warning('Tolerance is set to 5!!');
@@ -322,6 +324,9 @@ fit.probs = probs;
 fit.resp = adata(:,8);
 fit.cd = nanmean(probs(fit.resp==1))-nanmean(1-probs(fit.resp==0));
 fit.numParams = length(bestparams);
+if isfield(fixedParams,'roifit')
+    fit.roifit = fixedParams.roifit;
+end
 
 function [likelihood, fit] = fitBehavModel(params,adata,f)
 %%
@@ -466,6 +471,9 @@ for ai = 1:size(adata,1)
     end
     probs(ai) = prob;
 end
+
+stop = 1;
+% stop and calculate the entire obs probability range
 
 likelihood = -sum(log(probs));
 
