@@ -130,6 +130,24 @@ drawPublishAxis('figSize=[8.9,2]');
 
 % savepdf(h,fullfile(datafolder,'avg_fmri','onset_sensitivity.pdf'));
 
+%% Relative sensitivity
+
+h = figure; hold on
+
+relative = conRmax ./ lincoh;
+relative(lincoh<0.01) = NaN;
+% Generate bar graph style for the parameter estimates
+for ri = 1:8
+    plot(repmat(ri,1,size(relative,1)),relative(:,ri),'o','MarkerFaceColor',[0.8 0.8 0.8],'MarkerEdgeColor',[0.8 0.8 0.8],'MarkerSize',2);
+    rel = squeeze(mean(bootci(1000,@nanmean,relative(:,ri))));
+    plot(ri,rel,'o','MarkerFaceColor',[0 0 0],'MarkerEdgeColor',[0 0 0],'MarkerSize',5);
+end
+set(gca,'XTick',1:8,'XTickLabel',rois,'YTick',[0.1 1 10 100 1000]);
+set(gca,'YScale','log');
+ylabel('Ratio of contrast and coherence parameters');
+axis([1 8 0.1 1000]);
+drawPublishAxis('figSize=[16,5]');
+savepdf(h,fullfile(datafolder,'avg_fmri','relative_sensitivity.pdf'));
 
 %% Stats abpit stiff
 clear ci

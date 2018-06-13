@@ -25,6 +25,17 @@ if iscell(data)
     for ri = 1:length(data.tSeries), data.tSeries{ri} = []; end
     data.design = [];
     data.runtrans = [];
+    concatInfo = struct;
+    concatInfo.n = 0;
+    concatInfo.whichScan = [];
+    concatInfo.whichVolume = [];
+    concatInfo.nifti = [];
+    concatInfo.filename = {};
+    concatInfo.path = {};
+    concatInfo.junkFrames = [];
+    concatInfo.hipassfilter = {};
+    concatInfo.filterType = data_old{1}.concatInfo.filterType;
+    concatInfo.runTransition = [];
     for si = 1:length(data_old)
         for ri = 1:length(data_old{si}.tSeries)
             data.tSeries{ri} = [data.tSeries{ri} data_old{si}.tSeries{ri}];
@@ -38,6 +49,15 @@ if iscell(data)
         data.design = [data.design ; cdes];
         data.runtrans = [data.runtrans ; data_old{si}.runtrans+length_sofar];
         length_sofar = length_sofar + length(data_old{si}.tSeries{1});
+        concatInfo.n = concatInfo.n + data_old{si}.concatInfo.n;
+        concatInfo.whichScan = [concatInfo.whichScan concatInfo.n+data_old{si}.concatInfo.whichScan];
+        concatInfo.whichVolume = [concatInfo.whichVolume data_old{si}.concatInfo.whichVolume];
+        concatInfo.nifti = [concatInfo.nifti data_old{si}.concatInfo.nifti];
+        concatInfo.filename = [concatInfo.filename data_old{si}.concatInfo.filename];
+        concatInfo.path = [concatInfo.path data_old{si}.concatInfo.path];
+        concatInfo.junkFrames =[concatInfo.junkFrames data_old{si}.concatInfo.junkFrames];
+        concatInfo.hipassfilter = [concatInfo.hipassfilter data_old{si}.concatInfo.hipassfilter];
+        concatInfo.runTransition = [concatInfo.runTransition ; length_sofar+data_old{si}.runtrans];
     end
 end
 
@@ -70,6 +90,16 @@ if length(roinums)==2
     % run transitions
     runtrans2 = data.runtrans+length(data.tSeries{1});
     runtrans = [data.runtrans ; runtrans2];
+    % concat information
+    concatInfo.n = concatInfo.n*2;
+    concatInfo.whichScan = [concatInfo.whichScan concatInfo.whichScan+concatInfo.whichScan(end)];
+    concatInfo.whichVolume = repmat(concatInfo.whichVolume,1,2);
+    concatInfo.nifti = repmat(concatInfo.nifti,1,2);
+    concatInfo.filename = repmat(concatInfo.filename,1,2);
+    concatInfo.path = repmat(concatInfo.path,1,2);
+    concatInfo.hipassfilter = repmat(concatInfo.hipassfilter,1,2);
+    concatInfo.runTransition = runtrans;
+    concatInfo.junkFrames = repmat(concatInfo.junkFrames,1,2);
 else
     disp('failure');
     keyboard
@@ -117,8 +147,9 @@ for coni = 1:length(ucon)
         cohidx(end+1) = ucoh(cohi);
     end
 end
-concatInfo.runTransition = runtrans;
-
+% concatInfo.runTransition = runtrans;
+% concatInfo.n = size(runtrans,1);
+deconvConcatInfo.runTransition = runtrans;
 %% Load previous cohxcon data
 
 fname = fullfile(datafolder,sprintf('%s_decon.mat',subj));
@@ -128,14 +159,19 @@ if exist(fname,'file')==2, load(fname); end
 tsOpts = {'tSeries','rtSeriesAll','rtSeries2','rtSeries25'};
 saveNames = {'resp_prf','resp_all','resp_2','resp_25'};
 
+sd = zeros(4,2,20);
 for ti = 1:length(tsOpts)
     cts = eval(tsOpts{ti});
-    curd = constructD(cts,cohxcon_sv,0.5,40,concatInfo,'none','deconv',0);
+    curd = constructD(cts,cohxcon_sv,0.5,40,deconvConcatInfo,'none','deconv',0);
+    % sd calculation
+    d = fitTimecourse(curd.timecourse,curd.stimvol,curd.framePeriod,'concatInfo',concatInfo,'fitType=glm','stdGroups',{1:20});
+    sd(ti,1,:) = d.amplitudeSTD;
+    % deconvolution
     decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
     decon = rmfield(decon,'scm');
     decon = rmfield(decon,'covar');
-    temp = std(decon.resid{1,1});
-    sd(ti,1) = temp(1);
+%     temp = std(decon.resid{1,1});
+%     sd(ti,1) = temp(1);
 %     if ti==4
         rr2(ti,1) = decon.r2;
 %     end
@@ -190,11 +226,15 @@ saveNames = {'resp_prf','resp_all','resp_2','resp_25'};
 for ti = 1:length(tsOpts)
     cts = eval(tsOpts{ti});
     curd = constructD(cts,timing_sv,0.5,40,concatInfo,'none','deconv',0);
+    % sd calculation
+    d = fitTimecourse(curd.timecourse,curd.stimvol,curd.framePeriod,'concatInfo',concatInfo,'fitType=glm','stdGroups',{1:20});
+    sd(ti,2,:) = d.amplitudeSTD;
+    % deconvolution
     decon = getr2timecourse(curd.timecourse,curd.nhdr,curd.hdrlenTR,curd.scm,curd.framePeriod,curd.verbose);
     decon = rmfield(decon,'scm');
     decon = rmfield(decon,'covar');
-    temp = std(decon.resid{1,1});
-    sd(ti,2) = temp(1);
+%     temp = std(decon.resid{1,1});
+%     sd(ti,2) = temp(1);
 %     if ti==4
         rr2(ti,2) = decon.r2;
 %     end
