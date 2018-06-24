@@ -135,6 +135,7 @@ drawPublishAxis('figSize=[8.9,2]');
 h = figure; hold on
 
 relative = conRmax ./ lincoh;
+infs = sum(lincoh<0.01);
 relative(lincoh<0.01) = NaN;
 % Generate bar graph style for the parameter estimates
 for ri = 1:8
@@ -142,11 +143,20 @@ for ri = 1:8
     rel = squeeze(mean(bootci(1000,@nanmean,relative(:,ri))));
     plot(ri,rel,'o','MarkerFaceColor',[0 0 0],'MarkerEdgeColor',[0 0 0],'MarkerSize',5);
 end
-set(gca,'XTick',1:8,'XTickLabel',rois,'YTick',[0.1 1 10 100 1000]);
+% for each infinite point plot something at 900 +- 50
+for ri = 1:8
+    for ii = 1:infs(ri)
+        plot(ri+randi(10)/50,750+randi(250)-125,'o','MarkerFaceColor',[0.8 0.8 0.8],'MarkerEdgeColor',[0.8 0.8 0.8],'MarkerSize',2);
+    end
+    if infs(ri)>0
+        text(ri,800,sprintf('%i/11',infs(ri)));
+    end
+end
+set(gca,'XTick',1:8,'XTickLabel',rois,'YTick',[0.1 1 10 100]);
 set(gca,'YScale','log');
 ylabel('Ratio of contrast and coherence parameters');
 axis([1 8 0.1 1000]);
-drawPublishAxis('figSize=[16,5]');
+drawPublishAxis('figSize=[8.9,2]');
 savepdf(h,fullfile(datafolder,'avg_fmri','relative_sensitivity.pdf'));
 
 %% Stats abpit stiff
