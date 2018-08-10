@@ -183,7 +183,7 @@ if strfind(model,'null')
         initparams.beta_control_coh_cohw = 0;
         initparams.beta_control_coh_conw = 0;%[0 -1 1];
     end
-    initparams.bias = [0 -1 1];
+    initparams.bias = [0 -1 1 -.5 .5];
     initparams.sigma = 1;
     initparams.coh_gain = 0;
     initparams.poissonNoise = 0;
@@ -226,7 +226,7 @@ elseif strfind(model,'sigma')
             for ri = 1:length(rois)
                 beta = sprintf('beta_control_%s_w',rois{ri});
                 
-                initparams.(beta) = [rand -inf inf];
+                initparams.(beta) = [rand -100 100 -50 50];
             end
         else
             fixedParams.onebeta = 0;
@@ -236,18 +236,18 @@ elseif strfind(model,'sigma')
     %             if strfind(rois{ri},'V1')
     %                 initparams.(cbeta) = 1;
     %             else
-                initparams.(cbeta) = [rand -inf inf];
+                initparams.(cbeta) = [rand -100 100 -50 50];
     %             end
-                initparams.(mbeta) = [rand -inf inf];
+                initparams.(mbeta) = [rand -100 100 -50 50];
             end
         end
     else
         initparams.beta_control_con_conw = 1;
-        initparams.beta_control_con_cohw = [0 -1 1];
+        initparams.beta_control_con_cohw = [0 -1 1 -0.5 0.5];
         initparams.beta_control_coh_cohw = 1;
-        initparams.beta_control_coh_conw = [0 -1 1];
+        initparams.beta_control_coh_conw = [0 -1 1 -0.5 0.5];
     end
-    initparams.bias = [0 -1 1];
+    initparams.bias = [0 -1 1 -0.5 0.5];
     if strfind(model,'gain')
         initparams.coh_gain = [1.2 0 inf];
         initparams.sigma = sigmaval;
@@ -267,6 +267,7 @@ elseif strfind(model,'sigma')
 %                     warning('SIGMA PARAMETER NOT INTERPRETABLE: FROZEN AT 1');
                     initparams.sigma = 1;
                 else
+                    warning('Error: inaccessible');
                     initparams.sigma = [sigmaval eps 1];
                 end
             end
@@ -285,6 +286,7 @@ elseif strfind(model,'sigma')
 %                     warning('SIGMA PARAMETER NOT INTERPRETABLE: FROZEN AT 1');
                     initparams.sigma = 1;
                 else
+                    warning('Error: inaccessible');
                     initparams.sigma = [sigmaval eps 1];
                 end
             end
@@ -293,10 +295,10 @@ elseif strfind(model,'sigma')
     
     if strfind(model,'stayswitch')
 %         disp('(behavmodel) Fitting four stay/switch parameters');
-        initparams.right_correct = [0 -inf inf];
-        initparams.right_incorr = [0 -inf inf];
-        initparams.left_correct = [0 -inf inf];
-        initparams.left_incorr = [0 -inf inf];
+        initparams.right_correct = [0 -1 1 -0.05 0.05];
+        initparams.right_incorr = [0 -1 1 -0.05 0.05];
+        initparams.left_correct = [0 -1 1 -0.05 0.05];
+        initparams.left_incorr = [0 -1 1 -0.05 0.05];
     end
     initparams.lapse = lapserate;
     [~, fit] = fitModel(initparams,adata,-1);
@@ -307,12 +309,18 @@ function [bestparams,fit] = fitModel(params,adata,f)
 
 global fixedParams
 
-[initparams, minparams, maxparams] = initParams(params);
+[initparams, minparams, maxparams, plb, pub] = initParams(params);
 
 % warning('Tolerance is set to 5!!');
-options = optimoptions('fmincon','Algorithm','active-set','TolFun',5,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
+% options = optimoptions('fmincon','Algorithm','active-set','TolFun',5,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
 
-bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
+% bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
+
+options = struct;
+options.TolFun = 0.001;
+options.Display             = 'final';
+
+bestparams = bads(@(p) fitBehavModel(p,adata,f),initparams,minparams,maxparams,plb,pub,[],options);
 
 fit.params = getParams(bestparams);
 [fit.likelihood, fitted] = fitBehavModel(bestparams,adata,0);
@@ -628,7 +636,7 @@ end
 
 % if obs(8)==1, prob = 1-prob; end
 
-function [initparams, minparams, maxparams] = initParams(params)
+function [initparams, minparams, maxparams, plb, pub] = initParams(params)
 
 global fixedParams
 
@@ -638,6 +646,8 @@ fixedParams.num = length(fixedParams.strs);
 initparams = [];
 minparams = [];
 maxparams = [];
+plb = [];
+pub = [];
 indexes = zeros(1,fixedParams.num);
 count = 1;
 
@@ -654,6 +664,16 @@ for i = 1:fixedParams.num
         initparams = [initparams cvals(1)];
         minparams = [minparams cvals(2)];
         maxparams = [maxparams cvals(3)];
+        plb = [plb cvals(2)];
+        pub = [pub cvals(3)];
+        indexes(i) = count;
+        count = count+1;
+    elseif length(cvals)==5
+        initparams = [initparams cvals(1)];
+        minparams = [minparams cvals(2)];
+        maxparams = [maxparams cvals(3)];
+        plb = [plb cvals(4)];
+        pub = [pub cvals(5)];
         indexes(i) = count;
         count = count+1;
     elseif length(cvals)==2 || length(cvals)>3
