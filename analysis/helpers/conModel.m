@@ -1,6 +1,14 @@
 function out = conModel(con,params)
 global fixedParams
 
+if isfield(params,'deriv')
+    if params.conmodel==2
+        out = (params.conRmax * 1.9 * params.conc50^1.6 * con .^ 0.9 + 0.3 * con .^ 2.5) ./ ((params.conc50^params.conq+con.^params.conq).^2);
+    end
+    
+    return
+end
+
 if isfield(params,'conmodel')
     if params.conmodel==1
         out = params.conslope .* con;

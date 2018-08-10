@@ -1,6 +1,14 @@
 function out = cohModel(coh,params)
 global fixedParams
 
+if isfield(params,'deriv')
+    if params.cohmodel==3
+        out = params.cohalpha * params.cohkappa * exp(-params.cohkappa*coh);
+    end
+    
+    return
+end
+
 if isfield(params,'cohmodel')
     if params.cohmodel==1
         out = params.cohslope .* coh;
