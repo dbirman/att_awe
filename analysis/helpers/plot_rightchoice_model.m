@@ -177,7 +177,7 @@ model_m = squeeze(nanmean(model_));
 
 thresh__ = squeeze(nanmean(athresholds));
 thresh_ = squeeze(bootci(10000,@nanmean,athresholds));
-thresh_m = squeeze(nanmean(thresh_));
+thresh_s = squeeze(thresh_(2,:,:,:,:))-thresh__;
 
 cthresh__ = squeeze(nanmean(acthresholds));
 
@@ -311,8 +311,9 @@ cmap = brewermap(7,'PuOr');
 
 contrast = [0.325 0.4 0.55 0.85];
 
+% plot(peds+0.25,squeeze(thresh_m(1,2,:,2)),'-','Color',cmap(2,:));
+boundedline(peds+0.25,squeeze(thresh_m(1,2,:,2))',squeeze(thresh_s(1,2,:,2))','-','cmap',cmap(2,:),'nan','remove');
 errbar(contrast,control_m(2,:),control_s(2,:),'-','Color',cmap(2,:));
-plot(peds+0.25,squeeze(thresh_m(1,2,:,2)),'-','Color',cmap(2,:));
 plot(contrast,control_m(2,:),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',4);
 % errbar(coherence,control_m(1,:),control_s(1,:),'-','Color',cmap(6,:));
 % plot(coherence,control_m(1,:),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',7);
@@ -320,7 +321,7 @@ plot(contrast,control_m(2,:),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','
 % xlabel('Base stimulus (%)');
 set(gca,'XTick',[0 0.25 0.5 0.75 1]','XTickLabel',[0 25 50 75 100],'YTick',[0 0.0625 0.125 0.25],'YTickLabel',[0 6.25 12.5 25]);
 axis([0 1 0 0.25]);
-vline(0.25,'--k');
+% vline(0.25,'--k');
 % ylabel('Threshold (%)');
 
 drawPublishAxis('figSize=[4.25,4.5]');
@@ -334,15 +335,16 @@ coherence = [0.15 0.3 0.45 0.6];
 
 % errbar(contrast,control_m(2,:),control_s(2,:),'-','Color',cmap(2,:));
 % plot(contrast,control_m(2,:),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',7);
+boundedline(peds,squeeze(thresh_m(1,2,:,1))',squeeze(thresh_s(1,2,:,1))','-','cmap',cmap(6,:),'nan','remove');
 errbar(coherence,control_m(1,:),control_s(1,:),'-','Color',cmap(6,:));
-plot(peds,squeeze(thresh_m(1,2,:,1)),'-','Color',cmap(6,:));
+% plot(peds,squeeze(thresh_m(1,2,:,1)),'-','Color',cmap(6,:));
 plot(coherence,control_m(1,:),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',4);
 
 % legend('Coherence');
 % xlabel('Base stimulus (%)');
 set(gca,'XTick',[0 0.25 0.5 0.75 1]','XTickLabel',[0 25 50 75 100],'YTick',[0 0.0625 0.125 0.25],'YTickLabel',[0 6.25 12.5 25]);
 axis([0 1 0 0.25]);
-vline(0,'--k');
+% vline(0,'--k');
 % ylabel('Threshold (%)');
 
 drawPublishAxis('figSize=[4.25,4.5]');
@@ -359,13 +361,22 @@ h = figure; hold on
 cmap = brewermap(7,'PuOr');
 
 contrast = [0.325 0.4 0.55 0.85];
-coherence = [0.15 0.3 0.45 0.6];
 
-errbar(contrast,control_m(2,:),control_s(2,:),'-','Color',cmap(2,:));
-plot(contrast,control_m(2,:),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',4);
-errbar(coherence,control_m(1,:),control_s(1,:),'-','Color',cmap(6,:));
-plot(coherence,control_m(1,:),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',4);
+errbar(contrast(2),control_m(2,2),control_s(2,2),'-','Color',cmap(2,:));
+plot(contrast(2),control_m(2,2),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',5);
+% xlabel('Base stimulus (%)');
+axis([0 1 0 1.5]);
+set(gca,'XTick',[0 0.25 0.5 0.75 1]','XTickLabel',[0 25 50 75 100],'YTick',0:0.25:1,'YTickLabel',0:25:100);
+% ylabel('Threshold (%)');
 
+% contrast catch
+errbar(contrast(2),unattend_m(2),unattend_s(2),'-','Color',cmap(1,:));
+plot(contrast(2),unattend_m(2),'o','MarkerFaceColor',cmap(1,:),'MarkerEdgeColor','w','MarkerSize',5);
+
+% xlabel('Base stimulus (%)');
+axis([0.35 0.45 0 1.5]);
+set(gca,'XTick',0.4,'XTickLabel',40,'YTick',0:0.25:1.25,'YTickLabel',{'0','25','50','75','100','Inf'});
+% ylabel('Threshold (%)');
 
 noise = 2.1;
 
@@ -376,28 +387,40 @@ concatch = cthresh__(1,2,1,2);
 idx = find(peds>=(contrast(2)-0.25),1);
 estimate = noise * thresh_m(1,2,idx,2);
 
-plot([0.35 0.45],[concatch concatch],'--','Color',cmap(1,:));
-plot([0.35 0.45],[estimate estimate],'-','Color',cmap(1,:));
-errbar(contrast(2),unattend_m(2),unattend_s(2),'-','Color',cmap(1,:));
-plot(contrast(2),unattend_m(2),'o','MarkerFaceColor',cmap(1,:),'MarkerEdgeColor','w','MarkerSize',4);
+plot([0.375 0.425],[concatch concatch],'--','Color',cmap(1,:));
+plot([0.375 0.425],[estimate estimate],'-','Color',cmap(1,:));
+
+drawPublishAxis('figSize=[4.5,4.5]');
+savepdf(h,fullfile(datafolder,'avg_behav','catch_thresholds_con.pdf'));
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+% plot the coherence data
+h = figure; hold on
+
+coherence = [0.15 0.3 0.45 0.6];
+
+errbar(coherence(2),control_m(1,2),control_s(1,2),'-','Color',cmap(6,:));
+plot(coherence(2),control_m(1,2),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',5);
+% xlabel('Base stimulus (%)');
+axis([0.25 0.35 0 1.5]);
+set(gca,'XTick',0.3,'XTickLabel',30,'YTick',0:0.25:1.25,'YTickLabel',{'0','25','50','75','100','Inf'});
+% ylabel('Threshold (%)');
+
+% coherence catch
+errbar(coherence(2),unattend_m(1),unattend_s(1),'-','Color',cmap(7,:));
+plot(coherence(2),unattend_m(1),'o','MarkerFaceColor',cmap(7,:),'MarkerEdgeColor','w','MarkerSize',5);
+
 
 cohcatch = cthresh__(1,2,1,1);
 idx = find(peds==coherence(2));
 estimate = noise * thresh_m(1,2,idx,1);
 
-plot([0.25 0.35],[cohcatch cohcatch],'--','Color',cmap(7,:));
-plot([0.25 0.35],[estimate estimate],'-','Color',cmap(7,:));
-errbar(coherence(2),unattend_m(1),unattend_s(1),'-','Color',cmap(7,:));
+plot([0.275 0.325],[cohcatch cohcatch],'--','Color',cmap(7,:));
+plot([0.275 0.325],[estimate estimate],'-','Color',cmap(7,:));
+drawPublishAxis('figSize=[4.5,4.5]');
 
-plot(coherence(2),unattend_m(1),'o','MarkerFaceColor',cmap(7,:),'MarkerEdgeColor','w','MarkerSize',4);
-% legend('Contrast','Coherence');
-xlabel('Base stimulus (%)');
-axis([0 1 0 1.5]);
-set(gca,'XTick',[0 0.25 0.5 0.75 1]','XTickLabel',[0 25 50 75 100],'YTick',0:0.25:1,'YTickLabel',0:25:100);
-ylabel('Threshold (%)');
+savepdf(h,fullfile(datafolder,'avg_behav','catch_thresholds_coh.pdf'));
+%%
 
 
 
-drawPublishAxis('figSize=[8.25,4.5]');
-
-savepdf(h,fullfile(datafolder,'avg_behav','catch_thresholds.pdf'));
