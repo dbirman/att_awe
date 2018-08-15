@@ -528,7 +528,7 @@ plot_indiv_rightchoice_model;
 plot_rightchoice_model;
 
 %% ROI Parameter plot
-restructure_afits;
+afits = restructure_afits('avg_indiv_fits_fmincon.mat');
 
 sensitivity = zeros(2,2,length(aSIDs),8,2);
 ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
@@ -536,9 +536,9 @@ cons = {'cohw','conw'};
 for bi = 1:2
     for ro = 1:2
         for ai = 1:length(aSIDs)
-            for ri = 1:8
+            for ri = ropts{ro}
                 for ci = 1:2
-                    sensitivity(bi,ro,ai,ri,ci) = afits{ai}{bi,2}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
+                    sensitivity(bi,ro,ai,ri,ci) = afits{ai}{bi,ro}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
                 end
             end
         end
@@ -554,7 +554,7 @@ for bi = 1%:2
 
         csensitivity = squeeze(sensitivity(bi,ro,:,:,:));
 
-        ci = bootci(1000,@mean,csensitivity);
+        ci = bootci(1000,@nanmean,csensitivity);
         s_mean = squeeze(mean(ci));
         s_std = squeeze(ci(2,:,:,:))-s_mean;
 
@@ -576,16 +576,15 @@ for bi = 1%:2
             plot(s_mean(ri,2),s_mean(ri,1),'o','MarkerFaceColor',color/255,'MarkerEdgeColor','white','MarkerSize',5);
             text(s_mean(ri,2)+tx(ri),s_mean(ri,1)+ty(ri),ROIs{ri},'Color',color/255);
         end
+        axis([-13 35 -7 25]);
         axis equal
-        axis([-13 25 -7 15]);
-        axis equal
-        set(gca,'XTick',[ -5 0 5 10 15]','YTick',[-5 0 5 10 15]);
+        set(gca,'XTick',[ -5 0 5 10 20 30]','YTick',[-5 0 5 10 20]);
         v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
         v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
         xlabel('Contrast weight (a.u.)');
         ylabel('Coherence weight (a.u.)');
     %     title(sprintf('Weights under %s noise',bmodels_text{bi}));
-        drawPublishAxis('figSize=[4.5,4.5]');
+        drawPublishAxis('figSize=[7,7]');
     %     savepdf(h,fullfile('~/proj/att_awe/talks/data_figures',sprintf('avg_sensitivity_%s.pdf',models{mi})));
         savepdf(h,fullfile(datafolder,'avg_models',sprintf('avg_weights_%s_%i.pdf',bmodels_text{bi},length(ropts{ro}))));
     end

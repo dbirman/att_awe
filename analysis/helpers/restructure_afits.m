@@ -1,3 +1,15 @@
+function afits = restructure_afits(file)
+
+% Use the average response functions across all subjects
+nSIDs = [305 329 43 25 300 346 343 344 338 340 348];
+bSIDs = [345 330 337 335 349 354 353 356 334 352]; % behavior only participants
+aSIDs = [nSIDs bSIDs];
+sids = {};
+for ni = 1:length(aSIDs)
+    sids{end+1} = sprintf('s%03.0f',aSIDs(ni));
+end
+rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+
 mopts = 1;
 models = {'exp'};
 % 'sigma','sigma,poisson',
@@ -44,7 +56,7 @@ end
 
 %%
 clear afits afits_
-load(fullfile(datafolder,'avg_indiv_fits.mat'));
+load(fullfile(datafolder,file));
 afits_ = afits;
 afits = cell(1,length(aSIDs));
 for ai = 1:length(aSIDs)
