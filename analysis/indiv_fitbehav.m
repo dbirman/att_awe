@@ -79,7 +79,6 @@ end
     
 %% Fit to behavior
 
-models = {'exp'};
 % 'sigma','sigma,poisson',
 bmodels = {'sigma,roi','sigma,roi,poisson'};%,'doublesigma','doublesigma,poisson'};
 % bmodels = {'sigma,roi'};
@@ -98,17 +97,10 @@ for ai = 1:length(aSIDs)
     for mi = 1:length(mopts)
         for ropt = 1:length(ropts)
             for ni = 1:length(bmodels)
-                if strfind(bmodels{ni},'roi')
-                    % roi models have sigma fixed, no need to do
-                    % multiple
-                    aopts(count,:) = [ai mi ni ropt 1];
-                    count = count+1;
-                else
-                    for si = 1:length(sigmaopts)
-                        aopts(count,:) = [ai mi ni ropt si];
-                        count = count+1;
-                    end
-                end
+                % roi models have sigma fixed, no need to do
+                % multiple
+                aopts(count,:) = [ai mi ni ropt 1];
+                count = count+1;
             end
         end
     end
@@ -142,7 +134,6 @@ for ni = 1:(length(breaks)-1)
         shape = copt(2);
         noise = copt(3);
         ropt = ropts{copt(4)};
-        sigma = sigmaopts(copt(5));
         
         info = struct;
         info.sigma = sigma;
@@ -160,7 +151,7 @@ for ni = 1:(length(breaks)-1)
 end
 disppercent(inf);
 
-save(fullfile(datafolder,'avg_indiv_fits.mat'),'afits');
+save(fullfile(datafolder,'avg_indiv_fits_fmincon.mat'),'afits');
 
 %% Load all of the data, across all subjects -- compute the response mappings (how each contrast effect changed V1 response)
 % and compute the difference scores (R-L)
@@ -225,43 +216,43 @@ save(fullfile(datafolder,'avg_within_fits.mat'),'afits');
 %% Permutation test
 % Figure out the range of expected R^2 on random data (take the individual
 % subject and randomly permute the responses, column 8)
-reps = 500; % expect to take about 30 minutes per repetition
-
-permlike = zeros(length(nSIDs),reps,2,2);
-
-tic;
-parfor rep = 1:reps
-    for ai = 1:length(nSIDs)
-        adata = loadadata(sprintf('s%03.0f',nSIDs(ai)));
-
-        localr2 = zeros(reps,2,2);
-            pdata = adata;
-            pdata(:,8) = pdata(randperm(size(pdata,1)),8);
-            for mi = 1:length(mopts)
-                for ni = 1:length(bmodels)
-                    info = struct;
-                    info.sigma = 1;
-                    info.model = bmodels{ni};
-                    info.rois = [1 8];
-                    info.lapse = lapses(ai);
-                    info.respcon = squeeze(respcon(ai,:,:));
-                    info.respcoh = squeeze(respcoh(ai,:,:));
-                    %                     if clapse==0
-                    %                         clapse = min(lapses(lapses>0));
-                    %                     end
-                    fit = fitCCBehavControlModel_fmri(pdata,info,1);
-                    localr2(rep,mi,ni) = fit.likelihood;
-                end
-                close all
-            end
-    end
-
-    permlike(ai,:,:,:) = localr2;
-end
-t = toc;
-disp(sprintf('Took %01.2f seconds',t));
-
-save(fullfile(datafolder,'permutation.mat','permlike'));
+% reps = 500; % expect to take about 30 minutes per repetition
+% 
+% permlike = zeros(length(nSIDs),reps,2,2);
+% 
+% tic;
+% parfor rep = 1:reps
+%     for ai = 1:length(nSIDs)
+%         adata = loadadata(sprintf('s%03.0f',nSIDs(ai)));
+% 
+%         localr2 = zeros(reps,2,2);
+%             pdata = adata;
+%             pdata(:,8) = pdata(randperm(size(pdata,1)),8);
+%             for mi = 1:length(mopts)
+%                 for ni = 1:length(bmodels)
+%                     info = struct;
+%                     info.sigma = 1;
+%                     info.model = bmodels{ni};
+%                     info.rois = [1 8];
+%                     info.lapse = lapses(ai);
+%                     info.respcon = squeeze(respcon(ai,:,:));
+%                     info.respcoh = squeeze(respcoh(ai,:,:));
+%                     %                     if clapse==0
+%                     %                         clapse = min(lapses(lapses>0));
+%                     %                     end
+%                     fit = fitCCBehavControlModel_fmri(pdata,info,1);
+%                     localr2(rep,mi,ni) = fit.likelihood;
+%                 end
+%                 close all
+%             end
+%     end
+% 
+%     permlike(ai,:,:,:) = localr2;
+% end
+% t = toc;
+% disp(sprintf('Took %01.2f seconds',t));
+% 
+% save(fullfile(datafolder,'permutation.mat','permlike'));
 
 %% Computation permutation R^2 range
 
@@ -539,14 +530,16 @@ plot_rightchoice_model;
 %% ROI Parameter plot
 restructure_afits;
 
-sensitivity = zeros(2,length(aSIDs),8,2);
+sensitivity = zeros(2,2,length(aSIDs),8,2);
 ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
 cons = {'cohw','conw'};
 for bi = 1:2
-    for ai = 1:length(aSIDs)
-        for ri = 1:8
-            for ci = 1:2
-                sensitivity(bi,ai,ri,ci) = afits{ai}{bi}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
+    for ro = 1:2
+        for ai = 1:length(aSIDs)
+            for ri = 1:8
+                for ci = 1:2
+                    sensitivity(bi,ro,ai,ri,ci) = afits{ai}{bi,2}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
+                end
             end
         end
     end
@@ -556,44 +549,46 @@ models = {'exp'};
 bmodels_text = {'additive','poisson'};
 
 for bi = 1%:2
-    h = figure; clf; hold on
+    for ro = 1:2
+        h = figure; clf; hold on
 
-    csensitivity = squeeze(sensitivity(bi,:,:,:));
-    
-    ci = bootci(1000,@mean,csensitivity);
-    s_mean = squeeze(mean(ci));
-    s_std = squeeze(ci(2,:,:,:))-s_mean;
-        
-    tx = [0.75*ones(1,8)];
-    ty = [1.5*ones(1,8)];
-    conrange = abs([min(s_mean(:,2)) max(s_mean(:,2))]);
-    cohrange = abs([min(s_mean(:,1)) max(s_mean(:,1))]);
-    for ri = 1:8
-        orangeness = [241 163 64] * (s_mean(ri,2)+conrange(1))/sum(conrange);
-        purpleness = [153 142 195] * (s_mean(ri,1)+cohrange(1))/sum(cohrange);
-        color = orangeness + purpleness / 2;
-        if any(color>255)
-            color = color / max(color) * 255;
+        csensitivity = squeeze(sensitivity(bi,ro,:,:,:));
+
+        ci = bootci(1000,@mean,csensitivity);
+        s_mean = squeeze(mean(ci));
+        s_std = squeeze(ci(2,:,:,:))-s_mean;
+
+        tx = [0.75*ones(1,8)];
+        ty = [1.5*ones(1,8)];
+        conrange = abs([min(s_mean(:,2)) max(s_mean(:,2))]);
+        cohrange = abs([min(s_mean(:,1)) max(s_mean(:,1))]);
+        for ri = ropts{ro}
+            orangeness = [241 163 64] * (s_mean(ri,2)+conrange(1))/sum(conrange);
+            purpleness = [153 142 195] * (s_mean(ri,1)+cohrange(1))/sum(cohrange);
+            color = orangeness + purpleness / 2;
+            if any(color>255)
+                color = color / max(color) * 255;
+            end
+            % plot the horizontal error bar (constant y): CONTRAST
+            plot([-1 1]*s_std(ri,2) + s_mean(ri,2),repmat(s_mean(ri,1),1,2),'-','Color',color/255);
+            % plot vertical
+            plot(repmat(s_mean(ri,2),1,2),s_std(ri,1)*[-1 1] + s_mean(ri,1),'-','Color',color/255);
+            plot(s_mean(ri,2),s_mean(ri,1),'o','MarkerFaceColor',color/255,'MarkerEdgeColor','white','MarkerSize',5);
+            text(s_mean(ri,2)+tx(ri),s_mean(ri,1)+ty(ri),ROIs{ri},'Color',color/255);
         end
-        % plot the horizontal error bar (constant y): CONTRAST
-        plot([-1 1]*s_std(ri,2) + s_mean(ri,2),repmat(s_mean(ri,1),1,2),'-','Color',color/255);
-        % plot vertical
-        plot(repmat(s_mean(ri,2),1,2),s_std(ri,1)*[-1 1] + s_mean(ri,1),'-','Color',color/255);
-        plot(s_mean(ri,2),s_mean(ri,1),'o','MarkerFaceColor',color/255,'MarkerEdgeColor','white','MarkerSize',5);
-        text(s_mean(ri,2)+tx(ri),s_mean(ri,1)+ty(ri),ROIs{ri},'Color',color/255);
+        axis equal
+        axis([-13 25 -7 15]);
+        axis equal
+        set(gca,'XTick',[ -5 0 5 10 15]','YTick',[-5 0 5 10 15]);
+        v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
+        v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
+        xlabel('Contrast weight (a.u.)');
+        ylabel('Coherence weight (a.u.)');
+    %     title(sprintf('Weights under %s noise',bmodels_text{bi}));
+        drawPublishAxis('figSize=[4.5,4.5]');
+    %     savepdf(h,fullfile('~/proj/att_awe/talks/data_figures',sprintf('avg_sensitivity_%s.pdf',models{mi})));
+        savepdf(h,fullfile(datafolder,'avg_models',sprintf('avg_weights_%s_%i.pdf',bmodels_text{bi},length(ropts{ro}))));
     end
-    axis equal
-    axis([-13 25 -7 15]);
-    axis equal
-    set(gca,'XTick',[ -5 0 5 10 15]','YTick',[-5 0 5 10 15]);
-    v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-    v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-    xlabel('Contrast weight (a.u.)');
-    ylabel('Coherence weight (a.u.)');
-%     title(sprintf('Weights under %s noise',bmodels_text{bi}));
-    drawPublishAxis('figSize=[4.5,4.5]');
-%     savepdf(h,fullfile('~/proj/att_awe/talks/data_figures',sprintf('avg_sensitivity_%s.pdf',models{mi})));
-    savepdf(h,fullfile(datafolder,'avg_models',sprintf('avg_weights_%s.pdf',bmodels_text{bi})));
 end
 
 %% Fit gain parameter 

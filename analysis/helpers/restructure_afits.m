@@ -18,17 +18,8 @@ for ai = 1:length(aSIDs)
     for mi = 1:length(mopts)
         for ropt = 1:length(ropts)
             for ni = 1:length(bmodels)
-                if strfind(bmodels{ni},'roi')
-                    % roi models have sigma fixed, no need to do
-                    % multiple
-                    aopts(count,:) = [ai mi ni ropt 1];
-                    count = count+1;
-                else
-                    for si = 1:length(sigmaopts)
-                        aopts(count,:) = [ai mi ni ropt si];
-                        count = count+1;
-                    end
-                end
+                aopts(count,:) = [ai mi ni ropt 1];
+                count = count+1;
             end
         end
     end
@@ -67,41 +58,4 @@ for ai = 1:size(afits_,1)
     ropt = copt(4);
     sigma = copt(5);
     afits{subj}{noise,ropt} = afits_{ai};
-end
-
-return
-%% drop si model with lower likelihood
-
-% load(fullfile(datafolder,'avg_indiv_fits.mat'));
-afits_ = afits;
-numSigmas = size(afits_{1},1);
-numModels = length(bmodels);
-
-afits = cell(1,length(aSIDs)); bi = []; sigmas = []; sbs = []; r2s = []; cds = [];
-for ai = 1:length(aSIDs)
-    for ni = 1:numModels
-        for coni = 1:length(rconopts)
-            for cohi = 1:length(rcohopts)
-                if strfind(bmodels{ni},'roi')
-                    afits{ai}{ni,coni,cohi} = afits_{ai}{1,ni,coni,cohi};
-                else
-                    for si = 1:numSigmas
-                        sigmas(end+1) = afits_{ai}{si,ni,coni,cohi}.params.sigma;
-                        r2s(end+1) = -sum(afits_{ai}{si,ni,coni,cohi}.cv.like);
-                        cds(end+1) = -sum(afits_{ai}{si,ni,coni,cohi}.cv.cd);
-                    end
-                    bestidx = 1;
-                    likelihood = -sum(afits_{ai}{1,ni,coni,cohi}.cv.like);
-                    for sigmaopt = 2:numSigmas
-                        if -sum(afits_{ai}{sigmaopt,ni,coni,cohi}.cv.like)>likelihood
-                            bestidx = sigmaopt;
-                        end
-                    end
-                    afits{ai}{ni,coni,cohi} = afits_{ai}{bestidx,ni,coni,cohi};
-                    bi(end+1) = bestidx;
-                    sbs(end+1) = afits_{ai}{bestidx,ni,coni,cohi}.params.sigma;
-                end
-            end
-        end
-    end
 end

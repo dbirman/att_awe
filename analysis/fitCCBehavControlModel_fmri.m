@@ -236,9 +236,9 @@ elseif strfind(model,'sigma')
     %             if strfind(rois{ri},'V1')
     %                 initparams.(cbeta) = 1;
     %             else
-                initparams.(cbeta) = [rand -100 100 -50 50];
+                initparams.(cbeta) = [rand -100 100 -10 20];
     %             end
-                initparams.(mbeta) = [rand -100 100 -50 50];
+                initparams.(mbeta) = [rand -100 100 -10 20];
             end
         end
     else
@@ -312,15 +312,15 @@ global fixedParams
 [initparams, minparams, maxparams, plb, pub] = initParams(params);
 
 % warning('Tolerance is set to 5!!');
-% options = optimoptions('fmincon','Algorithm','active-set','TolFun',5,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
+options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
 
-% bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
+bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
-options = struct;
-options.TolFun = 0.001;
-options.Display             = 'final';
-
-bestparams = bads(@(p) fitBehavModel(p,adata,f),initparams,minparams,maxparams,plb,pub,[],options);
+% options = struct;
+% options.TolFun = 0.001;
+% options.Display             = 'final';
+% 
+% bestparams = bads(@(p) fitBehavModel(p,adata,f),initparams,minparams,maxparams,plb,pub,[],options);
 
 fit.params = getParams(bestparams);
 [fit.likelihood, fitted] = fitBehavModel(bestparams,adata,0);
