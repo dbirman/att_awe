@@ -21,9 +21,6 @@ for si = 1:11
     end
 end
 
-% rc_passive = squeeze(mean(bootci(10000,@mean,respcon)));
-% rm_passive = squeeze(mean(bootci(10000,@mean,respcoh)));
-
 % Load the sensitivity data for V1->MT during contrast and coherence
 % discrimination
 load(fullfile(datafolder,'avg_att_cross_fits_sb.mat'));
@@ -44,11 +41,6 @@ for si = 1:10
         respcoh_ac(si,ri,:) = fit.roifit{ri}.cohresp_con;
     end
 end
-
-% rc_attcon = squeeze(mean(bootci(10000,@mean,respcon(:,:,2,:))));
-% rm_attcon = squeeze(mean(bootci(10000,@mean,respcoh(:,:,2,:))));
-% rc_attcoh = squeeze(mean(bootci(10000,@mean,respcon(:,:,1,:))));
-% rm_attcoh = squeeze(mean(bootci(10000,@mean,respcoh(:,:,1,:))));
 
 %% Obtain SnR multipliers for each ROI
 
@@ -134,6 +126,10 @@ for ai = 1:10
     w(ai,2) = attfits{ai}.params.beta_control_MT_w;
 end
 
+%% Remove initial response (otherwise slopes are relative to zero-- bad)
+% respcon = respcon - repmat(respcon(:,:,1),1,1,size(respcon,3));
+% respcon_ac = respcon_ac - repmat(respcon_ac(:,:,1),1,1,size(respcon,3));
+% respcon_am = respcon_am - repmat(respcon_am(:,:,1),1,1,size(respcon,3));
 %% Sensory space sensitivity plots
 
 % normalize functions
@@ -146,17 +142,26 @@ norm_cohatt = norm_coh; %respcoh_am(:,8,:);
 clear rc_p rc_c rc_m rm_p rm_c rm_m
 ros = [1:8];
 x = 0:.001:1;
+
+X = [ones(size(x')) x'];
+
 for rii = 1:length(ros)
     ri = ros(rii);
     
     for ni = 1:10
-        rc_p(ni,rii) = x'\squeeze(respcon(ncorrespond(ni),ri,:));
-        rc_c(ni,rii) = x'\squeeze(respcon_ac(ni,ri,:));
-        rc_m(ni,rii) = x'\squeeze(respcon_am(ni,ri,:));
+        b = X\squeeze(respcon(ncorrespond(ni),ri,:));
+        rc_p(ni,rii) = b(2);
+        b = X\squeeze(respcon_ac(ni,ri,:));
+        rc_c(ni,rii) = b(2);
+        b = X\squeeze(respcon_am(ni,ri,:));
+        rc_m(ni,rii) = b(2);
         
-        rm_p(ni,rii) = x'\squeeze(respcoh(ncorrespond(ni),ri,:));
-        rm_c(ni,rii) = x'\squeeze(respcoh_ac(ni,ri,:));
-        rm_m(ni,rii) = x'\squeeze(respcoh_am(ni,ri,:));
+        b = X\squeeze(respcoh(ncorrespond(ni),ri,:));
+        rm_p(ni,rii) = b(2);
+        b = X\squeeze(respcoh_ac(ni,ri,:));
+        rm_c(ni,rii) = b(2);
+        b = X\squeeze(respcoh_am(ni,ri,:));
+        rm_m(ni,rii) = b(2);
         
 %         rc_p(ni,rii) = norm_con(ncorrespond(ni),:)'\squeeze(respcon(ncorrespond(ni),ri,:));
 %         rc_c(ni,rii) = norm_conatt(ni,:)'\squeeze(respcon_ac(ni,ri,:));
@@ -168,19 +173,37 @@ for rii = 1:length(ros)
     end
 end
 
-%% Correlations
 
-for ni = 1:10
-    con(ni) = corr(rc_c(ni,:)',rc_m(ni,:)');
-    coh(ni) = corr(rm_c(ni,:)',rm_m(ni,:)');
-end
+%% Plot response functions and relative contrast / coherence sensitivty for V1 and MT
 
-cic = bootci(1000,@mean,con);
-cic
-mean(cic)
-cim = bootci(1000,@mean,coh);
-cim
-mean(cim)
+% v1 contrast sensitivity first
+h = figure; hold on
+
+plot(x,squeeze(mean(respcon(ncorrespond,1,:))),'-k');
+plot(x,squeeze(mean(respcon_ac(:,1,:))),'-','Color',cmap(2,:));
+plot(x,squeeze(mean(respcon_am(:,1,:))),'-','Color',cmap(6,:));
+
+drawPublishAxis('figSize=[2.25,2.25]');
+
+savepdf(h,fullfile(datafolder,'avg_fitatt','contrast_relative.pdf'));
+
+% mt coherence sensitivity first
+h = figure; hold on
+
+plot(x,squeeze(mean(respcoh(ncorrespond,1,:))),'-k');
+plot(x,squeeze(mean(respcoh_ac(:,1,:))),'-','Color',cmap(2,:));
+plot(x,squeeze(mean(respcoh_am(:,1,:))),'-','Color',cmap(6,:));
+
+drawPublishAxis('figSize=[2.25,2.25]');
+savepdf(h,fullfile(datafolder,'avg_fitatt','coherence_relative.pdf'));
+
+%% Get relative values
+
+% rc_c = rc_c./rc_p;
+% rc_m = rc_m./rc_p;
+% 
+% rm_c = rm_c./rm_p;
+% rm_m = rm_m./rm_p;
 
 %% Average across subjects
 rc_p_ci = bootci(1000,@median,rc_p);
@@ -200,42 +223,48 @@ for gi = 1:2
 end
 
 %% New plot: dashed line surrounding 
+bsize = 0.15;
+
 h = figure;  hold on
 cmap = brewermap(7,'PuOr');
-rois = {'V1','V2','V3','V3a','V3b','V4','V7','MT'};
+rois = {'V1','V2','V3','V3A','V3B','V4','V7','MT'};
 
-for ri = 1:8
-    p(1) = bar(ri-0.1,rc_c(ri),0.2,'FaceColor',cmap(2,:),'EdgeColor','w');
-    p(2) = bar(ri+0.1,rc_m(ri),0.2,'FaceColor',cmap(6,:),'EdgeColor','w');
-end
 % add error bars
-errbar((1:8)-0.1,rc_c,rc_c_ci(2,:)-rc_c,'-k');
-errbar((1:8)+0.1,rc_m,rc_m_ci(2,:)-rc_m,'-k');
+errbar((1:8)-bsize,rc_c,rc_c_ci(2,:)-rc_c,'-','Color',cmap(2,:));
+errbar((1:8)+bsize,rc_m,rc_m_ci(2,:)-rc_m,'-','Color',cmap(6,:));
+for ri = 1:8
+    p(1) = plot(ri-bsize,rc_c(ri),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',4);
+    p(2) = plot(ri+bsize,rc_m(ri),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',4);
+%     p(1) = bar(ri-bsize,rc_c(ri),bsize*2,'FaceColor',cmap(2,:),'EdgeColor','w');
+%     p(2) = bar(ri+bsize,rc_m(ri),bsize*2,'FaceColor',cmap(6,:),'EdgeColor','w');
+end
 
+axis([-0.1 8.1 -1.25 2.25]); 
 % add the dashed passive conditions
 % for ri = 1:8
 %     plot(ri+[-.2 -.2],rc_p(ri)*[0 1],'--k');
 %     plot(ri+[.2 .2],rc_p(ri)*[0 1],'--k');
 %     plot(ri+[-.2 .2],rc_p(ri)*[1 1],'--k');
 % end
-set(gca,'XTick',[1:8],'XTickLabel',rois([1:8]),'YTick',[0 0.5]);
-ylabel('Contrast sensitivity');
+set(gca,'XTick',[1:8],'XTickLabel',rois([1:8]),'YTick',[0 0.5 1.0]);
+ylabel('Relative contrast sensitivity');
 % legend(p,{'Discriminating contrast','Discriminating coherence'});
-drawPublishAxis('figSize=[8.5, 4.5]');
+drawPublishAxis('figSize=[5.5, 4.5]');
 
 savepdf(h,fullfile(datafolder,'avg_fitatt','contrast_sensitivity_dashed.pdf'));
 
 h = figure;  hold on
 cmap = brewermap(7,'PuOr');
-rois = {'V1','V2','V3','V3a','V3b','V4','V7','MT'};
 
-for ri = 1:8
-    p(1) = bar(ri-0.1,rm_c(ri),0.2,'FaceColor',cmap(2,:),'EdgeColor','w');
-    p(2) = bar(ri+0.1,rm_m(ri),0.2,'FaceColor',cmap(6,:),'EdgeColor','w');
-end
 % add error bars
-errbar((1:8)-0.1,rm_c,rm_c_ci(2,:)-rm_c,'-k');
-errbar((1:8)+0.1,rm_m,rm_m_ci(2,:)-rm_m,'-k');
+errbar((1:8)-bsize,rm_c,rm_c_ci(2,:)-rm_c,'-','Color',cmap(2,:));
+errbar((1:8)+bsize,rm_m,rm_m_ci(2,:)-rm_m,'-','Color',cmap(6,:));
+for ri = 1:8
+    p(1) = plot(ri-bsize,rm_c(ri),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w','MarkerSize',4);
+    p(2) = plot(ri+bsize,rm_m(ri),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',4);
+%     p(1) = bar(ri-bsize,rm_c(ri),bsize*2,'FaceColor',cmap(2,:),'EdgeColor','w');
+%     p(2) = bar(ri+bsize,rm_m(ri),bsize*2,'FaceColor',cmap(6,:),'EdgeColor','w');
+end
 
 % add the dashed passive conditions
 
@@ -244,12 +273,11 @@ errbar((1:8)+0.1,rm_m,rm_m_ci(2,:)-rm_m,'-k');
 %     plot(ri+[.2 .2],rm_p(ri)*[0 1],'--k');
 %     plot(ri+[-.2 .2],rm_p(ri)*[1 1],'--k');
 % end
-a = axis;
-axis([a(1) a(2) a(3) max(a(4),0.5)]);
-set(gca,'XTick',[1:8],'XTickLabel',rois([1:8]),'YTick',[0 0.5]);
-ylabel('Coherence sensitivity');
+axis([-0.1 8.1 -1.25 2.25]);
+set(gca,'XTick',[1:8],'XTickLabel',rois([1:8]),'YTick',[0 0.5 1.0]);
+ylabel('Relative coherence sensitivity');
 % legend(p,{'Discriminating contrast','Discriminating coherence'});
-drawPublishAxis('figSize=[8.5, 4.5]');
+drawPublishAxis('figSize=[5.5, 4.5]');
 
 savepdf(h,fullfile(datafolder,'avg_fitatt','coherence_sensitivity_dashed.pdf'));
 
