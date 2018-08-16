@@ -307,7 +307,7 @@ end
 %% Use permutation test results to estimate whether there is an improvement within-subject?
 
 %% Indiv
-restructure_afits;
+restructure_afits('avg_indiv_fits_fmincon');
 
 clear r2 sigmas cd
 for ai = 1:length(aSIDs)
@@ -327,7 +327,7 @@ end
 % sigmas(sigmas==1) = NaN;
 
 %% Collect sigmas and indiv r2
-restructure_afits;
+restructure_afits('avg_indiv_fits_fmincon');
 
 clear r2 sigmas cd
 for ai = 1:length(aSIDs)
@@ -356,9 +356,13 @@ sigmas(sigmas==1) = NaN;
 % r2 = r2(:,:,1,1);
 % cd = cd(:,:,1,1);
 
+%% Likelihood ratio
+
+ratio = r2(:,2,1) ./ r2(:,1,1);
+
 %% Report R^2 (exp)
-add = squeeze(r2(:,1,:));
-poi = squeeze(r2(:,2,:));
+add = squeeze(r2(:,1,1));
+poi = squeeze(r2(:,2,1));
 diffe = add-poi;
 
 aci = bootci(1000,@mean,add);
@@ -368,15 +372,88 @@ dci = bootci(1000,@mean,diffe);
 figure;
 hist(diffe)
 
+
 %% cd vs r2
 add_cd = squeeze(cd(:,1,:));
 poi_cd = squeeze(cd(:,2,:));
 
-r2_diff = poi_roi-add_roi;
 cd_diff = poi_cd-add_cd;
-plot(100*cd_diff,r2_diff,'*k');
+
+% note the last dimension is ropt (8/2)
+
+figure;
+plot(100*cd_diff,diffe,'*k');
 xlabel('\Delta CD');
 ylabel('\Delta R^2');
+
+%% Generate horizontal bar plot of likelihood differences
+h = figure; hold on
+
+barh(diffe,'FaceColor',[0.75 0.75 0.75]);
+
+drawPublishAxis('figSize=[6,4.5]');
+
+set(gca,'XTick',[-200 0 200],'XTickLabel',{'Evidence for Poisson','0','Evidence for additive'});
+
+savepdf(h,fullfile(datafolder,'avg_models','add_poiss_bar.pdf'));
+
+%% Contrast/coherence responses used to fit behavior
+h = figure; hold on
+
+cmap = brewermap(7,'PuOr');
+
+x = 0:.001:1;
+plot(x,squeeze(respcon_(1,:)),'Color',cmap(2,:));
+plot(x,squeeze(respcoh_(8,:)),'Color',cmap(6,:));
+
+l = legend({'V1 Contrast response function','MT Coherence response function'},'FontSize',7,'FontName','Helvetica');
+set(l,'box','off');
+
+set(gca,'XTick',[0 1],'XTickLabel',[0 100]);
+
+xlabel('Stimulus strength (%)');
+ylabel('\Delta signal (%)');
+
+drawPublishAxis('figSize=[18,14]');
+
+% savepdf(h,fullfile('~/proj/att_awe/talks/data_figures/v1mt.pdf'));
+
+%% indiv_fits_2
+
+% check to see whether the parameters are of similar magnitudes for V1 and
+% MT
+restructure_afits_2;
+
+rois = {'V1','MT'};
+cons = {'coh','con'};
+for ni = 1:21
+    for ri = 1:2
+        for ci = 1:2
+            betas(ni,ri,ci) = afits{ni}{1}.params.(sprintf('beta_control_%s_%sw',rois{ri},cons{ci}));
+        end
+    end
+    r2_2(ni) = -sum(afits{ni}{1}.cv.like);
+end
+
+v1_con = betas(:,1,2);
+mt_coh = betas(:,2,1);
+
+bootci(10000,@mean,v1_con)
+mean(ans)
+bootci(10000,@mean,mt_coh)
+mean(ans)
+
+bootci(10000,@mean,1./[v1_con mt_coh])
+
+
+
+
+
+
+
+
+
+%% OLD PLOTS
 
 %% Generate histogram of R^2 values
 
@@ -424,57 +501,6 @@ set(gca,'XTick',[.35 .4 .45 .5],'YTick',[.35 .4 .45 .5]);
 set(gca,'XTickLabel',{'35%','40%','45%','50%'},'YTickLabel',{'35%','40%','45%','50%'});
 drawPublishAxis('figSize=[4.5,3.5]');
 savepdf(h,fullfile(datafolder,'avg_models','add_poiss_r2.pdf'));
-
-%% Contrast/coherence responses used to fit behavior
-h = figure; hold on
-
-cmap = brewermap(7,'PuOr');
-
-x = 0:.001:1;
-plot(x,squeeze(respcon_(1,:)),'Color',cmap(2,:));
-plot(x,squeeze(respcoh_(8,:)),'Color',cmap(6,:));
-
-l = legend({'V1 Contrast response function','MT Coherence response function'},'FontSize',7,'FontName','Helvetica');
-set(l,'box','off');
-
-set(gca,'XTick',[0 1],'XTickLabel',[0 100]);
-
-xlabel('Stimulus strength (%)');
-ylabel('\Delta signal (%)');
-
-drawPublishAxis('figSize=[18,14]');
-
-% savepdf(h,fullfile('~/proj/att_awe/talks/data_figures/v1mt.pdf'));
-
-
-
-
-%% indiv_fits_2
-
-% check to see whether the parameters are of similar magnitudes for V1 and
-% MT
-restructure_afits_2;
-
-rois = {'V1','MT'};
-cons = {'coh','con'};
-for ni = 1:21
-    for ri = 1:2
-        for ci = 1:2
-            betas(ni,ri,ci) = afits{ni}{1}.params.(sprintf('beta_control_%s_%sw',rois{ri},cons{ci}));
-        end
-    end
-    r2_2(ni) = -sum(afits{ni}{1}.cv.like);
-end
-
-v1_con = betas(:,1,2);
-mt_coh = betas(:,2,1);
-
-bootci(10000,@mean,v1_con)
-mean(ans)
-bootci(10000,@mean,mt_coh)
-mean(ans)
-
-bootci(10000,@mean,1./[v1_con mt_coh])
 
 %% I have no idea what all thi scode does
 
