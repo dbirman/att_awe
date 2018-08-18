@@ -137,6 +137,7 @@ for si = 1:size(con_m,1)
     train = con_m(setdiff(1:size(con_m,1),si),:);
     
     fitcn = fit_normcdf(con_x,nanmean(train));
+    r2(si,2) = fitcn.r2;
     
     ty = (1-2*fitcn.params.lapse)*normcdf(con_x,fitcn.params.mu,fitcn.params.sigma)+fitcn.params.lapse;
     stacky = [stacky test];
@@ -146,26 +147,33 @@ for si = 1:size(con_m,1)
     train = coh_m(setdiff(1:size(coh_m,1),si),:);
     
     fitcn = fit_normcdf(coh_x,nanmean(train));
+    r2(si,1) = fitcn.r2;
     
     ty = (1-2*fitcn.params.lapse)*normcdf(coh_x,fitcn.params.mu,fitcn.params.sigma)+fitcn.params.lapse;
     stacky = [stacky test];
     stacky_ = [stacky_ ty];
 end
+raw_r2 = r2;
+
 r2 = 1 - nansum((stacky_-stacky).^2)/nansum((stacky-0.5).^2);
 
 %% Compute statistics (zero conditions and non-zero conditions)
+r2 = zeros(size(con_m,1),2);
 for si = 1:size(con_m,1)
+    r2s = zeros(1,2);
     % compute the sigma (slope) parameters
     vals = con_m(si,:);
     tx = con_x(~isnan(vals));
     vals = vals(~isnan(vals));
     fit = fit_normcdf(tx,vals);
+    r2s(2) = fit.r2;
     conslope(si) = (1-2*fit.params.lapse)*normpdf(0,fit.params.mu,fit.params.sigma);
     
     vals = coh_m(si,:);
     tx = coh_x(~isnan(vals));
     vals = vals(~isnan(vals));
     fit = fit_normcdf(tx,vals);
+    r2s(1) = fit.r2;
     cohslope(si) = (1-2*fit.params.lapse)*normpdf(0,fit.params.mu,fit.params.sigma);
     
     vals = squeeze(mean(conright(si,1,:,:),3))';
@@ -179,6 +187,8 @@ for si = 1:size(con_m,1)
     vals = vals(~isnan(vals));
     fit = fit_normcdf(tx,vals);
     cohslope_null(si) = (1-2*fit.params.lapse)*normpdf(0,fit.params.mu,fit.params.sigma);
+    
+    r2(si,:) = r2s;
 end
 
 %%

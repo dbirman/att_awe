@@ -199,13 +199,13 @@ end
 save(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'),'attfits');
 
 %% Restructure attfits
-load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
-attfits_ = attfits; clear attfits_2
-for ai = 1:21
-    for mi = 1:2
-        attfits_2{ai,mi} = attfits_{(ai-1)*2+mi};
-    end
-end
+% load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
+% attfits_ = attfits; clear attfits_2
+% for ai = 1:21
+%     for mi = 1:2
+%         attfits_2{ai,mi} = attfits_{(ai-1)*2+mi};
+%     end
+% end
 load(fullfile(datafolder,'avg_indiv_fits_att_cross_68.mat'));
 attfits_ = attfits; 
 count = 1;

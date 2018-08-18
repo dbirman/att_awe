@@ -34,6 +34,10 @@ for si = 1:length(sids);
     trials(si) = size(adata,1);
 end
 
+%% Fit cumulative gaussian functions to data
+avg_rightperformancecontrol;
+
+
 %% Fit behavioral models
 parfor si = 1:length(sids)
     subj_behav_analysis(sids{si},'refit');
@@ -72,6 +76,18 @@ attend_s = squeeze(attend_(2,:,:))-attend_m;
 unattend_ = squeeze(bootci(1000,@nanmedian,unattend));
 unattend_m = squeeze(mean(unattend_));
 unattend_s = squeeze(unattend_(2,:,:))-unattend_m;
+
+%% Disp info for paper
+
+contrast = [0.325 0.4 0.55 0.85];
+coherence = [0.15 0.3 0.45 0.6];
+
+group = {'coherence','contrast'};
+for ci = 1:2
+    for b = 1:4
+        disp(sprintf('%s base %2.0f\\%%, JND = %2.1f\\%% 95\\%% CI [%2.1f, %2.1f]',group{ci},eval(sprintf('%s(b)',group{ci}))*100,control_m(ci,b)*100,control_(1,ci,b)*100,control_(2,ci,b)*100));
+    end
+end
 
 %% actual plot (only behavior -- no model fits, note that we don't use this for the paper)
 

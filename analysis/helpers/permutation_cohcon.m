@@ -14,12 +14,12 @@ for rep = 1:reps/50
     for irep = 1:50
         
         parr2 = localr2(irep,:,:,:);
-        for ai = 1:length(nSIDs)
+        parfor ai = 1:length(nSIDs)
             adata = loadadata(sprintf('s%03.0f',nSIDs(ai)));
 
             pdata = adata;
             pdata(:,8) = pdata(randperm(size(pdata,1)),8);
-            ir2 = parr2(ai,:,:);
+            ir2 = parr2(1,ai,:,:);
             for mi = 1:length(mopts)
                 for ni = 1:length(bmodels)
                     info = struct;
@@ -33,11 +33,11 @@ for rep = 1:reps/50
                     %                         clapse = min(lapses(lapses>0));
                     %                     end
                     fit = fitCCBehavControlModel_fmri(pdata,info,1);
-                    ir2(mi,ni) = fit.likelihood;
+                    ir2(1,1,mi,ni) = fit.likelihood;
                 end
                 close all
             end
-            parr2(ai,:,:) = ir2;
+            parr2(1,ai,:,:) = ir2;
         end
         localr2(irep,:,:,:) = parr2;
         disppercent(irep/50);

@@ -217,7 +217,6 @@ save(fullfile(datafolder,'avg_within_fits.mat'),'afits');
 %% Permutation
 permutation_cohcon;
 
-
 %% Compare within-subject to across-subject fits
 restructure_afits;
 allfits = afits;
@@ -249,8 +248,8 @@ restructure_afits('avg_indiv_fits_fmincon');
 clear r2 sigmas cd
 for ai = 1:length(aSIDs)
     for ni = 1:2
-        for ropt = 1
-            cm = afits{ai}{ni};
+        for ropt = 1:2
+            cm = afits{ai}{ni,ropt};
 %             BIC(ai,ni) = cm.BIC;
 %             sigmas(ai,ni,ropt) = cm.params.sigma;
             fr2(ai,ni,ropt) = -sum(cm.cv.like);
@@ -259,9 +258,21 @@ for ai = 1:length(aSIDs)
     end
 end
 
+%% get the mean fits for paper
+for add = 1
+    for ropt = 1:2
+        ci = bootci(1000,@nanmean,squeeze(fcd(:,add,ropt)));
+        ci = ci*100;
+        disp(sprintf('%i-area fit, average CD = %2.1f\\%% 95\\%% CI [%2.1f, %2.1f]',length(ropts{ropt}),mean(ci),ci(1),ci(2)));
+    end
+end
 % average effects across subjects?
 
-% sigmas(sigmas==1) = NaN;
+% compare 8 roi model to 2 roi model
+dr2 = fr2(:,1,2)-fr2(:,1,1);
+
+% add/poiss CD comparison
+dcd = fcd(:,1,2)-fcd(:,2,2);
 
 %% Collect sigmas and indiv r2
 restructure_afits('avg_indiv_fits_fmincon');
@@ -275,11 +286,16 @@ for ai = 1:length(aSIDs)
             sigmas(ai,ni,ropt) = cm.params.sigma;
             r2(ai,ni,ropt) = -sum(cm.cv.like);
             cd(ai,ni,ropt) = cm.cv.cd;
+            
+            
+            p = cm.cv.aprobs';
+            r = cm.cv.resp;
+            t = cm.adata(:,1);
+
+            cd_var(ai,ni,ropt) = 
             % compute 
             if ni ==1
-                p = cm.cv.aprobs';
-                r = cm.cv.resp;
-                t = cm.adata(:,1);
+                
                 for ti = 1:2
                     sep_cd(ai,ti) = nanmean(p(logical((t==ti).*(r==1)))) - nanmean(1-p(logical((t==ti).*(r==0))));
                 end
@@ -298,8 +314,8 @@ sigmas(sigmas==1) = NaN;
 ratio = r2(:,2,1) ./ r2(:,1,1);
 
 %% Report R^2 (exp)
-add = squeeze(r2(:,1,1));
-poi = squeeze(r2(:,2,1));
+add = squeeze(fr2(:,1,1));
+poi = squeeze(fr2(:,2,1));
 diffe = add-poi;
 
 aci = bootci(1000,@mean,add);
@@ -507,6 +523,35 @@ for bi = 1:2
         end
     end
 end
+
+%% display roi sensitivity for text in paper:
+
+% first for 8 area model
+csensitivity = squeeze(sensitivity(1,2,:,:,:));
+% average
+ms = bootci(1000,@nanmean,csensitivity);
+
+ms_ = squeeze(mean(csensitivity));
+
+for ci = 1:2
+    for ri = 1:8
+        disp(sprintf('%s = %2.1f s.d. 95\\%% CI [%2.1f %2.1f]; ',ROIs{ri},ms_(ri,ci),ms(1,1,ri,ci),ms(2,1,ri,ci)));
+    end
+end
+
+% now for the 2-area model
+csensitivity = squeeze(sensitivity(1,1,:,:,:));
+% average
+ms = bootci(1000,@nanmean,csensitivity);
+
+ms_ = squeeze(mean(csensitivity));
+
+for ci = 1:2
+    for ri = 1:8
+        disp(sprintf('%s = %2.1f s.d. 95\\%% CI [%2.1f %2.1f]; ',ROIs{ri},ms_(ri,ci),ms(1,1,ri,ci),ms(2,1,ri,ci)));
+    end
+end
+
 %%
 models = {'exp'};
 bmodels_text = {'additive','poisson'};
