@@ -57,8 +57,8 @@ for rii = 1:2
     title(sprintf('%s: %s',rois{ri},cons{di}));
 %     plot(squeeze(mean(respcon_([1 2 3 4],1,:),1)),'--r');
 %     plot(squeeze(mean(respcoh_([5 8],1,:),1)),'--');
-    plot(x,squeeze(mean(respcon_(ri,di,:),1)),'-','Color',cmap(2,:));
-    plot(x,squeeze(mean(respcoh_(ri,di,:),1)),'-','Color',cmap(6,:));
+    plot(x,squeeze(mean(respcon_l(ri,di,:),1)),'-','Color',cmap(2,:));
+    plot(x,squeeze(mean(respcoh_l(ri,di,:),1)),'-','Color',cmap(6,:));
     axis([0 1 0 1.9]);
 end
 
@@ -68,10 +68,10 @@ ro = [1 2 3 6 7 8];
 for rii = 1:length(ro)
     ri = ro(rii);
     subplot(2,1,1); hold on
-    rc = squeeze(respcon_(ri,1,:));
+    rc = squeeze(respcon_l(ri,1,:));
     plot(x,rc-rc(1),'Color',cmap(2,:));
     subplot(2,1,2); hold on
-    rm = squeeze(respcoh_(ri,1,:));
+    rm = squeeze(respcoh_l(ri,1,:));
     plot(x,rm-rm(1),'Color',cmap(6,:));
 end
 
@@ -81,10 +81,10 @@ for rii = 1:length(ro)
     ri = ro(rii);
     subplot(6,1,rii); hold on
 %     subplot(2,1,1); hold on
-    rc = squeeze(respcon_(ri,1,:));
+    rc = squeeze(respcon_l(ri,1,:));
     plot(x,rc-rc(1),'Color',cmap(2,:));
 %     subplot(2,1,2); hold on
-    rm = squeeze(respcoh_(ri,1,:));
+    rm = squeeze(respcoh_l(ri,1,:));
     plot(x,rm-rm(1),'Color',cmap(6,:));
 end
 
@@ -113,7 +113,7 @@ end
 
 models = {'exp'};
 % 'sigma','sigma,poisson',
-bmodels = {'sigma,roi,att'};%,'sigma,roi,att,onebeta'};
+bmodels = {'sigma,roi,att','sigma,roi,att,onebeta'};
 % bmodels = {'sigma,roi'};
 
 % options list
@@ -123,7 +123,7 @@ mopts = 1;
 
 % build options 
 
-ropts = {[1 2 8]};
+ropts = {[1 8],[1:8]};
 % rconopts = {1, [1 2 3 4], 1:8};
 % rcohopts = {8, [5 8], 1:8};
 
@@ -198,6 +198,43 @@ end
 
 save(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'),'attfits');
 
+% breaks = [breaks(1) breaks(end)];
+attfits = cell(size(attopts,1),1);
+wfits = cell(size(attopts,1),1);
+for ni = 1:(length(breaks)-1)
+    bstart = breaks(ni);
+    bend = breaks(ni+1)-1;
+    
+    parfor ii = bstart:bend
+        
+        copt = attopts(ii,:);
+        
+        subj = copt(1);
+        adata = loadadata(sprintf('s%03.0f',aSIDs(subj)));
+        
+        shape = copt(2);
+        noise = copt(3);
+        ropt = ropts{copt(4)};
+        sigma = sigmaopts(copt(5));
+        
+        info = struct;
+        info.sigma = sigma;
+        info.model = bmodels{noise};
+        info.rois = ropt;
+        info.lapse = lapses(subj);
+        info.respcon = respcon_;
+        info.respcoh = respcoh_;
+        
+        attfits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
+        disp(sprintf('Done with %i',subj));
+   end
+    
+%     disppercent(bend/size(attopts,1));
+end
+% disppercent(inf);
+
+save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
+
 %% Restructure attfits
 % load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
 % attfits_ = attfits; clear attfits_2
@@ -206,17 +243,17 @@ save(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'),'attfits');
 %         attfits_2{ai,mi} = attfits_{(ai-1)*2+mi};
 %     end
 % end
-load(fullfile(datafolder,'avg_indiv_fits_att_cross_68.mat'));
-attfits_ = attfits; 
-count = 1;
-for ai = 1:21
-    for mi = 1:2
-%         for ropt = 1:2
-            attfits_68{ai,mi} = attfits_{count};
-            count = count+1;
-%         end
-    end
-end
+% load(fullfile(datafolder,'avg_indiv_fits_att_cross_68.mat'));
+% attfits_ = attfits; 
+% count = 1;
+% for ai = 1:21
+%     for mi = 1:2
+% %         for ropt = 1:2
+%             attfits_68{ai,mi} = attfits_{count};
+%             count = count+1;
+% %         end
+%     end
+% end
 load(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'));
 attfits_ = attfits; 
 count = 1;
@@ -580,7 +617,7 @@ plot_rightchoice_model_att_onebeta(afl,rc(areas,:,:),rm(areas,:,:),aSIDs,bmodels
 %% Get the likelihood for each model
 
 info = struct;
-info.sigma = sigma;
+% info.sigma = sigma;
 info.model = bmodels{1};
 info.rois = 1:8;
 info.respcon = respcon_;
