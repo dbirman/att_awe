@@ -236,132 +236,128 @@ end
 save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
 
 %% Restructure attfits
-% load(fullfile(datafolder,'avg_indiv_fits_att_cross_2.mat'));
-% attfits_ = attfits; clear attfits_2
-% for ai = 1:21
-%     for mi = 1:2
-%         attfits_2{ai,mi} = attfits_{(ai-1)*2+mi};
-%     end
-% end
-% load(fullfile(datafolder,'avg_indiv_fits_att_cross_68.mat'));
-% attfits_ = attfits; 
-% count = 1;
-% for ai = 1:21
-%     for mi = 1:2
-% %         for ropt = 1:2
-%             attfits_68{ai,mi} = attfits_{count};
-%             count = count+1;
-% %         end
-%     end
-% end
 load(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'));
 attfits_ = attfits; 
 count = 1;
 for ai = 1:21
-    for mi = 1:2
-%         for ropt = 1:2
-            attfits_l{ai,mi} = attfits_{count};
-            count = count+1;
-%         end
+    for mi = 1
+        for ropt = 1:2
+            for ni = 1:2
+                attfits_l{ai,ropt,ni} = attfits_{count};
+                count = count+1;
+            end
+        end
     end
 end
+disp(count-1)
+disp(length(attfits_))
 load(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'));
 attfits_ = attfits; clear attfits
+count = 1;
 for ai = 1:21
-    for mi = 1:2
-        attfits{ai,mi} = attfits_{(ai-1)*2+mi};
+    for mi = 1
+        for ropt = 1:2
+            for ni = 1:2
+                attfits{ai,ropt,ni} = attfits_{count};
+                count = count+1;
+            end
+        end
     end
 end
+disp(count-1)
+disp(length(attfits_))
 %% Compare afits and attfits
-restructure_afits;
+afits = restructure_afits('avg_indiv_fits.mat');
 
+clear like cd
 for i = 1:21
-    like(i) = -sum(afits{i}{1}.cv.like);
-    cd(i) = afits{i}{1}.cv.cd;
-end
-
-for i = 1:21
-    for mi = 1:2
-        cd_like_8(i,mi) = -sum(attfits{i,mi}.cv.like);
-        cd_att_8(i,mi) = attfits{i,mi}.cv.cd;
-        cd_like(i,mi) = -sum(attfits_2{i,mi}.cv.like);
-        cd_att(i,mi) = attfits_2{i,mi}.cv.cd;
-        cd_like_68(i,mi) = -sum(attfits_68{i,mi}.cv.like);
-        cd_att_68(i,mi) = attfits_68{i,mi}.cv.cd;
+    % first index is noise add/poi, second index is ropts -- we ignore all
+    % poisson models
+    for ropt = 1:2
+        like(i,ropt) = -sum(afits{i}{1,ropt}.cv.like);
+        cd(i,ropt) = afits{i}{1,ropt}.cv.cd;
     end
 end
 
+% now pull out like and cd for the cross 
+
 for i = 1:21
-    rois = {'V1','MT'};
-    for ri = 1:2
-        w(i,ri,1) = attfits_2{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
-        w(i,ri,2) = attfits_2{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
-        w1(i,ri) = attfits_2{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
-    end
-    rois = {'V1','V2','MT'};
-    for ri = 1:3
-        w_68(i,ri,1) = attfits_68{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
-        w_68(i,ri,2) = attfits_68{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
-        w1_68(i,ri) = attfits_68{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
-    end
-    rois = {'V1','V2','MT'};
-    for ri = 1:3
-        w_l(i,ri,1) = attfits_l{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
-        w_l(i,ri,2) = attfits_l{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
-        w1_l(i,ri) = attfits_l{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
-    end
-    rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-    for ri = 1:8
-        w_8(i,ri,1) = attfits{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
-        w_8(i,ri,2) = attfits{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
-        w1_8(i,ri) = attfits{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
+    for ropt = 1:2
+        for beta = 1:2
+            flip = [2 1]; % flip one beta so that 1 is one and 2 is two
+            like_l(i,ropt,flip(beta)) = -sum(attfits_l{i,ropt,beta}.cv.like);
+            cd_l(i,ropt,flip(beta)) = attfits_l{i,ropt,beta}.cv.cd;
+            
+            like_a(i,ropt,flip(beta)) = -sum(attfits{i,ropt,beta}.cv.like);
+            cd_a(i,ropt,flip(beta)) = attfits{i,ropt,beta}.cv.cd;
+        end
     end
 end
 
-%% Get mean weights
-w_ci = bootci(10000,@mean,w);
-w_ = squeeze(mean(w));
-
-%% Plot likelihood and weights
-h = figure;
-subplot(211);
-[b,x] = hist(cd_like(:,1)-cd_like(:,2));
-bar(x,b,'FaceColor',[0.8 0.8 0.8]);
-xlabel('Likelihood (Multiple - Single readout)');
-set(gca,'XTick',[0 25 50]);
-drawPublishAxis('figSize=[3.5,4.5]');
-
-cmap = brewermap(7,'PuOr');
-subplot(212); hold on
-plot(w_(1,2),w_(1,1),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w');
-text(w_(1,2),w_(1,1),'V1');
-plot(w_(2,2),w_(2,1),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w');
-text(w_(2,2),w_(2,1),'MT');
-v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-v = hline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
-v = hline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
-v = vline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
-v = vline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
-axis([-15 25 -10 40]);
-set(gca,'XTick',[-10 0 10 20]);
-set(gca,'YTick',[-10 0 10 20]);
-xlabel('Contrast discrimination');
-ylabel('Coherence discrimination');
-drawPublishAxis('figSize=[3.5,4.5]');
-
-% plot(cd_att(:,1),cd_att(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
-% x = [min(cd_att(:,1)) max(cd_att(:,1))];
-% plot(x,x,'--r');
-% xlabel('Multiple readouts');
-% ylabel('Single readout');
-% title('Variance explained (R^2)');
-% axis([0.15 0.4 0.15 0.4]);
-% set(gca,'XTick',[0.15 0.25 0.35],'XTickLabel',{'15%','25%','35%'});
-% set(gca,'YTick',[0.15 0.25 0.35],'YTickLabel',{'15%','25%','35%'});
+%% Plot models
 
 
-savepdf(h,fullfile(datafolder,'avg_models','onebeta_comparison.pdf'));
+%%  old code
+
+% for i = 1:21
+%     rois = {'V1','MT'};
+%     for ri = 1:2
+%         w(i,ri,1) = attfits_2{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+%         w(i,ri,2) = attfits_2{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
+%         w1(i,ri) = attfits_2{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
+%     end
+%     rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+%     for ri = 1:8
+%         w_8(i,ri,1) = attfits{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
+%         w_8(i,ri,2) = attfits{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
+%         w1_8(i,ri) = attfits{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
+%     end
+% end
+
+% %% Get mean weights
+% w_ci = bootci(10000,@mean,w);
+% w_ = squeeze(mean(w));
+% 
+% %% Plot likelihood and weights
+% h = figure;
+% subplot(211);
+% [b,x] = hist(cd_like(:,1)-cd_like(:,2));
+% bar(x,b,'FaceColor',[0.8 0.8 0.8]);
+% xlabel('Likelihood (Multiple - Single readout)');
+% set(gca,'XTick',[0 25 50]);
+% drawPublishAxis('figSize=[3.5,4.5]');
+% 
+% cmap = brewermap(7,'PuOr');
+% subplot(212); hold on
+% plot(w_(1,2),w_(1,1),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w');
+% text(w_(1,2),w_(1,1),'V1');
+% plot(w_(2,2),w_(2,1),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w');
+% text(w_(2,2),w_(2,1),'MT');
+% v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
+% v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
+% v = hline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
+% v = hline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
+% v = vline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
+% v = vline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
+% axis([-15 25 -10 40]);
+% set(gca,'XTick',[-10 0 10 20]);
+% set(gca,'YTick',[-10 0 10 20]);
+% xlabel('Contrast discrimination');
+% ylabel('Coherence discrimination');
+% drawPublishAxis('figSize=[3.5,4.5]');
+% 
+% % plot(cd_att(:,1),cd_att(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
+% % x = [min(cd_att(:,1)) max(cd_att(:,1))];
+% % plot(x,x,'--r');
+% % xlabel('Multiple readouts');
+% % ylabel('Single readout');
+% % title('Variance explained (R^2)');
+% % axis([0.15 0.4 0.15 0.4]);
+% % set(gca,'XTick',[0.15 0.25 0.35],'XTickLabel',{'15%','25%','35%'});
+% % set(gca,'YTick',[0.15 0.25 0.35],'YTickLabel',{'15%','25%','35%'});
+% 
+% 
+% savepdf(h,fullfile(datafolder,'avg_models','onebeta_comparison.pdf'));
 
 %% Plot
 
@@ -383,282 +379,3 @@ plot_rightchoice_model_att_onebeta(attfits_68(:,2),respcon_([1 2 8],:,:),respcon
 rois = {'V1','V2','MT'};
 plot_rightchoice_model_att(attfits_l(:,1),respcon_l([1 2 8],:,:),respcoh_l([1 2 8],:,:),aSIDs,bmodels(1),rois);
 plot_rightchoice_model_att_onebeta(attfits_l(:,2),respcon_l([1 2 8],:,:),respcon_l([1 2 8],:,:),aSIDs,bmodels(2),rois);
-%% Example plots for justin: Readout space
-cmap = brewermap(7,'PuOr');
-% Compute the readout space under attention for one beta (8 ROIs)
-% FEATURE | ATTENTION
-clear readout
-features = {'respcoh_','respcon_'};
-for ci = 1:2
-    for di = 1:2
-        feat = eval(features{ci});
-        readout(ci,di,:) = squeeze(feat(:,di,:))' * squeeze(mean(w1_8))';
-    end
-end
-
-h = figure; hold on
-color = [6 2];
-type = {'-','--','--','-'};
-for ci = 1:2
-    for di = 1:2
-        plot(x,squeeze(readout(ci,di,:)),type{(ci-1)*2+di},'Color',cmap(color(ci),:));
-    end
-end
-
-% Compute the readout space under attention for multiple (8
-% ROIs)
-clear readout
-features = {'respcoh_','respcon_'};
-for ci = 1:2
-    for di = 1:2
-        feat = eval(features{ci});
-        readout(ci,di,:) = squeeze(feat(:,di,:))' * squeeze(mean(w_8(:,:,di)))';
-    end
-end
-
-h = figure; hold on
-color = [6 2];
-type = {'-','--','--','-'};
-for ci = 1:2
-    for di = 1:2
-        plot(x,squeeze(readout(ci,di,:)),type{(ci-1)*2+di},'Color',cmap(color(ci),:));
-    end
-end
-
-% Compute the readout space response for the passive responses (8 ROIs)
-
-%% Show ideal vs. actual
-goalb2 = squeeze(mean(w));
-rc = squeeze(respcon_([1 8],2,:));
-rm = squeeze(respcoh_([1 8],2,:));
-rc = rc - repmat(rc(:,1),1,1001);
-rm = rm - repmat(rm(:,1),1,1001);
-c2 = rc'*goalb2(:,2);
-m2 = rm'*goalb2(:,1);
-actualb3 = squeeze(mean(w_68));
-rc = squeeze(respcon_([1 2 8],2,:));
-rm = squeeze(respcoh_([1 2 8],2,:));
-rc = rc - repmat(rc(:,1),1,1001);
-rm = rm - repmat(rm(:,1),1,1001);
-c3 = rc'*actualb3(:,2);
-m3 = rm'*actualb3(:,1);
-
-h = figure;
-subplot(211); title('Coherence (attended)'); hold on
-plot(x,m2,'-k');
-plot(x,m3,'Color',cmap(6,:));
-am = axis;
-subplot(212); title('Contrast (attended)'); hold on
-plot(x,c2,'-k');
-plot(x,c3,'Color',cmap(2,:));
-ac = axis;
-
-c3 = rc'*actualb3(:,1);
-m3 = rm'*actualb3(:,2);
-h = figure;
-subplot(211); title('Coherence (unatt)'); hold on
-hline(0,'-k');
-plot(x,m3,'Color',cmap(6,:));
-axis([am(1) am(2) min(-1,am(3)) am(4)]);
-subplot(212); title('Contrast (unatt)'); hold on
-hline(0,'-k');
-plot(x,c3,'Color',cmap(2,:));
-axis([ac(1) ac(2) min(-1,ac(3)) ac(4)]);
-%% Test different beta values (V1/MT)
-% just take attend contrast
-goalb = squeeze(mean(w));
-rc = squeeze(respcon_([1 8],2,:));
-rm = squeeze(respcoh_([1 8],2,:));
-rc = rc - repmat(rc(:,1),1,1001);
-rm = rm - repmat(rm(:,1),1,1001);
-gc = rc; gm = rm;
-
-rc = squeeze(respcon_([1 2 8],2,:));
-rm = squeeze(respcoh_([1 2 8],2,:));
-rc = rc - repmat(rc(:,1),1,1001);
-rm = rm - repmat(rm(:,1),1,1001);
-cmap = brewermap(7,'PuOr');
-bs = -32:8:32;
-
-x = 0:.001:1;
-for b3i = 1:length(bs)
-    h = figure;
-    for b1i = 1:length(bs) % v1 weight
-        for b2i = 1:length(bs) % mt weight 
-            b1 = bs(b1i);
-            b2 = bs(b2i);
-            b3 = bs(b3i);
-            beta = [b1 b2 b3]';
-            subplot(length(bs),length(bs),(b1i-1)*length(bs)+b2i);
-            rc_ = rc'*beta;
-            rm_ = rm'*beta;
-            title(sprintf('V1 %i MT %i R %02.2f',b1,b2,rm_\rc_));
-            hold on
-            % plot goals
-            plot(x,gc'*goalb(:,2),'-k');
-            plot(x,gm'*goalb(:,1),'-k');
-            % plot actuals
-            plot(x,rc_,'Color',cmap(2,:));
-            plot(x,rm_,'Color',cmap(6,:));
-            set(gca,'XTick',[],'YTick',[]);
-        end
-    end
-end
-
-%% Testing specific values of functions
-goalb2 = squeeze(mean(w));
-rc = squeeze(respcon_([1 8],2,:));
-rm = squeeze(respcoh_([1 8],2,:));
-rc = rc - repmat(rc(:,1),1,1001);
-rm = rm - repmat(rm(:,1),1,1001);
-c2 = rc'*goalb2(:,2);
-m2 = rm'*goalb2(:,1);
-
-b_con = [17 0 -2];
-b_coh = [-7 0 30];
-
-
-b_con = [19 0 -7];
-b_coh = [-5.5 12.5 20.9];
-
-rc = squeeze(respcon_([1 2 8],2,:));
-rm = squeeze(respcoh_([1 2 8],1,:));
-rc = rc - repmat(rc(:,1),1,1001);
-rm = rm - repmat(rm(:,1),1,1001);
-c3 = rc'*b_con';
-m3 = rm'*b_coh';
-
-rc = squeeze(respcon_([1 2 8],1,:));
-rm = squeeze(respcoh_([1 2 8],2,:));
-rc = rc - repmat(rc(:,1),1,1001);
-rm = rm - repmat(rm(:,1),1,1001);
-
-h = figure;
-subplot(2,2,1); title('Coherence (attended)'); hold on
-plot(x,m2,'-k');
-plot(x,m3,'Color',cmap(6,:));
-am = axis;
-axis([am(1) am(2) min(-4,am(3)) am(4)]);
-subplot(2,2,2); title('Coherence (unatteded)'); hold on
-hline(0,'-k');
-plot(x,rm'*b_con','Color',cmap(6,:));
-axis([am(1) am(2) min(-4,am(3)) am(4)]);
-subplot(2,2,3); title('Contrast (attended)'); hold on
-plot(x,c2,'-k');
-plot(x,c3,'Color',cmap(2,:));
-axis([ac(1) ac(2) min(-4,ac(3)) ac(4)]);
-subplot(2,2,4); title('Contrast (unatt)'); hold on
-hline(0,'-k');
-plot(x,rc'*b_coh','Color',cmap(2,:));
-axis([ac(1) ac(2) min(-4,ac(3)) ac(4)]);
-
-%% Linear
-% solve the linear system in one move
-rc = respcon_;
-rm = respcoh_;
-areas = 1:8;
-
-% find [a b c] such that [respcon_l ; respcoh_l] * [abc abc] = [ 1 0];
-data1 = [squeeze(rc(areas,2,:))' ; squeeze(rm(areas,2,:))'];
-out1 = [25*x' ; -.1*x'];
-
-cb = data1\out1;
-
-figure;
-subplot(211)
-plot(data1*cb);
-
-data2 = [squeeze(rc(areas,1,:))' ; squeeze(rm(areas,1,:))'];
-out2 = [6*x' ; .2*x'];
-
-mb = data2\out2;
-subplot(212)
-plot(data2*mb);
-
-% stack both
-data = [data1;data2];
-out = [out1;out2];
-
-ab = data\out;
-figure;
-hold on;
-plot(out,'-k');
-plot(data*ab,'-r');
-axis([0 4000 -5 25]);
-
-%%
-afl = attfits_2(:,1);
-rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-rois = rois(areas);
-cons = {'cohw','conw'};
-for ai = 1:21
-    for ri = areas
-        afl{ai}.params.(sprintf('beta_control_%s_conw',rois{ri})) = cb(ri);
-        afl{ai}.params.(sprintf('beta_control_%s_cohw',rois{ri})) = mb(ri);
-    end
-    afl{ai}.params.bias = 0;
-    
-end
-afl_multi = afl;
-
-plot_rightchoice_model_att(afl,rc(areas,:,:),rm(areas,:,:),aSIDs,bmodels(1),rois);
-
-afl = attfits_2(:,2);
-for ai = 1:21
-    for ri = areas
-        afl{ai}.params.(sprintf('beta_control_%s_w',rois{ri})) = ab(ri);
-    end
-    afl{ai}.params.bias = 0;
-    
-end
-
-plot_rightchoice_model_att_onebeta(afl,rc(areas,:,:),rm(areas,:,:),aSIDs,bmodels(1),rois);
-
-%% Get the likelihood for each model
-
-info = struct;
-% info.sigma = sigma;
-info.model = bmodels{1};
-info.rois = 1:8;
-info.respcon = respcon_;
-info.respcoh = respcoh_;
-parfor ai = 1:21
-    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
-    cinfo = info;
-    cinfo.lapse = lapses(ai);
-    cinfo.fitmodel = afl_multi{ai};
-    cinfo.fitmodel.numParams = 16;
-    lfit{ai} = fitCCBehavControlModel_fmri(adata,cinfo,1);
-end
-
-%%
-parfor ai = 1:21
-    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
-    cinfo = info;
-    cinfo.lapse = lapses(ai);
-    cinfo.model = strcat(cinfo.model,',onebeta');
-    cinfo.fitmodel = afl{ai};
-    lfit_a{ai} = fitCCBehavControlModel_fmri(adata,cinfo,1);
-end
-
-%% compare
-for ai = 1:21
-    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
-    n(ai) = size(adata,1);
-    l_lin(ai,1) = -lfit{ai}.likelihood;
-    bic(ai,1) =  -2*l_lin(ai,1) + 16 * log(size(adata,1));
-    l_lin(ai,2) = -lfit_a{ai}.likelihood;
-    bic(ai,2) =  -2*l_lin(ai,2) + 8 * log(size(adata,1));
-    
-    cd(ai,1) = lfit{ai}.cd;
-    cd(ai,2) = lfit_a{ai}.cd;
-end
-d = l_lin(:,1)-l_lin(:,2);
-dcd = bic(:,1)-bic(:,2);
-
-dci = bootci(10000,@mean,d);
-
-disp(sprintf('Mean difference %02.2f, 95%% CI [%02.2f %02.2f]',mean(dci),dci(1),dci(2)));
-dci = bootci(10000,@mean,dcd);
-
-disp(sprintf('Mean difference %02.2f, 95%% CI [%02.2f %02.2f]',mean(dci),dci(1),dci(2)));
