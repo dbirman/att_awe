@@ -292,7 +292,7 @@ for ai = 1:length(aSIDs)
             r = cm.cv.resp;
             t = cm.adata(:,1);
 
-            cd_var(ai,ni,ropt) = 
+%             cd_var(ai,ni,ropt) = 
             % compute 
             if ni ==1
                 
@@ -314,8 +314,8 @@ sigmas(sigmas==1) = NaN;
 ratio = r2(:,2,1) ./ r2(:,1,1);
 
 %% Report R^2 (exp)
-add = squeeze(fr2(:,1,1));
-poi = squeeze(fr2(:,2,1));
+add = squeeze(fr2(:,1,2));
+poi = squeeze(fr2(:,2,2));
 diffe = add-poi;
 
 aci = bootci(1000,@mean,add);
@@ -330,7 +330,7 @@ hist(diffe)
 add_cd = squeeze(cd(:,1,:));
 poi_cd = squeeze(cd(:,2,:));
 
-cd_diff = poi_cd-add_cd;
+cd_diff = add_cd-poi_cd;
 
 % note the last dimension is ropt (8/2)
 
@@ -344,11 +344,32 @@ h = figure; hold on
 
 barh(diffe,'FaceColor',[0.75 0.75 0.75]);
 
+axis([-300 300 0 22]);
+set(gca,'XTick',[-200 -100 0 100 200]);
 drawPublishAxis('figSize=[6,4.5]');
 
-set(gca,'XTick',[-200 0 200],'XTickLabel',{'Evidence for Poisson','0','Evidence for additive'});
 
 savepdf(h,fullfile(datafolder,'avg_models','add_poiss_bar.pdf'));
+
+%% Text stats
+bootci(1000,@mean,diffe)
+mean(diffe)
+
+%% Generate horizontal bar plot of CD differences
+h = figure; hold on
+
+barh(cd_diff(:,2),'FaceColor',[0.75 0.75 0.75]);
+
+axis([0 0.1 0 22]);
+set(gca,'XTick',[0:.05:.1]);
+
+drawPublishAxis('figSize=[6,4.5]');
+
+savepdf(h,fullfile(datafolder,'avg_models','add_poiss_cd.pdf'));
+
+%% Text stats
+bootci(1000,@mean,cd_diff(:,2))
+mean(cd_diff(:,2))
 
 %% Contrast/coherence responses used to fit behavior
 h = figure; hold on

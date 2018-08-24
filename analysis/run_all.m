@@ -89,6 +89,34 @@ for ci = 1:2
     end
 end
 
+%% Get weber law slopes
+
+for bi = 1:21
+    cont = squeeze(control(bi,:,:));
+    
+    conslope(bi) = log(contrasts*100)'\log(cont(2,:)*100)';
+    cohslope(bi) = log(coherences*100)'\log(cont(1,:)*100)';
+end
+
+nanmean(conslope)
+bootci(1000,@nanmean,conslope)
+
+nanmean(cohslope)
+bootci(1000,@nanmean,cohslope)
+
+%% Compare catch trial performance to control and control to attend
+control_attend = control(:,:,2);
+
+diff_attend = control_attend-attend;
+diff_unattend = control_attend-unattend;
+
+mean(diff_attend)
+bootci(1000,@nanmean,diff_attend)
+
+
+nanmean(diff_unattend)
+bootci(1000,@nanmean,diff_unattend)
+
 %% actual plot (only behavior -- no model fits, note that we don't use this for the paper)
 
 % plot the contrast data

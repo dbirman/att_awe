@@ -285,97 +285,87 @@ for i = 1:21
     for ropt = 1:2
         for beta = 1:2
             flip = [2 1]; % flip one beta so that 1 is one and 2 is two
-            like_l(i,ropt,flip(beta)) = -sum(attfits_l{i,ropt,beta}.cv.like);
-            cd_l(i,ropt,flip(beta)) = attfits_l{i,ropt,beta}.cv.cd;
+            like_l(i,ropt,beta) = -sum(attfits_l{i,ropt,beta}.cv.like);
+            cd_l(i,ropt,beta) = attfits_l{i,ropt,beta}.cv.cd;
             
-            like_a(i,ropt,flip(beta)) = -sum(attfits{i,ropt,beta}.cv.like);
-            cd_a(i,ropt,flip(beta)) = attfits{i,ropt,beta}.cv.cd;
+            like_a(i,ropt,beta) = -sum(attfits{i,ropt,beta}.cv.like);
+            cd_a(i,ropt,beta) = attfits{i,ropt,beta}.cv.cd;
         end
     end
 end
 
+%% Text comparisons for models:
+diff_like = like_a(:,:,1)-like_a(:,:,2);
+
+for i = 1:2
+    length(ropts{i})
+    mean(diff_like(:,i))
+    bootci(1000,@mean,diff_like(:,i))
+end
+
+diff_cd = cd_a(:,:,1)-cd_a(:,:,2);
+
+for i = 1:2
+    length(ropts{i})
+    mean(diff_cd(:,i))
+    bootci(1000,@mean,diff_cd(:,i))
+end
+
+%% Plot model comparison
+h = figure; hold on
+
+diff_like = like_a(:,:,1)-like_a(:,:,2);
+
+subplot(121);
+barh(diff_like(:,2),'FaceColor',[0.75 0.75 0.75]);
+
+axis([0 300 0 22]);
+set(gca,'XTick',0:100:300);
+drawPublishAxis('figSize=[6,4.5]');
+
+subplot(122);
+barh(diff_like(:,1),'FaceColor',[0.75 0.75 0.75]);
+
+axis([0 300 0 22]);
+set(gca,'XTick',[ 0 100 200 300]);
+drawPublishAxis('figSize=[4.25,4.25]');
+
+savepdf(h,fullfile(datafolder,'avg_models','flex_inflex_bar.pdf'));
+
+%%
+h = figure; hold on
+
+diff_a = cd_a(:,:,1)-cd_a(:,:,2);
+
+subplot(121);
+barh(diff_a(:,2),'FaceColor',[0.75 0.75 0.75]);
+
+axis([0 .3 0 22]);
+set(gca,'XTick',0:.05:.25);
+drawPublishAxis('figSize=[6,4.5]');
+
+subplot(122);
+barh(diff_a(:,1),'FaceColor',[0.75 0.75 0.75]);
+
+axis([0 .3 0 22]);
+set(gca,'XTick',0:.05:.25);
+drawPublishAxis('figSize=[4.25,4.25]');
+
+savepdf(h,fullfile(datafolder,'avg_models','flex_inflex_cd_bar.pdf'));
+
 %% Plot models
+roiOpts = {{'V1','MT'},{'V1','V2','V3','V4','V3a','V3b','V7','MT'}};
 
-
-%%  old code
-
-% for i = 1:21
-%     rois = {'V1','MT'};
-%     for ri = 1:2
-%         w(i,ri,1) = attfits_2{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
-%         w(i,ri,2) = attfits_2{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
-%         w1(i,ri) = attfits_2{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
-%     end
-%     rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-%     for ri = 1:8
-%         w_8(i,ri,1) = attfits{i,1}.params.(sprintf('beta_control_%s_cohw',rois{ri}));
-%         w_8(i,ri,2) = attfits{i,1}.params.(sprintf('beta_control_%s_conw',rois{ri}));
-%         w1_8(i,ri) = attfits{i,2}.params.(sprintf('beta_control_%s_w',rois{ri}));
-%     end
-% end
-
-% %% Get mean weights
-% w_ci = bootci(10000,@mean,w);
-% w_ = squeeze(mean(w));
-% 
-% %% Plot likelihood and weights
-% h = figure;
-% subplot(211);
-% [b,x] = hist(cd_like(:,1)-cd_like(:,2));
-% bar(x,b,'FaceColor',[0.8 0.8 0.8]);
-% xlabel('Likelihood (Multiple - Single readout)');
-% set(gca,'XTick',[0 25 50]);
-% drawPublishAxis('figSize=[3.5,4.5]');
-% 
-% cmap = brewermap(7,'PuOr');
-% subplot(212); hold on
-% plot(w_(1,2),w_(1,1),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','w');
-% text(w_(1,2),w_(1,1),'V1');
-% plot(w_(2,2),w_(2,1),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w');
-% text(w_(2,2),w_(2,1),'MT');
-% v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-% v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-% v = hline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
-% v = hline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
-% v = vline(mean(w1(:,1)),'-'); set(v,'Color',cmap(2,:));
-% v = vline(mean(w1(:,2)),'-'); set(v,'Color',cmap(6,:));
-% axis([-15 25 -10 40]);
-% set(gca,'XTick',[-10 0 10 20]);
-% set(gca,'YTick',[-10 0 10 20]);
-% xlabel('Contrast discrimination');
-% ylabel('Coherence discrimination');
-% drawPublishAxis('figSize=[3.5,4.5]');
-% 
-% % plot(cd_att(:,1),cd_att(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w');
-% % x = [min(cd_att(:,1)) max(cd_att(:,1))];
-% % plot(x,x,'--r');
-% % xlabel('Multiple readouts');
-% % ylabel('Single readout');
-% % title('Variance explained (R^2)');
-% % axis([0.15 0.4 0.15 0.4]);
-% % set(gca,'XTick',[0.15 0.25 0.35],'XTickLabel',{'15%','25%','35%'});
-% % set(gca,'YTick',[0.15 0.25 0.35],'YTickLabel',{'15%','25%','35%'});
-% 
-% 
-% savepdf(h,fullfile(datafolder,'avg_models','onebeta_comparison.pdf'));
-
-%% Plot
-
-rois = {'V1','MT'};
-
-% bmodels = {'roi2'};
-plot_rightchoice_model_att(attfits_2(:,1),respcon_([1 8],:,:),respcoh_([1 8],:,:),aSIDs,bmodels(1),rois);
-plot_rightchoice_model_att_onebeta(attfits_2(:,2),respcon_([1 8],:,:),respcoh_([1 8],:,:),aSIDs,bmodels(2),rois);
-
-    rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-% bmodels = {'roi8'};
-plot_rightchoice_model_att(attfits(:,1),respcon_,respcoh_,aSIDs,bmodels(1),rois);
-plot_rightchoice_model_att_onebeta(attfits(:,2),respcon_,respcoh_,aSIDs,bmodels(2),rois);
-
-rois = {'V1','V2','MT'};
-plot_rightchoice_model_att(attfits_68(:,1),respcon_([1 2 8],:,:),respcoh_([1 2 8],:,:),aSIDs,bmodels(1),rois);
-plot_rightchoice_model_att_onebeta(attfits_68(:,2),respcon_([1 2 8],:,:),respcon_([1 2 8],:,:),aSIDs,bmodels(2),rois);
-
-rois = {'V1','V2','MT'};
-plot_rightchoice_model_att(attfits_l(:,1),respcon_l([1 2 8],:,:),respcoh_l([1 2 8],:,:),aSIDs,bmodels(1),rois);
-plot_rightchoice_model_att_onebeta(attfits_l(:,2),respcon_l([1 2 8],:,:),respcon_l([1 2 8],:,:),aSIDs,bmodels(2),rois);
+for ri = 1:2
+    ropt = ropts{ri};
+    rois = roiOpts{ri};
+    
+    for beta = 1:2
+        if beta==2
+            plot_rightchoice_model_att_onebeta(attfits(:,ri,beta),respcon_(ropt,:,:),respcoh_(ropt,:,:),aSIDs,bmodels(beta),rois);
+        else
+            plot_rightchoice_model_att(attfits(:,ri,beta),respcon_(ropt,:,:),respcoh_(ropt,:,:),aSIDs,bmodels(beta),rois);
+        end
+        
+    end 
+end

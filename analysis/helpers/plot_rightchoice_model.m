@@ -1,9 +1,8 @@
 
-restructure_afits;
+afits = restructure_afits('avg_indiv_fits');
 
 %% Actual model fits
 % x = 0:.001:1;
-restructure_afits;
 
 coherences = [0.15 0.3 0.45 0.6];
 contrasts = [0.325 0.4 0.55 0.85];
@@ -212,7 +211,6 @@ for bm = 1:length(bmodels)
                 cmodel = squeeze(mean(model_m(bm,ri,cii,ti,:,:),5));
                 plot([-fliplr(conbins_) conbins_],[1-flipud(cmodel) ;cmodel]','-','Color',cmap(cii,:));
             end
-%             title(sprintf('%s discrimination: %s',conditions{ti},bmodels{bm}));
         end
 
         %% Load behavioral data
@@ -242,19 +240,17 @@ for bm = 1:length(bmodels)
                 errbar(bins(ti,:),c_m,c_s,'-','Color',cmap(cii,:));
                 pi(ti) = plot(bins(ti,:),c_m,'o','MarkerFaceColor',cmap(cii,:),'MarkerEdgeColor','w','MarkerSize',4);
             end
-            flip = [2 1];
-            %         title(sprintf('%02.1f%%, slope: %01.2f',1000*eval(sprintf('%ss(ped)',conditions{condition})),bs(flip(cii),2)));
+            
             axis([-0.5 0.5 0 1]);
             set(gca,'XTick',[-0.25 0 0.25],'XTickLabel',[-0.25 0 .25]*100);
             set(gca,'YTick',[0 0.5 1],'YTickLabel',[0 0.5 1]*100);
-    %         l = legend(p,{'Effect of coherence','Effect of contrast'},'FontName','Helvetica','FontSize',7);
-    %         set(l,'box','off');
+
             xlabel('Stimulus strength (R-L, %)');
             ylabel('Choices to right (%)');
             drawPublishAxis('figSize=[5,5.5]');
         end
 
-        savepdf(h,fullfile(datafolder,'avg_models',sprintf('right_f2b_%s_%i.pdf',bmodels{bm},length(ropts{ri}))));
+%         savepdf(h,fullfile(datafolder,'avg_models',sprintf('right_f2b_%s_%i.pdf',bmodels{bm},length(ropts{ri}))));
     end
 end
 
@@ -319,8 +315,8 @@ plot(contrast,control_m(2,:),'o','MarkerFaceColor',cmap(2,:),'MarkerEdgeColor','
 % plot(coherence,control_m(1,:),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor','w','MarkerSize',7);
 % legend('Contrast','Coherence');
 % xlabel('Base stimulus (%)');
-set(gca,'XTick',[0 0.25 0.5 0.75 1]','XTickLabel',[0 25 50 75 100],'YTick',[0 0.0625 0.125 0.25],'YTickLabel',[0 6.25 12.5 25]);
-axis([0 1 0 0.25]);
+set(gca,'XTick',[0 0.25 0.5 0.75 1]','XTickLabel',[0 25 50 75 100],'YTick',[0 0.025 0.05 0.075 0.1],'YTickLabel',[0 2.5 5 7.5 10]);
+axis([0 1 0 0.1]);
 % vline(0.25,'--k');
 % ylabel('Threshold (%)');
 
@@ -342,8 +338,8 @@ plot(coherence,control_m(1,:),'o','MarkerFaceColor',cmap(6,:),'MarkerEdgeColor',
 
 % legend('Coherence');
 % xlabel('Base stimulus (%)');
-set(gca,'XTick',[0 0.25 0.5 0.75 1]','XTickLabel',[0 25 50 75 100],'YTick',[0 0.0625 0.125 0.25],'YTickLabel',[0 6.25 12.5 25]);
-axis([0 1 0 0.25]);
+set(gca,'XTick',[0 0.25 0.5 0.75]','XTickLabel',[0 25 50 75],'YTick',[0 .05 .1 .15 .2 .25],'YTickLabel',[0:5:25]);
+axis([0 .75 0 0.25]);
 % vline(0,'--k');
 % ylabel('Threshold (%)');
 

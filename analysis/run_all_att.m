@@ -30,30 +30,37 @@ nSIDs = [305 329 43 25 300 346 343 338 344 348];
 % % end
 %%
 
-for ni = 10:length(nSIDs)
+for ni = 1:length(nSIDs)
     indiv_analysis(sprintf('s%04.0f',nSIDs(ni)),'decon');
 end
 
 %% Cross analysis
+% Cross analysis deconvolves the 16 combinations of contrast and coherence
+% rather than separately deconvolving the contrast and coherence response.
+% We rely on the rounding of the increments to do this, otherwise there's
+% not really enough trials (<~25)
 avg_deconResponseAtt_cross;
 fit_deconResponseAtt_cross;
 indiv_fitbehav_att_cross;
 
-%% Plot the average deconvolution responses under the attention conditions by particiapnt
-avg_deconResponseAtt;
+%% Check the gain and increment parameters from fit_deconResponseAtt_cross
 
-%% Fit a model to the deconvolution responses under attention conditions by participant 
-fit_deconResponseAtt;
+load(fullfile(datafolder,'avg_att_cross_fits.mat'));
 
-%% Response correlation analysis
-response_correlation_att;
+for ni = 1:length(nSIDs)
+    for ri = 1:8
+        offset(ni,ri,1) = attfits{ni}{1}.roifit{ri}.params.(sprintf('%soffset_coh',rois{ri}));
+        offset(ni,ri,2) = attfits{ni}{1}.roifit{ri}.params.(sprintf('%soffset_con',rois{ri}));
+    end
+end
 
-%% View analysis
-view_rca;
+%% Bootstrap the difference
+diff_offset = offset(:,:,2)-offset(:,:,1);
+ci = bootci(1000,@mean,diff_offset);
 
-%% Fit to behavior (using attention data)
-indiv_fitbehav_att;
-
+for ri = 1:8
+    disp(sprintf('%s %0.2f\\%%, 95\\%% CI [%0.2f, %0.2f]; ',rois{ri},mean(diff_offset(:,ri)),ci(1,ri),ci(2,ri)));
+end
 %% Sensitivity space to readout space analysis
 sense_readout;
 
