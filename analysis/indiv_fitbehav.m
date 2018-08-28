@@ -136,7 +136,7 @@ for ni = 1:(length(breaks)-1)
         ropt = ropts{copt(4)};
         
         info = struct;
-        info.sigma = sigma;
+        info.sigma = 1;
         info.model = bmodels{noise};
         info.rois = ropt;
         info.lapse = lapses(subj);
@@ -424,8 +424,102 @@ bootci(10000,@mean,1./[v1_con mt_coh])
 
 
 
+%% Stay switch model (just additive)
 
+% 'sigma','sigma,poisson',
+bmodels = {'sigma,roi,stayswitch'};%,'doublesigma','doublesigma,poisson'};
+% bmodels = {'sigma,roi'};
 
+% options list
+aopts = zeros(10000,5);
+count = 1;
+
+% build options 
+
+ropts = {1:8};
+
+sigmaopts = linspace(.01,.5,6);
+
+for ai = 1:length(aSIDs)
+    for mi = 1:length(mopts)
+        for ropt = 1:length(ropts)
+            for ni = 1:length(bmodels)
+                % roi models have sigma fixed, no need to do
+                % multiple
+                aopts(count,:) = [ai mi ni ropt 1];
+                count = count+1;
+            end
+        end
+    end
+end
+aopts = aopts(1:(count-1),:);
+
+% break into 12*10 size chunks
+breaks = 1:240:size(aopts,1);
+breaks(end) = size(aopts,1)+1;
+
+if length(breaks)==1
+    breaks(2) = breaks(1); breaks(1) = 1;
+end
+    
+%% fit all options
+disppercent(-1/size(aopts,1));
+
+% breaks = [breaks(1) breaks(end)];
+afits = cell(size(aopts,1),1);
+wfits = cell(size(aopts,1),1);
+for ni = 1:(length(breaks)-1)
+    bstart = breaks(ni);
+    bend = breaks(ni+1)-1;
+    
+    parfor ii = bstart:bend
+        copt = aopts(ii,:);
+        
+        subj = copt(1);
+        adata = loadadata(sprintf('s%03.0f',aSIDs(subj)));
+        
+        shape = copt(2);
+        noise = copt(3);
+        ropt = ropts{copt(4)};
+        
+        info = struct;
+        info.sigma = 1;
+        info.model = bmodels{noise};
+        info.rois = ropt;
+        info.lapse = lapses(subj);
+        info.respcon = respcon_;
+        info.respcoh = respcoh_;
+        
+        afits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
+        disp(ii);
+   end
+    
+    disppercent(bend/size(aopts,1));
+end
+disppercent(inf);
+
+save(fullfile(datafolder,'avg_switch_fits.mat'),'afits');
+
+%% Compare side bias to afits
+
+load(fullfile(datafolder,'avg_switch_fits.mat'));
+
+for ai = 1:length(afits)
+    switchfits{ai} = afits{ai};
+    like(ai,2) = -sum(switchfits{ai}.cv.like);
+end
+
+afits = restructure_afits('avg_indiv_fits_fmincon.mat');
+
+for ai = 1:length(afits)
+    indivfits{ai} = afits{ai}{1,2};
+    like(ai,1) = -sum(indivfits{ai}.cv.like);
+end
+
+diff = like(:,1)-like(:,2);
+
+mean(diff)
+bootci(1000,@mean,diff)
 
 %% OLD PLOTS
 
