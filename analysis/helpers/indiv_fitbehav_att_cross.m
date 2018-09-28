@@ -369,3 +369,136 @@ for ri = 1:2
         
     end 
 end
+
+
+%% Individual fit version
+nSIDs = [305 329 43 25 300 346 343 338 344 348];
+ncorrespond = [1 2 3 4 5 6 7 9 10 11];
+
+models = {'exp'};
+% 'sigma','sigma,poisson',
+bmodels = {'sigma,roi,att','sigma,roi,att,onebeta'};
+% bmodels = {'sigma,roi'};
+
+% options list
+attopts = zeros(10000,5);
+count = 1;
+mopts = 1;
+
+% build options 
+
+ropts = {[1 8],[1:8]};
+% rconopts = {1, [1 2 3 4], 1:8};
+% rcohopts = {8, [5 8], 1:8};
+
+sigmaopts = linspace(.01,.5,6);
+
+for ai = 1:length(nSIDs)
+    for mi = 1:length(mopts)
+        for ropt = 1:length(ropts)
+            for ni = 1:length(bmodels)
+                if strfind(bmodels{ni},'roi')
+                    % roi models have sigma fixed, no need to do
+                    % multiple
+                    attopts(count,:) = [ai mi ni ropt 1];
+                    count = count+1;
+                else
+                    for si = 1:length(sigmaopts)
+                        attopts(count,:) = [ai mi ni ropt si];
+                        count = count+1;
+                    end
+                end
+            end
+        end
+    end
+end
+attopts = attopts(1:(count-1),:);
+
+% break into 12*10 size chunks
+breaks = 1:240:size(attopts,1);
+breaks(end) = size(attopts,1)+1;
+
+if length(breaks)==1
+    breaks(2) = breaks(1); breaks(1) = 1;
+end
+    
+% breaks = [breaks(1) breaks(end)];
+attfits = cell(size(attopts,1),1);
+wfits = cell(size(attopts,1),1);
+for ni = 1:(length(breaks)-1)
+    bstart = breaks(ni);
+    bend = breaks(ni+1)-1;
+    
+    parfor ii = bstart:bend
+        
+        copt = attopts(ii,:);
+        
+        subj = ncorrespond(copt(1));
+        adata = loadadata(sprintf('s%03.0f',aSIDs(subj)));
+        
+        shape = copt(2);
+        noise = copt(3);
+        ropt = ropts{copt(4)};
+        sigma = sigmaopts(copt(5));
+        
+        info = struct;
+        info.sigma = sigma;
+        info.model = bmodels{noise};
+        info.rois = ropt;
+        info.lapse = lapses(subj);
+        info.respcon = squeeze(respcon(subj,:,:,:));
+        info.respcoh = squeeze(respcoh(subj,:,:,:));
+        
+        attfits{ii} = fitCCBehavControlModel_fmri(adata,info,1);
+        disp(sprintf('Done with %i',subj));
+   end
+    
+%     disppercent(bend/size(attopts,1));
+end
+% disppercent(inf);
+
+save(fullfile(datafolder,'avg_indiv_fits_att_cross_within.mat'),'attfits');
+
+%% Re-order within fits
+load(fullfile(datafolder,'avg_indiv_fits_att_cross_within.mat'));
+wfits = {};
+for opt = 1:40
+    subj = attopts(opt,1);
+    beta = attopts(opt,3);
+    ropt = attopts(opt,4);
+    wfits{subj,ropt,beta} = attfits{opt};
+end
+load(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'));
+attfits_ = attfits; clear attfits
+count = 1;
+for ai = 1:21
+    for mi = 1
+        for ropt = 1:2
+            for ni = 1:2
+                attfits{ai,ropt,ni} = attfits_{count};
+                count = count+1;
+            end
+        end
+    end
+end
+attfits_ = attfits(ncorrespond,:,:);
+
+%% compare within fits against the full fits
+
+% get the likelihoods
+for si = 1:10
+    for ri = 1:2
+        for bi = 1:2
+            wlike(si,ri,bi) = -sum(wfits{si,ri,bi}.cv.like);
+            alike(si,ri,bi) = -sum(attfits_{si,ri,bi}.cv.like);
+        end
+    end
+end
+
+for ri = 2
+    for bi = 1:2
+        figure;
+        dat = alike(:,ri,bi)-wlike(:,ri,bi);
+        hist(dat);
+    end
+end

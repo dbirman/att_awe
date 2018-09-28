@@ -112,39 +112,52 @@ ocon = zeros(length(nSIDs),8);
 ocoh = zeros(length(nSIDs),8);
 for ni = 1:length(nSIDs)
     for ri = 1:8
-        ocon(ni,ri) = attfits{ni}{1}.roifit{ri}.roiparams.offset_con;
-        ocoh(ni,ri) = attfits{ni}{1}.roifit{ri}.roiparams.offset_coh;
+        offset(ni,2,ri) = attfits{ni}{1}.roifit{ri}.roiparams.offset_con;
+        offset(ni,1,ri) = attfits{ni}{1}.roifit{ri}.roiparams.offset_coh;
     end
 end
 
-cc_slope('Baseline',ocon,ocoh);
+% cc_slope('Baseline',ocon,ocoh);
 
 % con
 ocon = zeros(length(nSIDs),8);
 ocoh = zeros(length(nSIDs),8);
 for ni = 1:length(nSIDs)
     for ri = 1:8
-        ocon(ni,ri) = attfits{ni}{1}.roifit{ri}.roiparams.con_congain;
-        ocoh(ni,ri) = attfits{ni}{1}.roifit{ri}.roiparams.con_cohgain;
+        congain(ni,2,ri) = attfits{ni}{1}.roifit{ri}.roiparams.con_congain;
+        congain(ni,1,ri) = attfits{ni}{1}.roifit{ri}.roiparams.con_cohgain;
     end
 end
 
-cc_slope('Contrast gain',ocon,ocoh);
+% cc_slope('Contrast gain',ocon,ocoh);
 
 % coh
 ocon = zeros(length(nSIDs),8);
 ocoh = zeros(length(nSIDs),8);
 for ni = 1:length(nSIDs)
     for ri = 1:8
-        ocon(ni,ri) = attfits{ni}{1}.roifit{ri}.roiparams.coh_congain;
-        ocoh(ni,ri) = attfits{ni}{1}.roifit{ri}.roiparams.coh_cohgain;
+        cohgain(ni,2,ri) = attfits{ni}{1}.roifit{ri}.roiparams.coh_congain;
+        cohgain(ni,1,ri) = attfits{ni}{1}.roifit{ri}.roiparams.coh_cohgain;
     end
 end
 
-cc_slope('Coherence gain',ocon,ocoh);
+% cc_slope('Coherence gain',ocon,ocoh);
+
+%% Plot the offset and gain parameters
+
+% The reason the actual offset / gain parameters aren't that helpful is
+% that they tend to fluctuate kind of wildly. It's better to use the actual
+% response functions, which I do in sense_readout. 
 
 
-% I have no idea what the next  400 lines of code do.
+
+
+
+
+
+
+
+%% I have no idea what the next  400 lines of code do.
 
 %% Check for correlations (baseline)
 % ocon = zeros(length(nSIDs),8);

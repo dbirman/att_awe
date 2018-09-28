@@ -105,11 +105,11 @@ end
 delta = squeeze(r2(:,3,:)-r2(:,1,:));
 ci = bootci(1000,@mean,delta);
 
-ci = ci;
+ci = ci*100;
 %%
 str = '';
 for ri = 1:8
-    str = strcat(str,sprintf('%s %0.3f, 95%% CI [%0.3f %0.3f]; ',ROIs{ri},mean(ci(:,ri)),ci(1,ri),ci(2,ri)));
+    str = strcat(str,sprintf(' %s %0.2f, 95%% CI [%0.2f %0.2f]; ',ROIs{ri},mean(ci(:,ri)),ci(1,ri),ci(2,ri)));
 end
 disp(str);
 

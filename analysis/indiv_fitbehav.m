@@ -172,8 +172,6 @@ save(fullfile(datafolder,'avg_indiv_fits_fmincon.mat'),'afits');
 %    1      2     ...    8
 %    v1D    v2D    ...  mtD
 
-%% Individual fits
-
 %% Average fits
 plot_rightchoice_model;
 
@@ -195,50 +193,62 @@ clear afits
 parfor ai = 1:length(nSIDs)
     adata = loadadata(sprintf('s%03.0f',nSIDs(ai)));
     
-    fits = cell(length(mopts),2,8,8);
-    for mi = 1:length(mopts)
-        for ni = 1:length(bmodels)        
+    fits = cell(length(mopts),2);
+    for ni = 1:length(bmodels)     
+        for ri = 1:length(ropts)
             info = struct;
             info.sigma = 1;
             info.model = bmodels{ni};
-            info.rois = [1 8];
+            info.rois = ropts{ri};
             info.lapse = lapses(ai);
             info.respcon = squeeze(respcon(ai,:,:));
             info.respcoh = squeeze(respcoh(ai,:,:));
 
-            fits{mi,ni} = fitCCBehavControlModel_fmri(adata,info,1);
+            fits{ni,ri} = fitCCBehavControlModel_fmri(adata,info,1);
         end
-        close all
     end
-    afits{ai} = fits;
+    close all
+    wfits{ai} = fits;
 end
-save(fullfile(datafolder,'avg_within_fits.mat'),'afits');
+
+disppercent(-1/size(aopts,1));
+
+save(fullfile(datafolder,'avg_within_fits_fmincon.mat'),'wfits');
 
 %% Permutation
 permutation_cohcon;
 
 %% Compare within-subject to across-subject fits
-restructure_afits;
+afits = restructure_afits('avg_indiv_fits_fmincon.mat');
 allfits = afits;
 allfits = allfits(1:11);
 
-load(fullfile(datafolder,'avg_within_fits.mat'));
-for ai = 1:length(afits)
-    temp = afits{ai};
-    temp = temp(:,:,1,8);
-    afits{ai} = temp;
-end
-withinfits = afits;
+clear afits
+load(fullfile(datafolder,'avg_within_fits_fmincon.mat'));
+
+withinfits = wfits;
 
 clear ar2 wr2
 for ai = 1:11
-    for mi = 1:2
-        for ni = 1:2
-            ar2(ai,mi,ni) = -sum(allfits{ai}{mi,ni}.cv.like);
-            wr2(ai,mi,ni) = -sum(withinfits{ai}{mi,ni}.cv.like);
+    for pi = 1:2
+        for ri = 1:2
+            ar2(ai,pi,ri) = -sum(allfits{ai}{pi,ri}.cv.like);
+            wr2(ai,pi,ri) = -sum(withinfits{ai}{pi,ri}.cv.like);
         end
     end
 end
+
+all_improv = ar2-wr2;
+% drop the poisson models
+all_improv = squeeze(all_improv(:,1,:));
+
+% difference between 8-area models 
+mu = mean(all_improv(:,2));
+ci = bootci(10000,@mean,all_improv(:,2));
+
+disp('We compared fitting the linking model on average physiological data with a fully within-subject model for the 11 subjects with matched data.');
+disp( 'Fitting on average physiological data compared to within-subject resulted in a change in cross-validated likelihood of');
+disp(sprintf( '%1.2f, 95%% CI [%1.2f, %1.2f]',mu, ci(1),ci(2)));
 
 %% Use permutation test results to estimate whether there is an improvement within-subject?
 
@@ -662,11 +672,14 @@ ms = bootci(1000,@nanmean,csensitivity);
 ms_ = squeeze(mean(csensitivity));
 
 for ci = 1:2
-    for ri = 1:8
+    for ri = [1 8]
         disp(sprintf('%s = %2.1f s.d. 95\\%% CI [%2.1f %2.1f]; ',ROIs{ri},ms_(ri,ci),ms(1,1,ri,ci),ms(2,1,ri,ci)));
     end
 end
 
+%% get the bootstrapped average noise estimate
+con = squeeze(csensitivity(:,1,2));
+coh = squeeze(csensitivity(:,8,1));
 %%
 models = {'exp'};
 bmodels_text = {'additive','poisson'};

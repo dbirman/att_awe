@@ -178,6 +178,8 @@ thresh__ = squeeze(nanmean(athresholds));
 thresh_ = squeeze(bootci(10000,@nanmean,athresholds));
 thresh_s = squeeze(thresh_(2,:,:,:,:))-thresh__;
 
+cthresh_ = squeeze(bootci(10000,@nanmean,acthresholds));
+
 cthresh__ = squeeze(nanmean(acthresholds));
 
 %% Average plot across subjects
@@ -287,7 +289,6 @@ unattend_m = squeeze(mean(unattend_));
 unattend_s = squeeze(unattend_(2,:,:))-unattend_m;
 
 %% Smooth the threshold functions
-copy = zeros(size(thresh_m));
 for b = 1:2
     for r = 1:2
         for t = 6:61
