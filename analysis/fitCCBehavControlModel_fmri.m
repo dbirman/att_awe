@@ -293,6 +293,13 @@ elseif strfind(model,'sigma')
         end
     end
     
+    if strfind(model,'selection')
+        fixedParams.selection = 1;
+        initparams.selExp = [1 0 inf];
+    else
+        fixedParams.selection = 0;
+    end
+    
     if strfind(model,'stayswitch')
 %         disp('(behavmodel) Fitting four stay/switch parameters');
         initparams.right_correct = [0 -1 1 -0.05 0.05];
@@ -413,7 +420,11 @@ if fixedParams.roi
                 cohEffR = (cohModel(adata(i,7),params)-cohModel(adata(i,3),params));
                 cohEff = cohEffR - cohEffL;
 
-                roiEff(i,ri) = conEffR + cohEffR - conEffL -cohEffL;
+                if fixedParams.selection
+                    roiEff(i,ri) = conEffR^params.selExp + cohEffR^params.selExp - conEffL^params.selExp -cohEffL^params.selExp;
+                else
+                    roiEff(i,ri) = conEffR + cohEffR - conEffL -cohEffL;
+                end
             end
         else
             fixedParams.con = fixedParams.roifit.(fixedParams.rois{ri}).confit;
@@ -425,7 +436,11 @@ if fixedParams.roi
             cohEffR = (cohModel(adata(:,7),params)-cohModel(adata(:,3),params));
             cohEff = cohEffR - cohEffL;
 
-            roiEff(:,ri) = conEffR + cohEffR - conEffL -cohEffL;
+            if fixedParams.selection
+                roiEff(:,ri) = conEffR.^params.selExp + cohEffR.^params.selExp - conEffL.^params.selExp -cohEffL.^params.selExp;
+            else
+                roiEff(:,ri) = conEffR + cohEffR - conEffL -cohEffL;
+            end
         end
     end
     
@@ -576,10 +591,28 @@ if isfield(params,'right_correct') && ~isempty(pobs)
     end
 end
 
+if fixedParams.selection
+    roiEff = roiEff .^ params.selExp;
+    if ~isreal(roiEff)
+        stop = 1;
+        roiEff = real(roiEff);
+    end
+end
+
 if fixedParams.roi
     effect = beta * roiEff' + params.bias + extra;
 else
     effect = beta * [conEff cohEff]' + params.bias + extra;
+end
+
+if fixedParams.selection
+    try 
+        s = sign(effect);
+        effect = s*nthroot(abs(effect),params.selExp);
+    catch
+        stop = 1;
+    end
+    
 end
 
 if isfield(params,'sigmacon')

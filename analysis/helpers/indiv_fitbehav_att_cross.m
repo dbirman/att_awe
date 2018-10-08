@@ -235,6 +235,35 @@ end
 
 save(fullfile(datafolder,'avg_indiv_fits_att_cross.mat'),'attfits');
 
+%%
+bmodels = {'sigma,roi,att,onebeta,selection'};
+ropts = {1:8};
+parfor ai = 1:length(aSIDs)
+    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
+    
+    fits = cell(1,1);
+    for ni = 1:length(bmodels)     
+        for ri = 1:length(ropts)
+            info = struct;
+            info.sigma = 1;
+            info.model = bmodels{ni};
+            info.rois = ropts{ri};
+            info.lapse = lapses(ai);
+            info.respcon = respcon_;
+            info.respcoh = respcoh_;
+
+            fits{ni,ri} = fitCCBehavControlModel_fmri(adata,info,1);
+        end
+    end
+    close all
+    sfits{ai} = fits;
+end
+
+disppercent(-1/size(aopts,1));
+
+save(fullfile(datafolder,'avg_selection_fits_att_cross.mat'),'sfits');
+
+
 %% Restructure attfits
 load(fullfile(datafolder,'avg_indiv_fits_att_cross_linear.mat'));
 attfits_ = attfits; 

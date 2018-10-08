@@ -182,7 +182,7 @@ plot_indiv_rightchoice_model;
 % (1) Attempt to fit catch trials with the existing readout model
 
 %% re-organize afits
-restructure_afits;
+afits = restructure_afits('avg_indiv_fits');
 
 % save(fullfile(datafolder,'avg_indiv_fits.mat'),'afits');
 
@@ -234,26 +234,37 @@ for ai = 1:11
         for ri = 1:2
             ar2(ai,pi,ri) = -sum(allfits{ai}{pi,ri}.cv.like);
             wr2(ai,pi,ri) = -sum(withinfits{ai}{pi,ri}.cv.like);
+            abic(ai,pi,ri) = allfits{ai}{pi,ri}.BIC;
+            wbic(ai,pi,ri) = withinfits{ai}{pi,ri}.BIC;
         end
     end
 end
 
-all_improv = ar2-wr2;
-% drop the poisson models
-all_improv = squeeze(all_improv(:,1,:));
+% all_improv = ar2-wr2;
+% % drop the poisson models
+% all_improv = squeeze(all_improv(:,1,:));
+% 
+% % difference between 8-area models 
+% mu = mean(all_improv(:,2));
+% ci = bootci(10000,@mean,all_improv(:,2));
+% 
+% disp('We compared fitting the linking model on average physiological data with a fully within-subject model for the 11 subjects with matched data.');
+% disp( 'Fitting on average physiological data compared to within-subject resulted in a change in cross-validated likelihood of');
+% disp(sprintf( '%1.2f, 95%% CI [%1.2f, %1.2f]',mu, ci(1),ci(2)));
 
-% difference between 8-area models 
-mu = mean(all_improv(:,2));
-ci = bootci(10000,@mean,all_improv(:,2));
+a_inc = abic-wbic;
+a_inc = squeeze(a_inc(:,1,:));
 
+mu = mean(a_inc(:,2));
+ci = bootci(10000,@mean,a_inc(:,2));
 disp('We compared fitting the linking model on average physiological data with a fully within-subject model for the 11 subjects with matched data.');
-disp( 'Fitting on average physiological data compared to within-subject resulted in a change in cross-validated likelihood of');
+disp( 'Fitting on average physiological data compared to within-subject resulted in a change in BIC of');
 disp(sprintf( '%1.2f, 95%% CI [%1.2f, %1.2f]',mu, ci(1),ci(2)));
 
 %% Use permutation test results to estimate whether there is an improvement within-subject?
 
 %% Indiv
-restructure_afits('avg_indiv_fits_fmincon');
+afits = restructure_afits('avg_indiv_fits_fmincon');
 
 clear r2 sigmas cd
 for ai = 1:length(aSIDs)
@@ -318,10 +329,6 @@ sigmas(sigmas==1) = NaN;
 
 % r2 = r2(:,:,1,1);
 % cd = cd(:,:,1,1);
-
-%% Likelihood ratio
-
-ratio = r2(:,2,1) ./ r2(:,1,1);
 
 %% Report R^2 (exp)
 add = squeeze(fr2(:,1,2));
