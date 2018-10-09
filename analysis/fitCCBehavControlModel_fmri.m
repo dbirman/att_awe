@@ -488,9 +488,9 @@ for ai = 1:size(adata,1)
     end
     
     if isnan(prob)
-        warning('Probability returned non-useful value');
+        warning('Probability returned non-useful value (not breaking to keyboard!)');
         prob = eps;
-        keyboard
+%         keyboard
     end
     probs(ai) = prob;
 end
