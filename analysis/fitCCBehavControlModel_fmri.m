@@ -295,7 +295,7 @@ elseif strfind(model,'sigma')
     
     if strfind(model,'selection')
         fixedParams.selection = 1;
-        initparams.selExp = [1 0 inf];
+        initparams.selExp = [1 0 10];
     else
         fixedParams.selection = 0;
     end
@@ -318,8 +318,8 @@ global fixedParams
 
 [initparams, minparams, maxparams, plb, pub] = initParams(params);
 
-% warning('Tolerance is set to 5!!');
-options = optimoptions('fmincon','Algorithm','active-set','TolFun',1,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
+warning('Tolerance is set to 5!!');
+options = optimoptions('fmincon','Algorithm','active-set','TolFun',5,'TolCon',1,'Display','off'); % set a limit or it goes on foreeeeeeeeeeeever
 
 bestparams = fmincon(@(p) fitBehavModel(p,adata,f),initparams,[],[],[],[],minparams,maxparams,[],options);
 
@@ -500,6 +500,8 @@ stop = 1;
 
 likelihood = -sum(log(probs));
 
+disp(likelihood);
+
 fit.probs = probs;
 fit.adata = adata;
 
@@ -542,15 +544,19 @@ function prob = getObsProb(obs,params,pobs,betas,conEff,cohEff,cons,cohs,roiEff)
 global fixedParams
 % check differences, adjust if necessary (to reflect actual visual amount shown)
 if (obs(5)-obs(2))>(1-obs(2))
+    disp('response difference failure');
     keyboard;
 end
 if (obs(4)-obs(2))>(1-obs(2))
+    disp('response difference failure');
     keyboard;
 end
 if (obs(7)-obs(3))>(1-obs(3))
+    disp('response difference failure');
     keyboard;
 end
 if (obs(6)-obs(3))>(1-obs(3))
+    disp('response difference failure');
     keyboard;
 end
 

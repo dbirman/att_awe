@@ -255,6 +255,7 @@ parfor ai = 1:length(aSIDs)
             fits{ni,ri} = fitCCBehavControlModel_fmri(adata,info,1);
         end
     end
+    disp(ai);
     close all
     sfits{ai} = fits;
 end
