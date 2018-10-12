@@ -153,7 +153,7 @@ drawPublishAxis('figSize=[4.5,4.5]');
 
 savepdf(h,fullfile(datafolder,'avg_behav','thresholds.pdf'));
 
-%% Probit
+%% Probit (just a plot, for figures)
 
 h = figure;
 

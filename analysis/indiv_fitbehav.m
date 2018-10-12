@@ -228,40 +228,55 @@ load(fullfile(datafolder,'avg_within_fits_fmincon.mat'));
 
 withinfits = wfits;
 
-clear ar2 wr2
+clear ar2 wr2 aaic waic
 for ai = 1:11
     for pi = 1:2
         for ri = 1:2
             ar2(ai,pi,ri) = -sum(allfits{ai}{pi,ri}.cv.like);
             wr2(ai,pi,ri) = -sum(withinfits{ai}{pi,ri}.cv.like);
-            abic(ai,pi,ri) = allfits{ai}{pi,ri}.BIC;
-            wbic(ai,pi,ri) = withinfits{ai}{pi,ri}.BIC;
+%             aaic(ai,pi,ri) = allfits{ai}{pi,ri}.AIC;
+%             waic(ai,pi,ri) = withinfits{ai}{pi,ri}.AIC;
+
+            aaic(ai,pi,ri) = 2*allfits{ai}{pi,ri}.numParams - 2 * ar2(ai,pi,ri);
+            waic(ai,pi,ri) = 2*withinfits{ai}{pi,ri}.numParams - 2 * wr2(ai,pi,ri);
         end
     end
 end
 
-% all_improv = ar2-wr2;
-% % drop the poisson models
-% all_improv = squeeze(all_improv(:,1,:));
-% 
-% % difference between 8-area models 
-% mu = mean(all_improv(:,2));
-% ci = bootci(10000,@mean,all_improv(:,2));
-% 
-% disp('We compared fitting the linking model on average physiological data with a fully within-subject model for the 11 subjects with matched data.');
-% disp( 'Fitting on average physiological data compared to within-subject resulted in a change in cross-validated likelihood of');
-% disp(sprintf( '%1.2f, 95%% CI [%1.2f, %1.2f]',mu, ci(1),ci(2)));
-
-a_inc = abic-wbic;
+%%
+a_inc = aaic-waic;
 a_inc = squeeze(a_inc(:,1,:));
 
 mu = mean(a_inc(:,2));
 ci = bootci(10000,@mean,a_inc(:,2));
 disp('We compared fitting the linking model on average physiological data with a fully within-subject model for the 11 subjects with matched data.');
-disp( 'Fitting on average physiological data compared to within-subject resulted in a change in BIC of');
+disp( 'Fitting on average physiological data compared to within-subject resulted in a change in AIC of');
 disp(sprintf( '%1.2f, 95%% CI [%1.2f, %1.2f]',mu, ci(1),ci(2)));
 
-%% Use permutation test results to estimate whether there is an improvement within-subject?
+%% Other AIC comparisons
+
+afits = restructure_afits('avg_indiv_fits_fmincon.mat');
+for ai = 1:21
+    for pi = 1:2
+        for ri = 1:2
+            ar2(ai,pi,ri) = -sum(afits{ai}{pi,ri}.cv.like);
+        end
+    end
+end
+
+%% Compare 8-area to 2-area for additive
+diff_area = ar2(:,1,2)./ar2(:,1,1);
+
+disp('Difference in AIC for 8-area model compared to 2-area model');
+ci = bootci(10000,@mean,diff_area);
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mean(diff_area),ci(1),ci(2)));
+
+%% Compare poisson to additive
+diff_area = exp(ar2(:,1,2)-ar2(:,2,2));
+
+disp('Difference in AIC for additive vs. poisson, 8-area model');
+ci = bootci(10000,@mean,diff_area);
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mean(diff_area),ci(1),ci(2)));
 
 %% Indiv
 afits = restructure_afits('avg_indiv_fits_fmincon');
@@ -294,41 +309,6 @@ dr2 = fr2(:,1,2)-fr2(:,1,1);
 
 % add/poiss CD comparison
 dcd = fcd(:,1,2)-fcd(:,2,2);
-
-%% Collect sigmas and indiv r2
-restructure_afits('avg_indiv_fits_fmincon');
-
-clear r2 sigmas cd
-for ai = 1:length(aSIDs)
-    for ni = 1:2
-        for ropt = 1:2
-            cm = afits{ai}{ni,ropt};
-            BIC(ai,ni) = cm.BIC;
-            sigmas(ai,ni,ropt) = cm.params.sigma;
-            r2(ai,ni,ropt) = -sum(cm.cv.like);
-            cd(ai,ni,ropt) = cm.cv.cd;
-            
-            
-            p = cm.cv.aprobs';
-            r = cm.cv.resp;
-            t = cm.adata(:,1);
-
-%             cd_var(ai,ni,ropt) = 
-            % compute 
-            if ni ==1
-                
-                for ti = 1:2
-                    sep_cd(ai,ti) = nanmean(p(logical((t==ti).*(r==1)))) - nanmean(1-p(logical((t==ti).*(r==0))));
-                end
-            end
-        end
-    end
-end
-
-sigmas(sigmas==1) = NaN;
-
-% r2 = r2(:,:,1,1);
-% cd = cd(:,:,1,1);
 
 %% Report R^2 (exp)
 add = squeeze(fr2(:,1,2));

@@ -46,8 +46,6 @@ end
 
 datasets = {'respcon','respcoh','respcon_am','respcon_ac','respcoh_am','respcoh_ac'};
 
-offsets = [];
-
 for ri = 1:8
     for di = 1:length(datasets)
         eval(sprintf('%s_offset(:,ri) = %s(:,ri,1);',datasets{di},datasets{di}));
@@ -102,14 +100,6 @@ for rii = 1:length(ros)
     end
 end
 
-%% Get relative values
-
-rc_c = rc_c./rc_p;
-rc_m = rc_m./rc_p;
-
-rm_c = rm_c./rm_p;
-rm_m = rm_m./rm_p;
-
 %% Average across subjects
 rc_p_ci = bootci(1000,@median,rc_p);
 rc_c_ci = bootci(1000,@median,rc_c);
@@ -129,12 +119,15 @@ end
 
 %% Text for paper, take differences
 adrc = rc_c(:)-rc_m(:);
-mean(adrc)
-bootci(10000,@mean,adrc);
+mu = mean(adrc);
+ci = bootci(10000,@mean,adrc);
+disp(sprintf('Average difference in contrast sensitivity between tasks: %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 
 adrm = rm_m(:)-rm_c(:);
-mean(adrm)
-bootci(10000,@mean,adrm)
+mu = mean(adrm);
+ci = bootci(10000,@mean,adrm);
+disp(sprintf('Average difference in coherence sensitivity between tasks: %1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+
 
 %%
 drc = rc_c-rc_m;

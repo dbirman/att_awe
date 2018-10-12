@@ -296,8 +296,14 @@ for ai = 1:21
 end
 disp(count-1)
 disp(length(attfits_))
+
+load(fullfile(datafolder,'avg_selection_fits_att_cross.mat'));
+sfits_ = sfits; clear sfits
+for ai = 1:21
+    sfits{ai} = sfits_{ai}{1};
+end
 %% Compare afits and attfits
-afits = restructure_afits('avg_indiv_fits.mat');
+afits = restructure_afits('avg_indiv_fits_fmincon.mat');
 
 clear like cd
 for i = 1:21
@@ -322,23 +328,30 @@ for i = 1:21
             cd_a(i,ropt,beta) = attfits{i,ropt,beta}.cv.cd;
         end
     end
+    like_s(i) = -sum(sfits{i}.cv.like);
 end
 
-%% Text comparisons for models:
-diff_like = like_a(:,:,1)-like_a(:,:,2);
+ropts = {[1 2],1:8};
+%% Compare AIC of flexible vs. fixed
+diff_like = aic_a(:,:,1)-aic_a(:,:,2);
 
 for i = 1:2
     length(ropts{i})
-    mean(diff_like(:,i))
-    bootci(1000,@mean,diff_like(:,i))
+    mu = mean(diff_like(:,i));
+    ci = bootci(1000,@mean,diff_like(:,i));
+    disp('Difference in AIC');
+    disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 end
 
+%% CD of flexible vs fixed
 diff_cd = cd_a(:,:,1)-cd_a(:,:,2);
 
 for i = 1:2
     length(ropts{i})
-    mean(diff_cd(:,i))
-    bootci(1000,@mean,diff_cd(:,i))
+    mu = mean(diff_cd(:,i));
+    ci = bootci(1000,@mean,diff_cd(:,i));
+    disp('Difference in CD');
+    disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 end
 
 %% Plot model comparison
