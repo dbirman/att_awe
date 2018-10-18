@@ -78,6 +78,52 @@ end
 
 save(fullfile(datafolder,'avg_att_cross_fits.mat'),'attfits');
 
+%% 
+load(fullfile(datafolder,'avg_att_cross_fits.mat'));
+for ni = 1:length(nSIDs)
+    for ri = 1:8
+        oc(ni,ri) = attfits{ni}{1}.roifit{ri}.params.(sprintf('%soffset_con',rois{ri}));
+        om(ni,ri) = attfits{ni}{1}.roifit{ri}.params.(sprintf('%soffset_coh',rois{ri}));
+        
+    end
+end
+
+%% No gain model
+avgdecon.ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
+
+attfits = cell(1,length(nSIDs));
+% fit only the full model
+models = {'doublebaseline,nogain'};
+parfor ni = 1:length(nSIDs)
+    % compute fit values for each subject
+    ldecon = avgdecon;
+    ldecon.beta = beta(ni,:,:);
+    
+    % try three different fits
+    fits = cell(size(models));
+    for mi = 1:length(models)
+        fits{mi} = fitCCHRFModel_att_cross(ldecon,nSIDs(ni),models{mi},1); % fit contrast gains
+    end
+    
+    
+    attfits{ni} = fits;
+end
+
+% note: this model really doesn't work, it estimates basically no change in
+% offset at all, but the full model does fit a change in offset for both
+% contrast and coherence. Weird? 
+save(fullfile(datafolder,'avg_att_cross_fits_ng.mat'),'attfits');
+
+%% check the gain parameters
+
+for ni = 1:length(nSIDs)
+    for ri = 1:8
+        oc(ni,ri) = attfits{ni}{1}.roifit{ri}.params.(sprintf('%soffset_con',rois{ri}));
+        om(ni,ri) = attfits{ni}{1}.roifit{ri}.params.(sprintf('%soffset_coh',rois{ri}));
+        
+    end
+end
+
 %% One baseline model
 models = {''};
 parfor ni = 1:length(nSIDs)

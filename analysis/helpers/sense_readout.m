@@ -23,7 +23,7 @@ end
 
 % Load the sensitivity data for V1->MT during contrast and coherence
 % discrimination
-load(fullfile(datafolder,'avg_att_cross_fits_sb.mat'));
+load(fullfile(datafolder,'avg_att_cross_fits.mat'));
 
 x = 0:.001:1;
 respcon_ac = zeros(10,8,length(x));
@@ -145,13 +145,33 @@ for ri = 1:8
     disp(sprintf('%s: %1.2f (95%% CI [%1.2f, %1.2f]); ',rois{ri},drm_(ri),drm_ci(1,ri),drm_ci(2,ri)));
 end
 
+
 %% offsets
-o_p_ci = bootci(1000,@median,offset);
-o_p = squeeze(mean(o_p_ci));
-o_c_ci = bootci(1000,@median,offset_ac);
-o_c = squeeze(mean(o_c_ci));
-o_m_ci = bootci(1000,@median,offset_am);
-o_m = squeeze(mean(o_m_ci));
+offset_ac(offset_ac<0) = -10;
+offset_am(offset_am<0) = -10;
+o_p_ci = bootci(1000,@nanmean,offset);
+o_p = squeeze(mean(offset));
+o_c_ci = bootci(1000,@nanmean,offset_ac);
+o_c = squeeze(mean(offset_ac));
+o_m_ci = bootci(1000,@nanmean,offset_am);
+o_m = squeeze(mean(offset_am));
+
+%% Offset text for paper
+
+o_all = cat(3,offset_ac,offset_am);
+o_all = mean(o_all,3);
+o_a = squeeze(mean(o_all));
+o_a_ci = bootci(10000,@nanmean,o_all);
+
+% average offset
+for ri = 1:8
+    fprintf('%s %1.2f, ',rois{ri},o_a(ri));
+%     fprintf('%s %1.2f, 95%% CI [%1.2f, %1.2f], ',rois{ri},o_a(ri),o_a_ci(1,ri),o_a_ci(2,ri));
+end
+% average difference in offset
+
+o_diff = offset_ac-offset_am;
+
 
 %% Plot the offset info
 

@@ -13,6 +13,9 @@ rois = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
 % then run in fitCCBehavModel_sigma (to estimate sigma per subject), return
 % BIC
 
+
+% note: SB means single baseline!! you can't use these for the selectino
+% model
 load(fullfile(datafolder,'avg_att_cross_fits.mat'));
 
 x = 0:.001:1;
@@ -329,25 +332,50 @@ for i = 1:21
         end
     end
     like_s(i) = -sum(sfits{i}.cv.like);
+    cd_s(i) = sfits{i}.cv.cd;
 end
 
 ropts = {[1 2],1:8};
-%% Compare AIC of flexible vs. fixed
-diff_like = aic_a(:,:,1)-aic_a(:,:,2);
+
+%% Compare Like and CD of selection model vs. flexible model 
+diff_s = like_a(:,2,1)'-like_s;
+
+mu = mean(diff_s);
+ci = bootci(10000,@mean,diff_s);
+disp('Difference in like');
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+
+diff_cd = cd_a(:,2,1)'-cd_s;
+diff_cd = diff_cd*100;
+mu = mean(diff_cd);
+ci = bootci(10000,@mean,diff_cd);
+disp('Difference in cd');
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+
+%% Compare selection vs. fixed readout
+diff_s = like_a(:,2,2)'-like_s;
+
+mu = mean(diff_s);
+ci = bootci(10000,@mean,diff_s);
+disp('Difference in like');
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+
+diff_cd = cd_a(:,2,2)'-cd_s;
+diff_cd = diff_cd*100;
+mu = mean(diff_cd);
+ci = bootci(10000,@mean,diff_cd);
+disp('Difference in cd');
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+%% Compare like/cd of flexible vs. fixed
+diff_like = like_a(:,:,1)-like_a(:,:,2);
+diff_cd = cd_a(:,:,1)-cd_a(:,:,2);
+diff_cd = diff_cd*100;
 
 for i = 1:2
-    length(ropts{i})
     mu = mean(diff_like(:,i));
     ci = bootci(1000,@mean,diff_like(:,i));
-    disp('Difference in AIC');
+    disp(sprintf('Difference in Like for ropts %i',length(ropts{i})));
     disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
-end
-
-%% CD of flexible vs fixed
-diff_cd = cd_a(:,:,1)-cd_a(:,:,2);
-
-for i = 1:2
-    length(ropts{i})
     mu = mean(diff_cd(:,i));
     ci = bootci(1000,@mean,diff_cd(:,i));
     disp('Difference in CD');

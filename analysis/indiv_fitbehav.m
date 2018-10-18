@@ -70,6 +70,8 @@ for ai = 1:length(aSIDs)
     tdata(:,14) = abs(tdata(:,7)-tdata(:,6)); % coherence diff
     conbins = quantile(tdata(:,13),.95);
     cohbins = quantile(tdata(:,14),.95);
+    cq(ai) = conbins;
+    mq(ai) = cohbins;
     conidxs = logical((tdata(:,1)==2) .* (tdata(:,13)>conbins));
     cohidxs = logical((tdata(:,1)==1) .* (tdata(:,14)>cohbins));
     lapse = 1-mean([tdata(conidxs,12) ; tdata(cohidxs,12)]);
@@ -77,6 +79,9 @@ for ai = 1:length(aSIDs)
     lapses(ai) = lapse;
 end
     
+%% Lapse rate range
+mean(cq)
+mean(mq)
 %% Fit to behavior
 
 % 'sigma','sigma,poisson',
@@ -297,20 +302,33 @@ end
 %% get the mean fits for paper
 for add = 1
     for ropt = 1:2
-        ci = bootci(1000,@nanmean,squeeze(fcd(:,add,ropt)));
-        ci = ci*100;
-        disp(sprintf('%i-area fit, average CD = %2.1f\\%% 95\\%% CI [%2.1f, %2.1f]',length(ropts{ropt}),mean(ci),ci(1),ci(2)));
+        vals = squeeze(fcd(:,add,ropt))*100;
+        ci = bootci(1000,@nanmean,vals);
+        ci = ci;
+        disp(sprintf('%i-area fit, average CD = %1.2f, 95%% CI [%1.2f, %1.2f]',length(ropts{ropt}),mean(vals),ci(1),ci(2)));
     end
 end
 % average effects across subjects?
 
 % compare 8 roi model to 2 roi model
 dr2 = fr2(:,1,2)-fr2(:,1,1);
+ci = bootci(10000,@nanmean,dr2);
 
+disp(sprintf('8-area to 2-area cvLL: %1.2f, 95%% CI [%1.2f, %1.2f]',mean(dr2),ci(1),ci(2)));
+
+%%
 % add/poiss CD comparison
 dcd = fcd(:,1,2)-fcd(:,2,2);
+dcd = dcd*100;
+ci = bootci(10000,@nanmean,dcd);
+disp(sprintf('Additive to poisson CD: %1.2f, 95%% CI [%1.2f, %1.2f]',mean(dcd),ci(1),ci(2)));
 
-%% Report R^2 (exp)
+% add poiss likelihood
+dr2 = fr2(:,1,2)-fr2(:,2,2);
+ci = bootci(10000,@nanmean,dr2);
+disp(sprintf('Additive to poisson cvLL: %1.2f, 95%% CI [%1.2f, %1.2f]',mean(dr2),ci(1),ci(2)));
+
+%% Compute the difference in likelihood ratio
 add = squeeze(fr2(:,1,2));
 poi = squeeze(fr2(:,2,2));
 diffe = add-poi;
@@ -324,8 +342,8 @@ hist(diffe)
 
 
 %% cd vs r2
-add_cd = squeeze(cd(:,1,:));
-poi_cd = squeeze(cd(:,2,:));
+add_cd = squeeze(fcd(:,1,:));
+poi_cd = squeeze(fcd(:,2,:));
 
 cd_diff = add_cd-poi_cd;
 
@@ -340,9 +358,8 @@ ylabel('\Delta R^2');
 h = figure; hold on
 
 barh(diffe,'FaceColor',[0.75 0.75 0.75]);
-
-axis([-300 300 0 22]);
-set(gca,'XTick',[-200 -100 0 100 200]);
+% axis([-300 300 0 22]);
+set(gca,'XTick',[0 log(100) log(10000) log(100000000)]);
 drawPublishAxis('figSize=[6,4.5]');
 
 
