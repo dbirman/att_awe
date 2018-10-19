@@ -382,20 +382,39 @@ for i = 1:2
     disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 end
 
-%% Plot model comparison
-h = figure; hold on
-
+%% Setup the bar colors, sort by 8-area likelihood difference
 diff_like = like_a(:,:,1)-like_a(:,:,2);
+[l8,idx] = sort(diff_like(:,2),'descend');
+l2 = diff_like(:,1); l2=l2(idx);
 
-subplot(121);
-barh(diff_like(:,2),'FaceColor',[0.75 0.75 0.75]);
+diff_a = cd_a(:,:,1)-cd_a(:,:,2);
+cd8 = diff_a(:,2); cd8=cd8(idx);
+cd2 = diff_a(:,1); cd2=cd2(idx);
+
+%% Plot model comparison
+h = figure;
+
+subplot(121); hold on
+for i = 1:21
+    if any(i==[1:9 11])
+        barh(i,l8(i),'FaceColor',[0 0 0]);
+    else
+        barh(i,l8(i),'FaceColor',[0.75 0.75 0.75]);
+    end
+end
 
 axis([0 300 0 22]);
 set(gca,'XTick',0:100:300);
 drawPublishAxis('figSize=[6,4.5]');
 
-subplot(122);
-barh(diff_like(:,1),'FaceColor',[0.75 0.75 0.75]);
+subplot(122); hold on
+for i = 1:21
+    if any(i==[1:9 11])
+        barh(i,l2(i),'FaceColor',[0 0 0]);
+    else
+        barh(i,l2(i),'FaceColor',[0.75 0.75 0.75]);
+    end
+end
 
 axis([0 300 0 22]);
 set(gca,'XTick',[ 0 100 200 300]);
@@ -406,18 +425,27 @@ savepdf(h,fullfile(datafolder,'avg_models','flex_inflex_bar.pdf'));
 %%
 h = figure; hold on
 
-diff_a = cd_a(:,:,1)-cd_a(:,:,2);
-
-subplot(121);
-barh(diff_a(:,2),'FaceColor',[0.75 0.75 0.75]);
+subplot(121); hold on
+for i = 1:21
+    if any(i==[1:9 11])
+        barh(i,cd8(i),'FaceColor',[0 0 0]);
+    else
+        barh(i,cd8(i),'FaceColor',[0.75 0.75 0.75]);
+    end
+end
 
 axis([0 .3 0 22]);
 set(gca,'XTick',0:.05:.25);
 drawPublishAxis('figSize=[6,4.5]');
 
-subplot(122);
-barh(diff_a(:,1),'FaceColor',[0.75 0.75 0.75]);
-
+subplot(122); hold on
+for i = 1:21
+    if any(i==[1:9 11])
+        barh(i,cd2(i),'FaceColor',[0 0 0]);
+    else
+        barh(i,cd2(i),'FaceColor',[0.75 0.75 0.75]);
+    end
+end
 axis([0 .3 0 22]);
 set(gca,'XTick',0:.05:.25);
 drawPublishAxis('figSize=[4.25,4.25]');

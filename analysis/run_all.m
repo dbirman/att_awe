@@ -77,6 +77,20 @@ unattend_ = squeeze(bootci(1000,@nanmedian,unattend));
 unattend_m = squeeze(mean(unattend_));
 unattend_s = squeeze(unattend_(2,:,:))-unattend_m;
 
+%% Average threshold increase
+ratio = unattend ./ attend;
+r_mu = nanmean(ratio);
+r_ci = bootci(10000,@nanmean,ratio);
+disp('Ratio increase');
+
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',r_mu(1),r_ci(1,1),r_ci(2,1)));
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',r_mu(2),r_ci(1,2),r_ci(2,2)));
+
+
+mu = nanmean(ratio(:));
+ci = bootci(10000,@nanmean,ratio(:));
+
+disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
 %% Disp info for paper
 
 contrast = [0.325 0.4 0.55 0.85];

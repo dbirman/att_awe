@@ -324,118 +324,50 @@ ci = bootci(10000,@nanmean,dcd);
 disp(sprintf('Additive to poisson CD: %1.2f, 95%% CI [%1.2f, %1.2f]',mean(dcd),ci(1),ci(2)));
 
 % add poiss likelihood
-dr2 = fr2(:,1,2)-fr2(:,2,2);
-ci = bootci(10000,@nanmean,dr2);
-disp(sprintf('Additive to poisson cvLL: %1.2f, 95%% CI [%1.2f, %1.2f]',mean(dr2),ci(1),ci(2)));
-
-%% Compute the difference in likelihood ratio
-add = squeeze(fr2(:,1,2));
-poi = squeeze(fr2(:,2,2));
-diffe = add-poi;
-
-aci = bootci(1000,@mean,add);
-pci = bootci(1000,@mean,poi);
-dci = bootci(1000,@mean,diffe);
-
-figure;
-hist(diffe)
-
-
-%% cd vs r2
-add_cd = squeeze(fcd(:,1,:));
-poi_cd = squeeze(fcd(:,2,:));
-
-cd_diff = add_cd-poi_cd;
-
-% note the last dimension is ropt (8/2)
-
-figure;
-plot(100*cd_diff,diffe,'*k');
-xlabel('\Delta CD');
-ylabel('\Delta R^2');
+dlike = fr2(:,1,2)-fr2(:,2,2);
+ci = bootci(10000,@nanmean,dlike);
+disp(sprintf('Additive to poisson cvLL: %1.2f, 95%% CI [%1.2f, %1.2f]',mean(dlike),ci(1),ci(2)));
 
 %% Generate horizontal bar plot of likelihood differences
 h = figure; hold on
 
-barh(diffe,'FaceColor',[0.75 0.75 0.75]);
-% axis([-300 300 0 22]);
-set(gca,'XTick',[0 log(100) log(10000) log(100000000)]);
+orig = 1:21;
+[d,idx] = sort(dlike,'descend');
+
+for i = 1:21
+    if idx(i)<=11
+        barh(i,d(i),'FaceColor',[0 0 0]);
+    else
+        barh(i,d(i),'FaceColor',[0.75 0.75 0.75]);
+    end
+end
+
+% barh(1:11,d(1:11),'FaceColor',[0 0 0]);
+% barh(12:21,d(12:21),'FaceColor',[0.75 0.75 0.75]);
+axis([-300 300 0 22]);
 drawPublishAxis('figSize=[6,4.5]');
 
-
 savepdf(h,fullfile(datafolder,'avg_models','add_poiss_bar.pdf'));
-
-%% Text stats
-bootci(1000,@mean,diffe)
-mean(diffe)
 
 %% Generate horizontal bar plot of CD differences
 h = figure; hold on
 
-barh(cd_diff(:,2),'FaceColor',[0.75 0.75 0.75]);
+cd_sort = dcd(idx);
 
-axis([0 0.1 0 22]);
-set(gca,'XTick',[0:.05:.1]);
+for i = 1:21
+    if idx(i)<=11
+        barh(i,cd_sort(i),'FaceColor',[0 0 0]);
+    else
+        barh(i,cd_sort(i),'FaceColor',[0.75 0.75 0.75]);
+    end
+end
+
+axis([-10 10 0 22]);
+set(gca,'XTick',[-10:5:10]);
 
 drawPublishAxis('figSize=[6,4.5]');
 
 savepdf(h,fullfile(datafolder,'avg_models','add_poiss_cd.pdf'));
-
-%% Text stats
-bootci(1000,@mean,cd_diff(:,2))
-mean(cd_diff(:,2))
-
-%% Contrast/coherence responses used to fit behavior
-h = figure; hold on
-
-cmap = brewermap(7,'PuOr');
-
-x = 0:.001:1;
-plot(x,squeeze(respcon_(1,:)),'Color',cmap(2,:));
-plot(x,squeeze(respcoh_(8,:)),'Color',cmap(6,:));
-
-l = legend({'V1 Contrast response function','MT Coherence response function'},'FontSize',7,'FontName','Helvetica');
-set(l,'box','off');
-
-set(gca,'XTick',[0 1],'XTickLabel',[0 100]);
-
-xlabel('Stimulus strength (%)');
-ylabel('\Delta signal (%)');
-
-drawPublishAxis('figSize=[18,14]');
-
-% savepdf(h,fullfile('~/proj/att_awe/talks/data_figures/v1mt.pdf'));
-
-%% indiv_fits_2
-
-% check to see whether the parameters are of similar magnitudes for V1 and
-% MT
-restructure_afits_2;
-
-rois = {'V1','MT'};
-cons = {'coh','con'};
-for ni = 1:21
-    for ri = 1:2
-        for ci = 1:2
-            betas(ni,ri,ci) = afits{ni}{1}.params.(sprintf('beta_control_%s_%sw',rois{ri},cons{ci}));
-        end
-    end
-    r2_2(ni) = -sum(afits{ni}{1}.cv.like);
-end
-
-v1_con = betas(:,1,2);
-mt_coh = betas(:,2,1);
-
-bootci(10000,@mean,v1_con)
-mean(ans)
-bootci(10000,@mean,mt_coh)
-mean(ans)
-
-bootci(10000,@mean,1./[v1_con mt_coh])
-
-
-
-
 
 
 %% Stay switch model (just additive)
@@ -534,319 +466,3 @@ diff = like(:,1)-like(:,2);
 
 mean(diff)
 bootci(1000,@mean,diff)
-
-%% OLD PLOTS
-
-%% Generate histogram of R^2 values
-
-% histogram plot: DIFFERENCE FOR NAKA-RUSHTON MODEL OF ADDITIVE VS. POISSON
-h = figure; hold on
-
-vline(0,'--k');
-[b,i] = hist(diffe,30);
-d = diff(i); d = d(1);
-for ii = 1:length(b)
-    if b(ii)>0
-        if abs(i(ii))>2
-            rectangle('Position',[i(ii)-d/2 0 d b(ii)],'FaceColor',[0.75 0.75 0.75],'EdgeColor',[0 0 0]);
-        else
-            rectangle('Position',[i(ii)-d/2 0 d b(ii)],'FaceColor',[0.5 .5 .5],'EdgeColor',[0 0 0]);
-        end
-    end
-end
-% a2 = axis;
-% mult = max(a2(1)/a(1));
-vline(0,'--k');
-axis([-125 175 0 3]);
-set(gca,'XTick',[-100 -50 0 50 100 150],'XTickLabel',{'Evidence for Poisson','-50', '0', '50', '100', 'Evidence for additive'});
-% set(gca,'XTick',[-5 5]*mult,'XTickLabel',{'Naka-Rushton','Linear'});
-% set(gca,'XTick',round([-5 5]*mult));
-set(gca,'YTick',[0 1 2 3]);
-ylabel('Observers');
-xlabel('\Delta Likelihood (Additive - Poisson)');
-title('Model comparison: additive vs. Poisson noise');
-% axis([a(1)*mult a(2)*mult a2(3) a2(4)]);
-drawPublishAxis('figSize=[4.5,3.5]');
-savepdf(h,fullfile(datafolder,'avg_models','add_poiss_hist.pdf'));
-
-%% CD plot
-h = figure; hold on
-
-temp_cd = squeeze(cd(:,:,1));
-
-plot(temp_cd(:,1),temp_cd(:,2),'o','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
-plot([min(temp_cd(:)) max(temp_cd(:))],[min(temp_cd(:)) max(temp_cd(:))],'--r');
-xlabel('Additive model r^2');
-ylabel('Poisson model r^2');
-axis([.35 .5 .35 .5]);
-set(gca,'XTick',[.35 .4 .45 .5],'YTick',[.35 .4 .45 .5]);
-set(gca,'XTickLabel',{'35%','40%','45%','50%'},'YTickLabel',{'35%','40%','45%','50%'});
-drawPublishAxis('figSize=[4.5,3.5]');
-savepdf(h,fullfile(datafolder,'avg_models','add_poiss_r2.pdf'));
-
-%% I have no idea what all thi scode does
-
-dat = 1./[v1_con;mt_coh];
-bootci(10000,@mean,dat)
-
-%% Fit ALL data
-
-% aadata = [];
-% for ai = 1:length(aSIDs)
-%     adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
-%     aadata = [aadata;adata];
-% end
-%
-% jointfit = cell(length(mopts),length(bmodels));
-% for mi = 1:length(mopts)
-%     for rcon = 1
-%         for rcoh = 8
-%             for bi = 1:length(bmodels)
-%                 clapse = mean(lapses);
-%                 jointfit{mi,bi} = fitCCBehavControlModel_fmri(aadata,[],bmodels{bi},squeeze(respcon_(mi,rcon,:)),squeeze(respcoh_(mi,rcoh,:)),clapse);
-%             end
-%             close all
-%         end
-%     end
-% end
-
-%% Load
-load(fullfile(datafolder,'avg_indiv_fits.mat'));
-
-%% Sigmas
-clear sigmas
-for ai = 1:length(aSIDs)
-    for bm = 1:2
-        sigmas(ai,bm) = afits{ai}{1,bm,1,8}.params.sigma;
-    end
-end
-
-%% Probs
-clear muprobs
-for ai = 1:length(aSIDs)
-    for bm = 1:2
-        muprobs(ai,bm) = (afits{ai}{1,bm,1,8}.muProb-0.5)*2;
-    end
-end
-
-%% Indivi plot figures
-plot_indiv_rightchoice_model;
-
-%% Figure 7
-plot_rightchoice_model;
-
-%% ROI Parameter plot
-afits = restructure_afits('avg_indiv_fits_fmincon.mat');
-
-sensitivity = zeros(2,2,length(aSIDs),8,2);
-ROIs = {'V1','V2','V3','V4','V3a','V3b','V7','MT'};
-cons = {'cohw','conw'};
-for bi = 1:2
-    for ro = 1:2
-        for ai = 1:length(aSIDs)
-            for ri = ropts{ro}
-                for ci = 1:2
-                    sensitivity(bi,ro,ai,ri,ci) = afits{ai}{bi,ro}.params.(sprintf('beta_control_%s_%s',ROIs{ri},cons{ci}));
-                end
-            end
-        end
-    end
-end
-
-%% display roi sensitivity for text in paper:
-
-% first for 8 area model
-csensitivity = squeeze(sensitivity(1,2,:,:,:));
-% average
-ms = bootci(1000,@nanmean,csensitivity);
-
-ms_ = squeeze(mean(csensitivity));
-
-for ci = 1:2
-    for ri = 1:8
-        disp(sprintf('%s = %2.1f s.d. 95\\%% CI [%2.1f %2.1f]; ',ROIs{ri},ms_(ri,ci),ms(1,1,ri,ci),ms(2,1,ri,ci)));
-    end
-end
-
-% now for the 2-area model
-csensitivity = squeeze(sensitivity(1,1,:,:,:));
-% average
-ms = bootci(1000,@nanmean,csensitivity);
-
-ms_ = squeeze(mean(csensitivity));
-
-for ci = 1:2
-    for ri = [1 8]
-        disp(sprintf('%s = %2.1f s.d. 95\\%% CI [%2.1f %2.1f]; ',ROIs{ri},ms_(ri,ci),ms(1,1,ri,ci),ms(2,1,ri,ci)));
-    end
-end
-
-%% get the bootstrapped average noise estimate
-con = squeeze(csensitivity(:,1,2));
-coh = squeeze(csensitivity(:,8,1));
-%%
-models = {'exp'};
-bmodels_text = {'additive','poisson'};
-
-for bi = 1%:2
-    for ro = 1:2
-        h = figure; clf; hold on
-
-        csensitivity = squeeze(sensitivity(bi,ro,:,:,:));
-
-        ci = bootci(1000,@nanmean,csensitivity);
-        s_mean = squeeze(mean(ci));
-        s_std = squeeze(ci(2,:,:,:))-s_mean;
-
-        tx = [0.75*ones(1,8)];
-        ty = [1.5*ones(1,8)];
-        conrange = abs([min(s_mean(:,2)) max(s_mean(:,2))]);
-        cohrange = abs([min(s_mean(:,1)) max(s_mean(:,1))]);
-        for ri = ropts{ro}
-            orangeness = [241 163 64] * (s_mean(ri,2)+conrange(1))/sum(conrange);
-            purpleness = [153 142 195] * (s_mean(ri,1)+cohrange(1))/sum(cohrange);
-            color = orangeness + purpleness / 2;
-            if any(color>255)
-                color = color / max(color) * 255;
-            end
-            % plot the horizontal error bar (constant y): CONTRAST
-            plot([-1 1]*s_std(ri,2) + s_mean(ri,2),repmat(s_mean(ri,1),1,2),'-','Color',color/255);
-            % plot vertical
-            plot(repmat(s_mean(ri,2),1,2),s_std(ri,1)*[-1 1] + s_mean(ri,1),'-','Color',color/255);
-            plot(s_mean(ri,2),s_mean(ri,1),'o','MarkerFaceColor',color/255,'MarkerEdgeColor','white','MarkerSize',5);
-            text(s_mean(ri,2)+tx(ri),s_mean(ri,1)+ty(ri),ROIs{ri},'Color',color/255);
-        end
-        axis([-13 35 -7 25]);
-        axis equal
-        set(gca,'XTick',[ -5 0 5 10 20 30]','YTick',[-5 0 5 10 20]);
-        v = hline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-        v = vline(0,'--'); set(v,'Color',[0.8 0.8 0.8]);
-        xlabel('Contrast weight (a.u.)');
-        ylabel('Coherence weight (a.u.)');
-    %     title(sprintf('Weights under %s noise',bmodels_text{bi}));
-        drawPublishAxis('figSize=[7,7]');
-    %     savepdf(h,fullfile('~/proj/att_awe/talks/data_figures',sprintf('avg_sensitivity_%s.pdf',models{mi})));
-        savepdf(h,fullfile(datafolder,'avg_models',sprintf('avg_weights_%s_%i.pdf',bmodels_text{bi},length(ropts{ro}))));
-    end
-end
-
-%% Fit gain parameter 
-
-load(fullfile(datafolder,'avg_indiv_fits.mat'));
-
-clear gfits
-for ai = 1:length(aSIDs)
-    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
-    
-    rcon = 1; % V1
-    rcoh = 8; % MT
-    clapse = lapses(ai);
-    %                     if clapse==0
-    %                         clapse = min(lapses(lapses>0));
-    %                     end
-    
-    % no cross-validation
-    fit_g = fitCCBehavControlModel_fmri(adata,afits{ai}{1,1,1,8}.params,'sigma,gain',squeeze(respcon_(1,rcon,:)),squeeze(respcoh_(1,rcoh,:)),clapse,0);
-    close all
-    gfits{ai} = fit_g;
-end
-
-save(fullfile(datafolder,'avg_gain_fits.mat'),'gfits');
-
-%% Pull gain
-
-load(fullfile(datafolder,'avg_gain_fits.mat'));
-
-for ai = 1:length(aSIDs)
-    r2_gain(ai) = gfits{ai}.r2;
-    gain(ai) = gfits{ai}.params.coh_gain;
-end
-
-load(fullfile(datafolder,'avg_indiv_fits.mat'));
-
-for ai = 1:length(aSIDs)
-    r2_orig(ai) = afits{ai}{1,1,1,8}.r2;
-end
-
-% remove subjects with no r2 improvement
-
-dr2 = r2_gain-r2_orig;
-idxs = dr2>.0155;
-
-dci = bootci(10000,@mean,dr2(idxs));
-dci = dci*100;
-
-disp(sprintf('R^2 improvement with gain %01.3f 95%% CI [%01.3f %01.3f]',mean(dci),dci(1),dci(2)));
-
-dg = bootci(10000,@mean,gain(idxs));
-
-disp(sprintf('Multiplicative gain %01.3f 95%% CI [%01.3f %01.3f]',mean(dg),dg(1),dg(2)));
-%% V1 vs MT vs other areas
-
-parfor ai = 1:length(aSIDs)
-    adata = loadadata(sprintf('s%03.0f',aSIDs(ai)));
-    
-    fits = cell(8,8);
-    for mi = 1
-        for rcon = 1:8
-            for rcoh = 1:8
-                for ni = 1
-                    clapse = lapses(ai);
-                    %                     if clapse==0
-                    %                         clapse = min(lapses(lapses>0));
-                    %                     end
-                    fits{rcon,rcoh} = fitCCBehavControlModel_fmri(adata,[],'freeze',squeeze(respcon_(mi,rcon,:)),squeeze(respcoh_(mi,rcoh,:)),clapse,1);
-                end
-                close all
-            end
-        end
-    end
-    afits{ai} = fits;
-end
-
-save(fullfile(datafolder,'avg_indiv_fits_rois.mat'),'afits');
-
-%% Pull CV 
-
-clear r2
-for ai = 1:length(aSIDs)
-    for rcon = 1:8
-        for rcoh = 1:8
-            r2(ai,rcon,rcoh) = afits{ai}{rcon,rcoh}.r2;
-        end
-    end
-end
-
-%% Take contrast V1 row and compute error bars
-for ri = 1
-    r2_v1 = squeeze(r2(:,ri,:));
-    r2_v1 = bootci(1000,@mean,r2_v1);
-
-    h= figure; hold on
-    errbar(1:8,mean(r2_v1),squeeze(r2_v1(2,:))-mean(r2_v1),'-k');
-    plot(1:8,mean(r2_v1),'ok','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
-    a = axis;
-    axis([1 8 a(3) a(4)]);
-    drawPublishAxis('figSize=[8.9 8.9]');
-end
-%% Take coherence MT row and compute error bars
-r2_v1 = squeeze(r2(:,:,5));
-r2_v1 = bootci(1000,@mean,r2_v1);
-
-h= figure; hold on
-errbar(1:8,mean(r2_v1),squeeze(r2_v1(2,:))-mean(r2_v1),'-k');
-plot(1:8,mean(r2_v1),'ok','MarkerFaceColor','k','MarkerEdgeColor','w','MarkerSize',5);
-a = axis;
-axis([1 8 a(3) a(4)]);
-drawPublishAxis('figSize=[8.9 8.9]');
-%% plot
-h = figure; hold on
-r2_ = squeeze(mean(r2));
-imagesc(r2_)
-colorbar
-colormap('gray')
-xlabel('Coherence ROI');
-set(gca,'XTick',1:8,'XTickLabel',ROIs);
-set(gca,'YTick',1:8,'YTickLabel',ROIs);
-ylabel('Contrast ROI');
-set(gca,'YDir','normal');

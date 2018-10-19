@@ -24,6 +24,8 @@ end
 % Load the sensitivity data for V1->MT during contrast and coherence
 % discrimination
 load(fullfile(datafolder,'avg_att_cross_fits.mat'));
+% single beta version: 
+% load(fullfile(datafolder,'avg_att_cross_fits_sb.mat'));
 
 x = 0:.001:1;
 respcon_ac = zeros(10,8,length(x));
@@ -147,14 +149,14 @@ end
 
 
 %% offsets
-offset_ac(offset_ac<0) = -10;
-offset_am(offset_am<0) = -10;
-o_p_ci = bootci(1000,@nanmean,offset);
-o_p = squeeze(mean(offset));
-o_c_ci = bootci(1000,@nanmean,offset_ac);
-o_c = squeeze(mean(offset_ac));
-o_m_ci = bootci(1000,@nanmean,offset_am);
-o_m = squeeze(mean(offset_am));
+% offset_ac(offset_ac<0) = -10;
+% offset_am(offset_am<0) = -10;
+o_p_ci = bootci(1000,@nanmedian,offset);
+o_p = squeeze(median(offset));
+o_c_ci = bootci(1000,@nanmedian,offset_ac);
+o_c = squeeze(median(offset_ac));
+o_m_ci = bootci(1000,@nanmedian,offset_am);
+o_m = squeeze(median(offset_am));
 
 %% Offset text for paper
 

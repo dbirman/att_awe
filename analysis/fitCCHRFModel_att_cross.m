@@ -239,7 +239,7 @@ fit.ROIs = fixedParams.ROIs;
 fit.conresp = fixedParams.con + fixedParams.baseoffset;
 if fixedParams.offset==2
     fit.conresp_con = fixedParams.con*fit.roiparams.con_congain + fixedParams.baseoffset + fit.roiparams.offset_con;
-    fit.conresp_coh = fixedParams.con*fit.roiparams.con_cohgain + fixedParams.baseoffset + fit.roiparams.offset_con;
+    fit.conresp_coh = fixedParams.con*fit.roiparams.con_cohgain + fixedParams.baseoffset + fit.roiparams.offset_coh;
 else
     fit.conresp_con = fixedParams.con*fit.roiparams.con_congain + fixedParams.baseoffset + fit.roiparams.offset_shift;
     fit.conresp_coh = fixedParams.con*fit.roiparams.con_cohgain + fixedParams.baseoffset + fit.roiparams.offset_shift;
@@ -249,7 +249,7 @@ fit.condata_coh = data.beta(logical((data.taskidx==1)));
 
 fit.cohresp = fixedParams.coh + fixedParams.baseoffset;
 if fixedParams.offset==2
-    fit.cohresp_con = fixedParams.coh*fit.roiparams.coh_congain + fixedParams.baseoffset + fit.roiparams.offset_coh;
+    fit.cohresp_con = fixedParams.coh*fit.roiparams.coh_congain + fixedParams.baseoffset + fit.roiparams.offset_con;
     fit.cohresp_coh = fixedParams.coh*fit.roiparams.coh_cohgain + fixedParams.baseoffset + fit.roiparams.offset_coh;
 else
     fit.cohresp_con = fixedParams.coh*fit.roiparams.coh_congain + fixedParams.baseoffset + fit.roiparams.offset_shift;

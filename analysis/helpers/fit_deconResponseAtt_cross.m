@@ -116,6 +116,7 @@ save(fullfile(datafolder,'avg_att_cross_fits_ng.mat'),'attfits');
 
 %% check the gain parameters
 
+load(fullfile(datafolder,'avg_att_cross_fits_ng.mat'));
 for ni = 1:length(nSIDs)
     for ri = 1:8
         oc(ni,ri) = attfits{ni}{1}.roifit{ri}.params.(sprintf('%soffset_con',rois{ri}));
