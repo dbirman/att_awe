@@ -139,12 +139,14 @@ drc_ci = bootci(1000,@mean,drc);
 drm_ = mean(drm);
 drm_ci = bootci(1000,@mean,drm);
 
+disp('Difference in contrast')
 for ri = 1:8
-    disp(sprintf('%s: %1.2f (95%% CI [%1.2f, %1.2f]); ',rois{ri},drc_(ri),drc_ci(1,ri),drc_ci(2,ri)));
+    fprintf('%s: %1.2f, 95%% CI [%1.2f, %1.2f], ',rois{ri},drc_(ri),drc_ci(1,ri),drc_ci(2,ri));
 end
 
+disp('Difference in motion')
 for ri = 1:8
-    disp(sprintf('%s: %1.2f (95%% CI [%1.2f, %1.2f]); ',rois{ri},drm_(ri),drm_ci(1,ri),drm_ci(2,ri)));
+    fprintf('%s: %1.2f, 95%% CI [%1.2f, %1.2f]); ',rois{ri},drm_(ri),drm_ci(1,ri),drm_ci(2,ri));
 end
 
 
@@ -160,19 +162,17 @@ o_m = squeeze(median(offset_am));
 
 %% Offset text for paper
 
-o_all = cat(3,offset_ac,offset_am);
-o_all = mean(o_all,3);
-o_a = squeeze(mean(o_all));
-o_a_ci = bootci(10000,@nanmean,o_all);
+o_diff = offset_ac-offset_am;
+mu = mean(o_diff);
+ci = bootci(10000,@mean,o_diff);
 
 % average offset
 for ri = 1:8
-    fprintf('%s %1.2f, ',rois{ri},o_a(ri));
+    fprintf('%s %1.2f, 95%% CI [%1.2f, %1.2f], ',rois{ri},mu(ri),ci(1,ri),ci(2,ri));
 %     fprintf('%s %1.2f, 95%% CI [%1.2f, %1.2f], ',rois{ri},o_a(ri),o_a_ci(1,ri),o_a_ci(2,ri));
 end
 % average difference in offset
 
-o_diff = offset_ac-offset_am;
 
 
 %% Plot the offset info
