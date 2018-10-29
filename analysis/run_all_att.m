@@ -34,6 +34,9 @@ for ni = 1:length(nSIDs)
     indiv_analysis(sprintf('s%04.0f',nSIDs(ni)),'decon');
 end
 
+%% Compare scanner behavior to outside scanner behavior
+
+
 %% Cross analysis
 % Cross analysis deconvolves the 16 combinations of contrast and coherence
 % rather than separately deconvolving the contrast and coherence response.

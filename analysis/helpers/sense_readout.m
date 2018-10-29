@@ -143,6 +143,7 @@ disp('Difference in contrast')
 for ri = 1:8
     fprintf('%s: %1.2f, 95%% CI [%1.2f, %1.2f], ',rois{ri},drc_(ri),drc_ci(1,ri),drc_ci(2,ri));
 end
+disp('\n')
 
 disp('Difference in motion')
 for ri = 1:8

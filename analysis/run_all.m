@@ -91,6 +91,24 @@ mu = nanmean(ratio(:));
 ci = bootci(10000,@nanmean,ratio(:));
 
 disp(sprintf('%1.2f, 95%% CI [%1.2f, %1.2f]',mu,ci(1),ci(2)));
+
+%% Check if the scanning subjects are better than the non-scanning subjects
+scan = control(1:11,:,:);
+non = control(12:end,:,:);
+
+mu_s = nanmean(scan);
+ci_s = bootci(1000,@nanmean,scan);
+
+mu_n = nanmean(non);
+ci_n = bootci(1000,@nanmean,non);
+
+clear p h stats
+for task=1:2
+    for base=1:4
+        [p(task,base),h(task,base),stats{task,base}] = ranksum(scan(:,task,base),non(:,task,base));
+    end
+end
+
 %% Disp info for paper
 
 contrast = [0.325 0.4 0.55 0.85];
