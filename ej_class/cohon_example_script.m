@@ -170,7 +170,7 @@ end
 
 % ***** PARAMETERS ****** %
 % task 2 = contrast, 1 = coherence
-task = 2; 
+task = 1; 
 % *********************** %
 
 stask = tasks{task};
@@ -212,7 +212,7 @@ inc = 0:.001:.25;
 pred = cohcon_predict('V1',x,0,1);
 y = pred.contrastResponse;
 
-clear pred
+clear pred prob
 for bi = 1:length(ubase)
     base = ubase(bi);
     
@@ -233,7 +233,7 @@ prob = mean(prob);
 
 % Plot this onto the contrast figure (fig 4) from before -- you may need to
 % re-run the block above to plot that figure.
-
+task = 2
 stask = tasks{task};
 cm = cmaps{task};
 
