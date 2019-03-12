@@ -293,20 +293,20 @@ end
 % ***** PARAMETERS ****** %
 
 % weight in the CONTRAST task:
-v1_c = 30;
-mt_c = -5;
+v1_c = 15;
+mt_c = -3;
 
 % weight in the COHERENCE task:
-v1_m = -1;
-mt_m = 15;
+v1_m = -1.5;
+mt_m = 20;
 
-lapse = 0.1;
+lapse = 0.3;
 % *********************** %
 
 
 % compute over each base simultaneously
-cbase = [0.325, 0.4, 0.55, 0.85];
-mbase = [0.15 0.3 0.45 0.6];
+cbases = [0.325, 0.4, 0.55, 0.85];
+mbases = [0.15 0.3 0.45 0.6];
 
 clear v1 mt
 x = 0:.001:1.25;
@@ -318,75 +318,94 @@ pred = cohcon_predict({'V1','MT'},0,x,1);
 v1(:,1) = pred.coherenceResponse(:,1);
 mt(:,1) = pred.coherenceResponse(:,2);
 
-clear pred
-for bi = 1:length(cbase)
-    base = cbase(bi);
+clear pred v1resps mtresps
+for bi = 1:length(cbases)
+    cbase = cbases(bi);
+    mbase = mbases(bi);
     
-    % first compute responses for contrast for each area 
-    binc = base+inc;
-    clear conresp
-    conresp = zeros(length(binc),2);
+    % compute responses for contrast/coherence
+    cinc = cbase+inc;
+    minc = mbase+inc;
+    
+    clear v1resp mtresp
+    v1resp = zeros(length(cinc),2);
+    mtresp = v1resp;
     for ri = 1:length(binc)
-        % compute v1 response
-        conresp(ri,1) = v1(find(x>=binc(ri),1),2);
-        conresp(ri,2) = mt(find(x>=binc(ri),1),2);
+        % compute contrast responses
+        v1resp(ri,2) = v1(find(x>=cinc(ri),1),2);
+        mtresp(ri,2) = mt(find(x>=cinc(ri),1),2);
+        
+        v1resp(ri,1) = v1(find(x>=minc(ri),1),1);
+        mtresp(ri,1) = mt(find(x>=minc(ri),1),1);
     end
-    conresp = conresp - repmat(conresp(1,:),size(conresp,1),1);
-    cresp(bi,:,:) = conresp;
+    v1resp = v1resp-repmat(v1resp(1,:),size(v1resp,1),1);
+    mtresp = mtresp-repmat(mtresp(1,:),size(mtresp,1),1);
+    v1resps(bi,:,:) = v1resp;
+    mtresps(bi,:,:) = mtresp;
 end
 
-for bi = 1:length(cbase)
-    base = cbase(bi);
-    
-    % first compute responses for contrast for each area 
-    binc = base+inc;
-    clear conresp
-    cohresp = zeros(length(binc),2);
-    for ri = 1:length(binc)
-        % compute v1 response
-        cohresp(ri,1) = v1(find(x>=binc(ri),1),2);
-        cohresp(ri,2) = mt(find(x>=binc(ri),1),2);
-    end
-    cohresp = cohresp - repmat(cohresp(1,:),size(cohresp,1),1);
-    mresp(bi,:,:) = cohresp;
-end
-
+% for clarity
+clear v1resp mtresp
 % average over bases
-cresp = squeeze(mean(cresp));
-mresp = squeeze(mean(mresp));
+v1resp = squeeze(mean(v1resps));
+mtresp = squeeze(mean(mtresps));
 
- % add the responses together (each area has only one response, to both
- % features)
-resp = resp_c + resp_m;
+% note: we have to do something tricky here. Because we're generating the
+% perceptual sensitivity as if the stimuli were uncorrelated we don't want
+% to sum the responses together, although in reality the way the model
+% works is that each area has only one response (the sum of the contrast
+% and coherence response). We keep them separate here so we can calculate
+% sensitivity separately according to condition.
 
-% weight the response according to the task
-resp_c = cresp * [v1_c;mt_c];
-resp_m = mresp * [v1_m;mt_m];
+% separate the responses according to task
 
+% when reporting contrast, it's "as if" you are only shown differences in 
+% contrast:
+conresp = [v1resp(:,2) mtresp(:,2)];
+% when reporting coherence, it's "as if" you are only shown differences in
+% coherence:
+cohresp = [v1resp(:,1) mtresp(:,1)];
 
-prob(2,bi,:) = normcdf(resp_c,0,noise);
-prob(1,bi,:) = normcdf(resp_m,0,noise);
-prob = (prob-0.5) * (1-lapse) + 0.5;
+stims = {cohresp conresp};
+reports = {[v1_m;mt_m] [v1_c;mt_c]};
 
-% collapse over the base contrasts (as done in the behavioral data)
-prob = squeeze(mean(prob,2));
+% first dimension in prob is the stimulus 
+% second dimension is the report
+clear prob
+for si = 1:length(stims)
+    for ri = 1:length(reports)
+        tresp = stims{si}*reports{ri};
+        prob(si,ri,:) = normcdf(tresp,0,1);
+    end
+end
 
+% reduce by lapse rate
+prob = (prob-0.5)*(1-lapse/2)+0.5;
+
+% plot by report type
+subplot(121);
+tp = squeeze(prob(1,1,:))';
+plot([-fliplr(inc) inc],[1-fliplr(tp) tp],'Color',cmaps{1});
+tp = squeeze(prob(2,1,:))';
+plot([-fliplr(inc) inc],[1-fliplr(tp) tp],'Color',cmaps{2});
+
+subplot(122);
+tp = squeeze(prob(1,2,:))';
+plot([-fliplr(inc) inc],[1-fliplr(tp) tp],'Color',cmaps{1});
+tp = squeeze(prob(2,2,:))';
+plot([-fliplr(inc) inc],[1-fliplr(tp) tp],'Color',cmaps{2});
 
 %% Some notes:
-% This script doesn't include a lot of things that we do in the papers,
-% like cross-validation and model comparison. But, I hope that it helps you
-% get a better sense of the model and how it was implemented, as well as
-% some of the raw data!
-
-
-
-%% Helper scripts:
+% This script doesn't include a lot of things that we do in the papers!
 % 
-% nSIDs = [305 329 43 25 300 346 343 344 338 340 348];
-% bSIDs = [345 330 337 335 349 354 353 356 334 352]; % behavior only participants
-% aSIDs = [nSIDs bSIDs];
-% 
-% % copy all the files
-% for ai = 1:length(aSIDs)
-%     copyfile(fullfile(datafolder,sprintf('s%03.0f_adata.mat',aSIDs(ai))),fullfile('~/proj/ej_class/data/',sprintf('%i_data.mat',ai)));
-% end
+% For example:
+%   To fit the model parameters via maximum-likelihood, how would you 
+%   compute the likelihood of a trial?
+%   
+%   We use cross-validation to ensure that a model is not overfitting. What
+%   would that entail here?
+%
+%   You might want to add various kinds of bias, for example participants
+%   might just be more likely to say "left" or "right" on a trial. Do you
+%   see any of this in the average data? How could you add it to the model
+%   above?
