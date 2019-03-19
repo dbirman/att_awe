@@ -1,0 +1,94 @@
+Reviewer #1 (Remarks to the Author):
+
+The effect of attention on sensory representations has long been described as a simple gain on neuronal responses. While it is intuitive to imagine that such a gain could improve discrimination under some contexts, any change to the sensory representation also has the possibility of corrupting that representation and therefore altering behavior with negative consequences. Alternatively, a shift in the readout might be able to accomplish the same goals (improving behavior at the locus of attention) while not risking a corruption to the sensory code. While there has been substantial research into attention in psychophysics, physiology, and imaging over recent decades, there has been relatively little focus into how the neural signature for attention could coexist with the existing neural code for sensory stimuli. This historical context places the current study by Birman & Gardner on good footing, addressing an important and topical issue in neural coding.
+
+The authors had observers perform a 2AFC task in which observers had to report which of two dot patches had higher contrast or coherence (in different blocks of trials). On a subset of trials, after the stimulus was shown they were asked to report about the out-of-context feature (i.e., report about contrast in a coherence block) based on a cue given after the stimulus that was to be discriminated. Thus, this can be considered to be a feature attention task, while the spatial location was varied randomly to distribute spatial attention evenly. Observers performed this task well, and essentially ignored the out-of-context feature (which they were essentially at chance in discriminating). The observers did this in a MRI scanner, and the trial-by-trial response of multiple visual areas was simulated from the MRI data based on a framework from a recently published paper from the same authors (Birman & Gardner, 2018, J Neurophysiol).
+
+Then, they constructed a linking model to relate trial-by-trial activity to behavior. They show that this model fits the data reasonably well, and then turn to the question that motivated their paper - does the sensory signal change or does the readout change when the context is altered? The linking model they used (built on passive viewing data) predicted that the readout weights had to shift quite a bit between tasks to account for the shift in behavior. Then, through a series of MRI+behavioral analyses, they argue that a flexible readout model matches the data better than a fixed readout model.
+
+Overall, I found the work addresses a compelling scientific question and brings a rigorous and sophisticated analytical framework to bear. Because the analyses are essentially all run through their linking model, it does lead to a bit of abstraction that makes the results and interpretation dense. I also have some concerns about the likelihood that the fixed readout model could have been true on its own. Did we really think that an observer would perform this task based entirely on changes to sensory signals, without any top-down mechanisms? It seems unlikely that would be the case in my opinion (see more below). That said, I think it’s a very nice study and advances our thinking on an important scientific issue that has received too little focus.
+
+Major Comments:
+
+(1) In general as a starting comment, I found that while I liked this paper a lot, going through it required me to dig very deeply into the methods to understand what the authors did with their analysis. Perhaps that was just me, but I think overall it indicates that the results could have a little more structure guiding the reader about the overall gist of what is being done at each point in the paper. For example, at line 212 I understood what the broad question was - does the sensory response change or does the readout change? But I could not get what the method was for analyzing the data for quite some time. The units of the vertical axis are contrast-sensitivity (% signal change). I eventually figured out that meant they had measured contrast sensitivity functions in both contexts, and compared them. This is all reasonable, but it was (1) hard to figure out, for me and (2) not what I expected at first. I think the paper could benefit from some general discussion of how nearly
+all the measurements are interpreted in light of the linking model, and it’s fits. This is all the more important because critical background for this study is also in another paper by these authors from last year. It makes the presentation a little bit difficult to follow.
+
+**Re-read the paper and figure out how to simplify. 
+
+
+(2) In the specific comparison between contexts (Fig 6), is there any possibility of doing a more raw data analysis? For instance, something I had expected was a comparison of individual hemodynamic responses to particular identical stimuli from the two contexts. For a particular dot pattern on the screen, with a particular coherence & contrast, how different are the responses in the two contexts relative to the differences between dot patterns of differing strength? This seems like a more direct & raw comparison of the question of “does the sensory code change”. Is such an analysis possible here?
+
+
+** Move the statistics into the figure? Use the reviewers statement "a more direct & raw comparison blah"
+
+
+(3) There’s a lot of population-level electrophysiology literature on the issue of whether/how attention changes the sensory representation, and how the readout might be changed by attention. I found the background in those areas a little bit sparse, and could be filled out with some more recent references that have asked a similar question to this manuscript at the spiking level. Here are a few suggestions (not an exhaustive list). I provided a range not because any one of these papers *needs* to be cited, but rather it would be useful to add depth to the introduction in the general domain of how spiking data has also been used to address this same question.
+
+On the Structure of Neuronal Population Activity under Fluctuations in Attentional State.
+Ecker AS, Denfield GH, Bethge M, Tolias AS.
+J Neurosci. 2016 Feb 3;36(5):1775-89. doi: 10.1523/JNEUROSCI.2044-15.2016.
+
+Internal Gain Modulations, But Not Changes in Stimulus Contrast, Preserve the Neural Code.
+Lee S, Park J, Smirnakis SM.
+J Neurosci. 2019 Feb 27;39(9):1671-1687. doi: 10.1523/JNEUROSCI.2012-18.2019. Epub 2019 Jan 15.
+
+Attention stabilizes the shared gain of V4 populations.
+Rabinowitz NC, Goris RL, Cohen M, Simoncelli EP.
+Elife. 2015 Nov 2;4:e08998. doi: 10.7554/eLife.08998.
+
+A normalization model suggests that attention changes the weighting of inputs between visual areas.
+Ruff DA, Cohen MR.
+Proc Natl Acad Sci U S A. 2017 May 16;114(20):E4085-E4094. doi: 10.1073/pnas.1619857114. Epub 2017 May 1.
+
+Distinct population codes for attention in the absence and presence of visual stimulation.
+Snyder AC, Yu BM, Smith MA.
+Nat Commun. 2018 Oct 22;9(1):4382. doi: 10.1038/s41467-018-06754-5.
+
+
+** add paragraph in the introduction??
+
+(4) My starting intuition for the task used by the authors would not be that a sensory code change could explain the behavior fully. We know that in visual cortex in anesthetized animals, neurons still respond to visual stimuli, and yet they don’t behave. From that simple observation, we know that activity in our sensory systems does not always fully translate to behavior. So why would we expect a change to the sensory representation alone to produce the observer’s behavior? We know that some top-down systems can flexibly adapt to sensory signals and guide behavior. So the default, in my opinion, would be that there is at least some degree of flexible readout. The question then becomes, more directly, whether attention changes the early sensory representation of stimuli S1 and S2 (differing strengths of the same feature) enough to explain why we improve in discriminating S1 and S2. If it doesn’t, then perhaps it’s in the readout of S1/S2 that something changes. I’m not
+100% sure I’m making a distinction that would make sense in the author’s framework, but it’s the one that makes more sense to me. At the very least, this points to the importance of providing a more intuitive sense of how their model relates to overall stimulus processing and top-down changes in attention.
+
+
+** geraint rees early paper, attending stimulus in MT there is a strong motion selective response but doing something else no response at all 1990s ish nature/science. Marissa Carrasco review "sensitivity enhancement is all it is". Find examples of the extreme view and pushing back on it. 
+
+
+
+Minor Comment:
+
+Line 413 - which select (REFERENCE) align (REFERENCE). Missing “and”?
+
+
+
+
+
+Reviewer #2 (Remarks to the Author):
+
+The authors address two potential workings of attentional mechanisms, one where the sensory input is altered at an early processing stage, and one where attention mostly reflects the choice of readout of sensory information. Using contrast and coherence discrimination tasks and model testing they concluded that a readout mechanism best explained the data. 
+The issue is clearly stated in the introduction and the task they use is a sophisticated one. However, I had quite a bit of difficulty following the steps in generation and testing of the linking model, which makes it hard for me to judge the merits of many of their methods and the validity of their overall conclusions. Now my area of expertise is mostly imaging, so my comments mainly address the issues regarding the fMRI. However, as I suspect that nature communications attempts to draw a relatively broad audience, this might be an issue. 
+Regarding the imaging, I found quite a number of steps a bit puzzling, at least quite non-standard, requiring some explicit justification/explanation. 
+
+-Taking the top 25 voxels of each area for the larger areas would mean a proportionally very small included volume. Also, a fixed number of voxels would mean a very different percentage of included voxels for each area because of their large size differences. Why did the authors not choose for fixed percentage of the voxels of each area? In addition, I cannot find any mentioning of a differentiation between the left and the right hemisphere. Am I missing something? This would imply that the results are not necessarily balanced per hemifield. Because stimulation with this task was effectively done per hemifield/hemisphere, this might very much skew any results. 
+
+** Explicit statement in the text stating that this doesn't matter b/c of correlations
+
+-I’m not a big fan of random ISI designs in fMRI, as they so much depend on the linearity assumption between neural activity and the hemodynamic response. It’s very hard to predict under which circumstances, i.e. the repeated activity within particular timeframes, this assumption breaks down. This can lead an incorrect models and even potential confounding when trial orders and intervals are not fully balanced across trial types. It would be helpful if the authors could provide a metric regarding this.
+
+** Good thing we did this in the other paper
+
+-81 impulse functions per trial type with a TR of 0.5 seconds implies the modeling of up to 40.5 seconds till after the event, while 20 seconds would under almost all circumstances seem sufficient , and giving reduced issues with multicollinearity (see next issue). What was the reason for this?
+
+** Doesn't really matter, but try 20 seconds 
+
+-Do the authors mean with 2592 columns that they have 2592 factors in their design matrix? This seems like an excessively large number, sacrificing many degrees of freedom. What was the total number of acquired scans? Also, such large number of factors seems risky regarding potential multicollinearity in the design matrix. Was the multicollinearity explicitly tested? As no BOLD responses are actually shown, and voxels are selected based on the presence of task activity, it is currently not possible to judge if this has been the case. 
+
+** Mistake: not the correct number 
+
+-I could not figure out from the text how the estimated responses using FIR’s is translated into a BOLD amplitude estimate
+
+** Mistake: fix that 
+
+-Page 5: I was a bit confused regarding the elaborate description of the neuronal background regarding contrast discrimination, whereas coherence discrimination did not receive such treatment. The relationship between coherence and activity seems far less straightforward. E.g, in MT , where there is a lot of center surround suppression, increased coherence does not necessarily lead to larger BOLD responses. 
+
+** Copy information from the other paper about coherence
